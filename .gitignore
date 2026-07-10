@@ -5,3 +5,4 @@ server/data/data.json
 .env
 *.log
 .DS_Store
+src/logo-preview.html

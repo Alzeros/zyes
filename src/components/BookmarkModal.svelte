@@ -19,7 +19,10 @@
 
   let title = $state(bookmark?.title || '');
   let url = $state(bookmark?.url || '');
-  let categoryId = $state(bookmark?.categoryId || (categories[0]?.id ?? ''));
+  // Preserve empty string (uncategorized) on edit; default to first category only when adding.
+  let categoryId = $state(
+    bookmark ? bookmark.categoryId : (categories[0]?.id ?? '')
+  );
   let description = $state(bookmark?.description || '');
   let icon = $state(bookmark?.icon || '');
   let saving = $state(false);

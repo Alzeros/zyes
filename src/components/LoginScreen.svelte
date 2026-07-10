@@ -28,8 +28,24 @@
 
 <div class="min-h-screen flex items-center justify-center bg-bg dark:bg-bg-dark p-4">
   <div class="w-full max-w-sm">
-    <div class="text-center mb-8">
-      <h1 class="text-4xl font-bold text-primary mb-2">{t('login.title')}</h1>
+    <div class="flex flex-col items-center justify-center mb-8">
+      <div class="flex items-center gap-1 mb-2">
+        <span class="zyes-mark inline-grid place-items-center" style="width:28px;height:36px">
+          <svg width="28" height="36" viewBox="6 5 17 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <!-- Light mode: dark slate Z -->
+            <g class="zyes-light">
+              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
+              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.2" />
+            </g>
+            <!-- Dark mode: white Z -->
+            <g class="zyes-dark">
+              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
+              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.3" />
+            </g>
+          </svg>
+        </span>
+        <span class="zyes-word text-4xl font-bold tracking-tight">yes</span>
+      </div>
       <p class="text-text-secondary dark:text-text-secondary-dark text-sm">{t('login.subtitle')}</p>
     </div>
 

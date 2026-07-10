@@ -7,13 +7,11 @@
     searchEngines,
     lang,
     onlogout,
-    ontoggleSidebar,
     ontoggleLang,
   }: {
     searchEngines: SearchEngine[];
     lang: string;
     onlogout: () => void;
-    ontoggleSidebar: () => void;
     ontoggleLang: () => void;
   } = $props();
 
@@ -32,23 +30,32 @@
 
 <header class="sticky top-0 z-30 bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border dark:border-border-dark">
   <div class="flex items-center gap-3 px-4 py-3 lg:px-6">
-    <button
-      onclick={ontoggleSidebar}
-      class="md:hidden p-2 rounded-lg hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
-      aria-label={t('header.toggleSidebar')}
-    >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    </button>
+    <a href="/" class="flex items-center gap-1 shrink-0 group/logo">
+      <!-- Mark: Design #1 – sharp miter Z, tight crop -->
+      <span class="inline-grid place-items-center" style="width:22px;height:28px">
+        <!-- viewBox tightly crops just the Z: x 6..23, y 5..27 -->
+        <svg width="22" height="28" viewBox="6 5 17 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- Light mode: dark slate Z -->
+          <g class="zyes-light">
+            <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
+            <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.2" />
+          </g>
+          <!-- Dark mode: white Z -->
+          <g class="zyes-dark">
+            <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
+            <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.3" />
+          </g>
+        </svg>
+      </span>
+      <span class="zyes-word text-2xl font-bold tracking-tight">yes</span>
+    </a>
 
-    <a href="/" class="text-xl font-bold text-primary shrink-0 hidden sm:block">zyes</a>
-
-    <div class="flex-1 flex justify-center mx-2">
+    <!-- Desktop search bar: centered, fills remaining space -->
+    <div class="hidden md:flex flex-1 justify-center px-2">
       <SearchBar {searchEngines} {lang} />
     </div>
 
-    <div class="flex items-center gap-1 shrink-0">
+    <div class="flex items-center gap-1 shrink-0 md:ml-0 ml-auto">
       <!-- Language toggle -->
       <button
         onclick={ontoggleLang}
@@ -84,5 +91,10 @@
         </svg>
       </button>
     </div>
+  </div>
+
+  <!-- Mobile search bar: own row below the top bar -->
+  <div class="md:hidden px-4 pb-3">
+    <SearchBar {searchEngines} {lang} />
   </div>
 </header>

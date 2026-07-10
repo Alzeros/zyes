@@ -4,20 +4,33 @@
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --color-primary: #6366f1;
-  --color-primary-hover: #4f46e5;
-  --color-surface: #ffffff;
-  --color-surface-dark: #1e293b;
-  --color-bg: #f8f9fb;
-  --color-bg-dark: #0f172a;
-  --color-border: #e2e8f0;
-  --color-border-dark: #334155;
-  --color-text: #1e293b;
-  --color-text-dark: #f1f5f9;
-  --color-text-secondary: #64748b;
-  --color-text-secondary-dark: #94a3b8;
-  --color-danger: #ef4444;
-  --color-success: #22c55e;
+
+  /* ─── Primary accent: deep slate-blue, matches Z logo ─── */
+  /* Light mode: rich dark navy as the accent */
+  --color-primary:       #1e3a5f;
+  --color-primary-hover: #0f2744;
+
+  /* ─── Surfaces ─── */
+  --color-surface:      #ffffff;
+  --color-surface-dark: #161f2e;
+
+  /* ─── Page backgrounds ─── */
+  --color-bg:      #f4f6f8;
+  --color-bg-dark: #0d1117;
+
+  /* ─── Borders ─── */
+  --color-border:      #dde1e7;
+  --color-border-dark: #253047;
+
+  /* ─── Text ─── */
+  --color-text:               #0f172a;
+  --color-text-dark:          #e8edf5;
+  --color-text-secondary:     #64748b;
+  --color-text-secondary-dark:#6b7e99;
+
+  /* ─── Functional ─── */
+  --color-danger:  #dc2626;
+  --color-success: #16a34a;
 }
 
 body {
@@ -31,4 +44,30 @@ body {
 :root.dark body {
   background-color: var(--color-bg-dark);
   color: var(--color-text-dark);
+}
+
+/* === zyes brand === */
+/* Light mode: dark slate text */
+.zyes-word {
+  color: #0f172a;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+/* Dark mode: crisp white text */
+:where(.dark) .zyes-word {
+  color: #f0f4ff;
+}
+
+/* Show the theme-matched Z strands only */
+.zyes-dark { display: none; }
+:where(.dark) .zyes-light { display: none; }
+:where(.dark) .zyes-dark { display: block; }
+
+/* Hide scrollbars on horizontally-scrolling tag bars while keeping scroll functional */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

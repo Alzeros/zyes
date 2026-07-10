@@ -3,6 +3,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline';
 import { hashPassword } from '../server/services/auth.service.js';
+import { DEFAULT_SEARCH_ENGINES } from '../server/services/store.service.js';
 import { randomBytes } from 'node:crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -58,15 +59,7 @@ async function main() {
     const defaultData = {
       categories: [],
       bookmarks: [],
-      searchEngines: [
-        { id: 'google', name: 'Google', url: 'https://www.google.com/search?q={query}', icon: 'google', isActive: true },
-        { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q={query}', icon: 'bing', isActive: true },
-        { id: 'duckduckgo', name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q={query}', icon: 'duckduckgo', isActive: true },
-        { id: 'baidu', name: 'Baidu', url: 'https://www.baidu.com/s?wd={query}', icon: 'baidu', isActive: true },
-        { id: 'github', name: 'GitHub', url: 'https://github.com/search?q={query}', icon: 'github', isActive: true },
-        { id: 'stackoverflow', name: 'Stack Overflow', url: 'https://stackoverflow.com/search?q={query}', icon: 'stackoverflow', isActive: true },
-        { id: 'npm', name: 'npm', url: 'https://www.npmjs.com/search?q={query}', icon: 'npm', isActive: true },
-      ],
+      searchEngines: DEFAULT_SEARCH_ENGINES,
     };
     writeFileSync(DATA_PATH, JSON.stringify(defaultData, null, 2), 'utf-8');
     console.log(`  Data seeded at ${DATA_PATH}`);

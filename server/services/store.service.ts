@@ -5,7 +5,7 @@ import writeFileAtomic from 'write-file-atomic';
 import { nanoid } from 'nanoid';
 import type { AppData, Bookmark, Category, SearchEngine } from '../types.js';
 
-const DEFAULT_SEARCH_ENGINES: SearchEngine[] = [
+export const DEFAULT_SEARCH_ENGINES: SearchEngine[] = [
   { id: 'google', name: 'Google', url: 'https://www.google.com/search?q={query}', icon: 'google', isActive: true },
   { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q={query}', icon: 'bing', isActive: true },
   { id: 'duckduckgo', name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q={query}', icon: 'duckduckgo', isActive: true },

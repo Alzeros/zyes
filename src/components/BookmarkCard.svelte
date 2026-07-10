@@ -34,7 +34,7 @@
   onkeydown={handleKeydown}
   role="button"
   tabindex="0"
-  class="group relative flex flex-col p-4 min-h-[140px] bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 transition-all text-left cursor-pointer"
+  class="group relative flex flex-col p-4 min-h-[140px] bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 ease-out text-left cursor-pointer"
 >
   <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
     <button

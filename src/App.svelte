@@ -15,7 +15,7 @@
   let bookmarks = $state<Bookmark[]>([]);
   let searchEngines = $state<SearchEngine[]>([]);
   let activeCategoryId = $state<string>('all');
-  let sidebarOpen = $state(false);
+  let didInitialFetch = $state(false);
 
   let filteredBookmarks = $derived(
     activeCategoryId === 'all'
@@ -60,6 +60,9 @@
     authenticated = false;
     categories = [];
     bookmarks = [];
+    searchEngines = [];
+    activeCategoryId = 'all';
+    didInitialFetch = false;
   }
 
   async function handleBookmarkAdd(bookmark: Omit<Bookmark, 'id' | 'createdAt' | 'updatedAt'>) {
@@ -99,9 +102,12 @@
     lang = toggleLang();
   }
 
-  // Auto-fetch if already authenticated
+  // Auto-fetch when becoming authenticated (runs once per login session)
   $effect(() => {
-    if (authenticated) fetchData();
+    if (authenticated && !didInitialFetch) {
+      didInitialFetch = true;
+      fetchData();
+    }
   });
 </script>
 
@@ -113,21 +119,18 @@
       {searchEngines}
       {lang}
       onlogout={handleLogout}
-      ontoggleSidebar={() => (sidebarOpen = !sidebarOpen)}
       ontoggleLang={handleSwitchLang}
     />
-    <div class="flex flex-1 overflow-hidden">
+    <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
       <CategorySidebar
         {lang}
         {categories}
         counts={categoryCounts()}
         {activeCategoryId}
-        {sidebarOpen}
         onselect={(e) => (activeCategoryId = e.detail)}
         onadd={handleCategoryAdd}
         onupdate={handleCategoryUpdate}
         ondelete={handleCategoryDelete}
-        onclose={() => (sidebarOpen = false)}
       />
       <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         {#if loading}

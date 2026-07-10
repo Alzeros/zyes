@@ -12,7 +12,8 @@ export async function verifyPassword(plain: string, hash: string): Promise<boole
 }
 
 export function signToken(secret: string, expiresIn: string): string {
-  return jwt.sign({ iat: Math.floor(Date.now() / 1000) }, secret, { expiresIn } as jwt.SignOptions);
+  // jsonwebtoken sets `iat` automatically; no payload needed for the single-user model.
+  return jwt.sign({}, secret, { expiresIn } as jwt.SignOptions);
 }
 
 export function verifyToken(token: string, secret: string): jwt.JwtPayload | null {
