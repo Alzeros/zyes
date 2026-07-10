@@ -1,12 +1,17 @@
 <script lang="ts">
   import { api } from '../lib/api';
-  import { t } from '../lib/i18n';
+  import { t, toggleLang } from '../lib/i18n';
 
   let { lang, onlogin }: { lang: string; onlogin: (event: CustomEvent<string>) => void } = $props();
 
   let password = $state('');
   let error = $state('');
   let submitting = $state(false);
+
+  function switchLang() {
+    toggleLang();
+    location.reload();
+  }
 
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
@@ -26,7 +31,16 @@
   }
 </script>
 
-<div class="min-h-screen flex items-center justify-center bg-bg dark:bg-bg-dark p-4">
+<div class="min-h-screen flex items-center justify-center bg-bg dark:bg-bg-dark p-4 relative">
+  <!-- Language toggle -->
+  <button
+    onclick={switchLang}
+    class="absolute top-4 right-4 px-2 py-1.5 rounded-lg hover:bg-border/50 dark:hover:bg-border-dark/50 transition-colors cursor-pointer text-xs font-semibold text-text-secondary dark:text-text-secondary-dark w-9 text-center"
+    aria-label="Switch language"
+  >
+    {lang === 'zh' ? 'EN' : '中'}
+  </button>
+
   <div class="w-full max-w-sm">
     <div class="flex flex-col items-center justify-center mb-8">
       <div class="flex items-center gap-1 mb-2">

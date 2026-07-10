@@ -99,7 +99,8 @@
   }
 
   function handleSwitchLang() {
-    lang = toggleLang();
+    toggleLang();
+    location.reload();
   }
 
   // Auto-fetch when becoming authenticated (runs once per login session)

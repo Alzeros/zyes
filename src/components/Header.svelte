@@ -59,7 +59,7 @@
       <!-- Language toggle -->
       <button
         onclick={ontoggleLang}
-        class="px-2 py-1.5 rounded-lg hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer text-xs font-semibold"
+        class="px-2 py-1.5 rounded-lg hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer text-xs font-semibold w-9 text-center"
         aria-label="Switch language"
       >
         {lang === 'zh' ? 'EN' : '中'}
