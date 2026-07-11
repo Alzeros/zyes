@@ -34,10 +34,13 @@ npm run build && npm start
 
 1. Cloudflare 自动 fork 模板 / 用你的仓库，**自动创建 D1 数据库**并绑定到 Worker（`database_id` 占位由按钮回写真实 id）。
 2. `package.json` 的 `deploy` 脚本会先跑 `wrangler d1 migrations apply DB --remote`（自动建表 + 播种），再 `wrangler deploy`。**fork 者无需手动建表、无需粘 SQL**。
-3. 按钮流程会引导你填两个 Worker 变量：
-   - `JWT_SECRET` — 随机串（≥ 32 字节），用于签发登录 token
-   - `ZYES_PASSWORD` — 你想用的登录密码
+3. 按钮流程的 deploy 表单会让你填两个 **Text 类型**变量（`.dev.vars.example` 里声明的，`package.json` 的 `cloudflare.bindings` 会给每项中文说明）：
+   - `ZYES_PASSWORD` — **你要用的登录密码**，自己定一个（不填会无法登录）
+   - `JWT_SECRET` — 签发 token 的密钥，**务必改成随机串**，别用占位值。生成命令：`openssl rand -hex 32`（不填或留占位 = 任何人都能伪造你的登录 token）
 4. 部署完成后访问 Worker 域名，用 `ZYES_PASSWORD` 登录即可。
+
+> ⚠️ 两个变量都设为 **Text（明文）类型**而非 Secret，这样部署后还能在 Cloudflare 控制台 **Settings → Variables** 里直接看到/改值，不用猜自己当初填了什么。
+> ⚠️ 登录后如果忘了 `ZYES_PASSWORD`，直接去控制台改值即可，不需要重新部署。
 
 > Fork 者把仓库 fork 到自己账号后，把按钮 URL 里的 `Alzeros/zyes` 换成 `你的用户名/zyes` 再点。
 

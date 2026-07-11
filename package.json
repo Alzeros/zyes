@@ -28,6 +28,18 @@
     "cf-typecheck": "tsc -p tsconfig.worker.json --noEmit"
   },
   "license": "MIT",
+  "cloudflare": {
+    "bindings": {
+      "ZYES_PASSWORD": {
+        "type": "plain-text",
+        "description": "你登录 zyes 用的密码。自己定一个，部署后用这个密码登录。"
+      },
+      "JWT_SECRET": {
+        "type": "plain-text",
+        "description": "签发登录 token 的密钥。务必改成随机串，不要用占位值！生成: openssl rand -hex 32"
+      }
+    }
+  },
   "dependencies": {
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.0",

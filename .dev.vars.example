@@ -1,10 +1,15 @@
 # Copy this file to `.dev.vars` for local `wrangler dev` (gitignored).
-# For real deployment set these in the Worker's Variables/Secrets in the
-# Cloudflare dashboard — `.dev.vars` is never deployed.
+# For real deployment set these in the Worker's Variables in the
+# Cloudflare dashboard (as Text type, NOT Secret — so you can view/edit them).
+# `.dev.vars` is never deployed.
+#
+# NOTE for forkers using the Deploy to Cloudflare button:
+#   The deploy form will show both fields below. FILL IN YOUR OWN values —
+#   do NOT leave the placeholders, or login will fail / JWT will be forgeable.
 
-# Random string (>= 32 bytes) used to sign JWTs. Generate your own:
-#   head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n'
-JWT_SECRET=replace-with-a-random-32-byte-hex-string
+# Login password users enter on the login screen. CHOOSE YOUR OWN.
+ZYES_PASSWORD=please-set-your-own-password
 
-# Login password users enter on the login screen.
-ZYES_PASSWORD=change-me
+# Secret used to sign JWTs. MUST be a random string >= 32 bytes.
+# Generate your own:  head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n'
+JWT_SECRET=must-set-a-random-32-byte-hex-string

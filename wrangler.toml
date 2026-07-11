@@ -21,8 +21,11 @@ database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
 
-# Secrets (set via `wrangler secret put`): JWT_SECRET.
-# Password hash lives in the D1 `meta` table, not here, so it can be rotated
-# without redeploying.
+# Worker variables (set as Text type in the dashboard / deploy button form):
+#   JWT_SECRET    — random string (>= 32 bytes) to sign JWTs. MUST be changed,
+#                   never use the placeholder from .dev.vars.example.
+#   ZYES_PASSWORD — the login password users enter on the login screen.
+# Both are read as `c.env.*` in worker/src; plain-text type so they stay
+# viewable/editable in the dashboard.
 [observability]
 enabled = true
