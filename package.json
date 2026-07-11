@@ -16,13 +16,14 @@
     "init": "tsx scripts/init.ts",
 
     "dev:worker": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "wrangler d1 migrations apply DB --remote && wrangler deploy",
+    "db:migrations:apply": "wrangler d1 migrations apply DB --remote",
+    "db:migrations:apply:local": "wrangler d1 migrations apply DB --local",
     "db:create": "wrangler d1 create zyes-db",
     "db:migrate": "wrangler d1 execute zyes-db --remote --file=migrations/0001_init.sql",
     "db:migrate:local": "wrangler d1 execute zyes-db --local --file=migrations/0001_init.sql",
     "seed:engines": "wrangler d1 execute zyes-db --remote --file=migrations/0002_seed_engines.sql",
     "seed:engines:local": "wrangler d1 execute zyes-db --local --file=migrations/0002_seed_engines.sql",
-    "set-password": "tsx scripts/set-password.ts",
     "import-d1": "tsx scripts/import-to-d1.ts",
     "cf-typecheck": "tsc -p tsconfig.worker.json --noEmit"
   },

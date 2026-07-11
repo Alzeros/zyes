@@ -1,0 +1,10 @@
+# Copy this file to `.dev.vars` for local `wrangler dev` (gitignored).
+# For real deployment set these in the Worker's Variables/Secrets in the
+# Cloudflare dashboard — `.dev.vars` is never deployed.
+
+# Random string (>= 32 bytes) used to sign JWTs. Generate your own:
+#   head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n'
+JWT_SECRET=replace-with-a-random-32-byte-hex-string
+
+# Login password users enter on the login screen.
+ZYES_PASSWORD=change-me

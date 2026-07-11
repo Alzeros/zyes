@@ -9,6 +9,9 @@ export interface Env {
   DB: D1Database;
   // Workers Secret, set via `wrangler secret put JWT_SECRET`.
   JWT_SECRET: string;
+  // Login password (plain text, set as a Worker variable). Forkers set this to
+  // their own password in the dashboard. Compared at login time directly.
+  ZYES_PASSWORD: string;
   // Static assets binding (Workers Assets) declared in wrangler.toml [assets].
   ASSETS: Fetcher;
 }

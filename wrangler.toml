@@ -11,17 +11,14 @@ directory = "./dist/client"
 binding = "ASSETS"
 
 # The single D1 database backing all bookmark/category/settings data.
-# database_id is optional for local dev (wrangler dev --local uses an embedded
-# SQLite). For a real deployment: `npm run db:create` and paste its
-# database_id below.
+# `database_id` MUST hold a placeholder value the Deploy-to-Cloudflare button can
+# rewrite; it auto-provisions the DB and overwrites this id. For local dev the
+# id is ignored (wrangler dev --local uses an embedded SQLite).
 [[d1_databases]]
 binding = "DB"
 database_name = "zyes-db"
-# For local dev any placeholder works -- `wrangler` only needs the field
-# present; --local ignores it. For a real deployment: `npm run db:create`
-# and replace this with the printed database_id (also set below).
-database_id = "local-placeholder"
-# database_id = "REPLACE_WITH_wrangler_d1_create_OUTPUT"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
 
 
 # Secrets (set via `wrangler secret put`): JWT_SECRET.
