@@ -6,3 +6,7 @@ server/data/data.json
 *.log
 .DS_Store
 src/logo-preview.html
+
+.dev.vars
+.wrangler/
+sql/

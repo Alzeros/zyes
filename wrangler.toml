@@ -1,0 +1,31 @@
+name = "zyes"
+main = "worker/src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Frontend static assets served by the Worker (vite build output -> dist/client).
+# On Cloudflare, prefer Workers Assets; this [assets] block maps the built client
+# to the Worker's static path so non-/api routes return the SPA.
+[assets]
+directory = "./dist/client"
+binding = "ASSETS"
+
+# The single D1 database backing all bookmark/category/settings data.
+# database_id is optional for local dev (wrangler dev --local uses an embedded
+# SQLite). For a real deployment: `npm run db:create` and paste its
+# database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "zyes-db"
+# For local dev any placeholder works -- `wrangler` only needs the field
+# present; --local ignores it. For a real deployment: `npm run db:create`
+# and replace this with the printed database_id (also set below).
+database_id = "local-placeholder"
+# database_id = "REPLACE_WITH_wrangler_d1_create_OUTPUT"
+
+
+# Secrets (set via `wrangler secret put`): JWT_SECRET.
+# Password hash lives in the D1 `meta` table, not here, so it can be rotated
+# without redeploying.
+[observability]
+enabled = true

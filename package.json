@@ -6,12 +6,25 @@
   "scripts": {
     "dev": "concurrently -k \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "vite",
+    "dev:client:worker": "VITE_API_TARGET=http://127.0.0.1:8787 vite",
     "dev:server": "tsx watch server/index.ts",
+    "dev:worker:client": "concurrently -k \"npm run dev:worker\" \"npm run dev:client:worker\"",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
     "build:server": "tsc -p tsconfig.server.json",
     "start": "node dist/server/index.js",
-    "init": "tsx scripts/init.ts"
+    "init": "tsx scripts/init.ts",
+
+    "dev:worker": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create zyes-db",
+    "db:migrate": "wrangler d1 execute zyes-db --remote --file=migrations/0001_init.sql",
+    "db:migrate:local": "wrangler d1 execute zyes-db --local --file=migrations/0001_init.sql",
+    "seed:engines": "wrangler d1 execute zyes-db --remote --file=migrations/0002_seed_engines.sql",
+    "seed:engines:local": "wrangler d1 execute zyes-db --local --file=migrations/0002_seed_engines.sql",
+    "set-password": "tsx scripts/set-password.ts",
+    "import-d1": "tsx scripts/import-to-d1.ts",
+    "cf-typecheck": "tsc -p tsconfig.worker.json --noEmit"
   },
   "license": "MIT",
   "dependencies": {
@@ -40,6 +53,11 @@
     "tailwindcss": "^4.3.2",
     "tsx": "^4.23.0",
     "typescript": "^7.0.2",
-    "vite": "^8.1.4"
+    "vite": "^8.1.4",
+
+    "hono": "^4.6.14",
+    "jose": "^5.9.6",
+    "wrangler": "^3.93.0",
+    "@cloudflare/workers-types": "^4.20250101.0"
   }
 }
