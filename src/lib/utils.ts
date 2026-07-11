@@ -38,3 +38,40 @@ export function getInitialColor(name: string): string {
   }
   return colors[Math.abs(hash) % colors.length];
 }
+
+// A custom bookmark icon source: iconify (prefix "iconify:") or a remote image URL.
+export type IconSource =
+  | { kind: 'iconify'; name: string }   // e.g. "mdi:github"
+  | { kind: 'image'; url: string }       // http(s) image URL
+  | { kind: 'none' };                   // fall back to auto favicon
+
+export function parseIcon(icon: string | null | undefined): IconSource {
+  if (!icon) return { kind: 'none' };
+  const v = icon.trim();
+  if (!v) return { kind: 'none' };
+  if (v.startsWith('iconify:')) {
+    const name = v.slice('iconify:'.length).trim();
+    return name ? { kind: 'iconify', name } : { kind: 'none' };
+  }
+  if (/^https?:\/\//i.test(v)) {
+    return { kind: 'image', url: v };
+  }
+  // Bare iconify name like "mdi:github" (contains a colon) — treat as iconify.
+  if (v.includes(':')) return { kind: 'iconify', name: v };
+  return { kind: 'none' };
+}
+
+// Brand rendering for built-in search engines in SearchBar / EngineSwitcher.
+// iconify "simple-icons" set is monochrome; color is applied via the provided hex.
+export const SEARCH_ENGINE_ICONS: Record<string, { icon: string; color: string }> = {
+  google: { icon: 'simple-icons:google', color: '#4285F4' },
+  bing: { icon: 'mdi:microsoft-bing', color: '#008373' },
+  duckduckgo: { icon: 'simple-icons:duckduckgo', color: '#DE5833' },
+  github: { icon: 'simple-icons:github', color: '#181717' },
+};
+
+export function getSearchEngineIcon(id: string): { icon: string; color: string } | null {
+  return SEARCH_ENGINE_ICONS[id] ?? null;
+}
+
+

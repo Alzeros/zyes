@@ -14,6 +14,7 @@ import { authRoutes } from './routes/auth.routes.js';
 import { bookmarkRoutes } from './routes/bookmark.routes.js';
 import { categoryRoutes } from './routes/category.routes.js';
 import { searchRoutes } from './routes/search.routes.js';
+import { settingsRoutes } from './routes/settings.routes.js';
 
 // Auto-initialize if config doesn't exist
 async function autoInit() {
@@ -103,6 +104,7 @@ async function start() {
   await fastify.register(bookmarkRoutes, { prefix: '/api/bookmarks' });
   await fastify.register(categoryRoutes, { prefix: '/api/categories' });
   await fastify.register(searchRoutes, { prefix: '/api/search' });
+  await fastify.register(settingsRoutes, { prefix: '/api/settings' });
 
   // Static file serving (production)
   await fastify.register(staticPlugin);

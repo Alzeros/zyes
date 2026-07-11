@@ -15,6 +15,7 @@ export interface Category {
   name: string;
   icon: string;
   sortOrder: number;
+  displayMode: 'compact' | 'detail';
   createdAt: string;
 }
 
@@ -26,10 +27,15 @@ export interface SearchEngine {
   isActive: boolean;
 }
 
+export interface ViewSettings {
+  allViewMode: 'compact' | 'detail';
+}
+
 export interface AppData {
   categories: Category[];
   bookmarks: Bookmark[];
   searchEngines: SearchEngine[];
+  settings?: ViewSettings;
 }
 
 export interface LoginRequest {

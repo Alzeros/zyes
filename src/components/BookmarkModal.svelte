@@ -1,27 +1,31 @@
 <script lang="ts">
   import type { Bookmark, Category } from '../lib/types';
-  import { isValidUrl, getFaviconUrl } from '../lib/utils';
+  import { isValidUrl, getFaviconUrl, parseIcon } from '../lib/utils';
   import { t } from '../lib/i18n';
+  import IconView from './IconView.svelte';
 
   let {
     lang,
     categories,
     bookmark,
+    defaultCategoryId = '',
     onclose,
     onsave,
   }: {
     lang: string;
     categories: Category[];
     bookmark?: Bookmark;
+    defaultCategoryId?: string;
     onclose: () => void;
     onsave: (data: Omit<Bookmark, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   } = $props();
 
   let title = $state(bookmark?.title || '');
   let url = $state(bookmark?.url || '');
-  // Preserve empty string (uncategorized) on edit; default to first category only when adding.
+  // Preserve empty string (uncategorized) on edit; default to provided default (group)
+  // or first category only when adding with no group context.
   let categoryId = $state(
-    bookmark ? bookmark.categoryId : (categories[0]?.id ?? '')
+    bookmark ? bookmark.categoryId : (defaultCategoryId || categories[0]?.id || '')
   );
   let description = $state(bookmark?.description || '');
   let icon = $state(bookmark?.icon || '');
@@ -29,6 +33,13 @@
   let urlError = $state('');
 
   const isEdit = !!bookmark;
+
+  // Live preview of the chosen icon, falling back to the auto favicon from the URL field.
+  let previewSource = $derived(parseIcon(icon.trim()));
+  let previewFallback = $derived(
+    url.trim() && isValidUrl(url.trim()) ? getFaviconUrl(url.trim()) : ''
+  );
+  let previewTitle = $derived(title.trim() || url.trim() || 'zyes');
 
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
@@ -98,12 +109,41 @@
         {#if urlError}
           <p class="mt-1 text-xs text-danger">{urlError}</p>
         {/if}
-        {#if url && isValidUrl(url)}
+        {#if url && isValidUrl(url) && previewSource.kind === 'none'}
           <div class="flex items-center gap-2 mt-2">
             <img src={getFaviconUrl(url)} alt="" class="w-4 h-4 rounded" onerror={(e) => (e.currentTarget.style.display = 'none')} />
             <span class="text-xs text-text-secondary dark:text-text-secondary-dark">{t('modal.previewFavicon')}</span>
           </div>
         {/if}
+      </div>
+
+      <div>
+        <label for="bm-icon" class="block text-sm font-medium mb-1 text-text dark:text-text-dark">{t('modal.icon')}</label>
+        <div class="flex items-stretch gap-3">
+          <div class="flex items-center justify-center rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark w-14 h-14 shrink-0 overflow-hidden">
+            <IconView source={previewSource} fallbackUrl={previewFallback} title={previewTitle} size="sm" />
+          </div>
+          <div class="flex-1 min-w-0">
+            <input
+              id="bm-icon"
+              type="text"
+              bind:value={icon}
+              placeholder={t('modal.iconPlaceholder')}
+              class="w-full px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark placeholder-text-secondary dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+            />
+            <p class="mt-1 text-xs text-text-secondary dark:text-text-secondary-dark">
+              {t('modal.iconHintPrefix')}
+              <a
+                href="https://icon-sets.iconify.design/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-primary hover:underline"
+                onclick={(e) => e.stopPropagation()}
+              >icon-sets.iconify.design</a>
+              {t('modal.iconHintSuffix')}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div>

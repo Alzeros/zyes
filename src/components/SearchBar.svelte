@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { SearchEngine } from '../lib/types';
   import EngineSwitcher from './EngineSwitcher.svelte';
+  import Icon from '@iconify/svelte';
+  import { getSearchEngineIcon } from '../lib/utils';
   import { t } from '../lib/i18n';
 
   let { searchEngines, lang }: { searchEngines: SearchEngine[]; lang: string } = $props();
@@ -19,6 +21,7 @@
   );
 
   let activeEngines = $derived(searchEngines.filter((e) => e.isActive));
+  let activeIcon = $derived(activeEngine ? getSearchEngineIcon(activeEngine.id) : null);
 
   // Bind i18n text to the `lang` prop so the bar re-renders on language switch.
   // (t() reads a module-level mutable that Svelte can't otherwise track.)
@@ -60,10 +63,14 @@
   <div class="flex items-center bg-bg dark:bg-bg-dark border border-border dark:border-border-dark rounded-full px-4 py-2 focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-primary transition-all">
     <button
       onclick={() => (showSwitcher = !showSwitcher)}
-      class="mr-2 p-1 rounded-lg hover:bg-border/50 dark:hover:bg-border-dark/50 transition-colors cursor-pointer shrink-0"
+      class="mr-2 p-1 rounded-lg hover:bg-border/50 dark:hover:bg-border-dark/50 transition-colors cursor-pointer shrink-0 text-primary"
       aria-label={switchLabel}
     >
-      <span class="text-sm font-semibold text-primary">{activeEngine?.name?.charAt(0) || 'S'}</span>
+      {#if activeIcon}
+        <Icon icon={activeIcon.icon} width="18" height="18" />
+      {:else}
+        <span class="text-sm font-semibold">{activeEngine?.name?.charAt(0) || 'S'}</span>
+      {/if}
     </button>
 
     <input

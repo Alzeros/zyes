@@ -71,3 +71,32 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* === svelte-dnd-action: tidy drag visuals for category lists === */
+/* The dragged element is hoisted to position:fixed; with morphDisabled it
+   keeps its native size. Give it a clean lifted look and make the now-empty
+   source slot collapse cleanly so the neighbours don't jitter. */
+.cat-dnd-host [style*="position: fixed"] {
+  box-shadow: 0 10px 24px -6px rgba(15, 39, 68, 0.45) !important;
+  outline: none !important;
+  opacity: 0.96;
+  border-radius: 0.75rem !important;
+  background-color: var(--color-surface) !important;
+}
+:where(.dark) .cat-dnd-host [style*="position: fixed"] {
+  box-shadow: 0 10px 26px -6px rgba(0, 0, 0, 0.7) !important;
+  background-color: var(--color-surface-dark) !important;
+}
+.cat-dnd-host [data-is-dnd-shadow-item-internal] {
+  visibility: hidden !important;
+  pointer-events: none;
+  min-height: 0 !important;
+}
+
+/* The row the pointer is currently hovering over during a category drag:
+   a clear primary outline + tint so the drop position is unmistakable. */
+.cat-dnd-target {
+  outline: 2px dashed var(--color-primary) !important;
+  outline-offset: -2px;
+  border-radius: 0.75rem !important;
+}

@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { SearchEngine } from '../lib/types';
+  import Icon from '@iconify/svelte';
+  import { getSearchEngineIcon } from '../lib/utils';
 
   let {
     engines,
@@ -13,15 +15,12 @@
     onclose: () => void;
   } = $props();
 
-  const engineColors: Record<string, string> = {
-    google: '#4285F4',
-    bing: '#008373',
-    duckduckgo: '#DE5833',
-    baidu: '#2932E1',
-    github: '#181717',
-    stackoverflow: '#F58025',
-    npm: '#CB3837',
-  };
+  function brandColor(engine: SearchEngine): string {
+    return getSearchEngineIcon(engine.id)?.color ?? '#6366f1';
+  }
+  function brandIcon(engine: SearchEngine): string | null {
+    return getSearchEngineIcon(engine.id)?.icon ?? null;
+  }
 
   // Close on click outside
   $effect(() => {
@@ -43,10 +42,14 @@
       class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer {engine.id === currentId ? 'bg-primary/10 text-primary' : 'hover:bg-bg dark:hover:bg-bg-dark text-text dark:text-text-dark'}"
     >
       <span
-        class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-        style="background-color: {engineColors[engine.id] || '#6366f1'}"
+        class="w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0"
+        style="background-color: {brandColor(engine)}"
       >
-        {engine.name.charAt(0)}
+        {#if brandIcon(engine)}
+          <Icon icon={brandIcon(engine)!} width="14" height="14" color="white" />
+        {:else}
+          <span class="text-xs font-bold">{engine.name.charAt(0)}</span>
+        {/if}
       </span>
       <span class="text-sm font-medium">{engine.name}</span>
       {#if engine.id === currentId}

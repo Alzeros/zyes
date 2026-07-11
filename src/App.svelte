@@ -2,7 +2,7 @@
   import { isAuthenticated, getToken, setToken, removeToken } from './lib/auth';
   import { api } from './lib/api';
   import { getLang, toggleLang } from './lib/i18n';
-  import type { Bookmark, Category, SearchEngine } from './lib/types';
+  import type { Bookmark, Category, SearchEngine, ViewSettings } from './lib/types';
   import LoginScreen from './components/LoginScreen.svelte';
   import Header from './components/Header.svelte';
   import CategorySidebar from './components/CategorySidebar.svelte';
@@ -15,6 +15,7 @@
   let bookmarks = $state<Bookmark[]>([]);
   let searchEngines = $state<SearchEngine[]>([]);
   let activeCategoryId = $state<string>('all');
+  let viewSettings = $state<ViewSettings>({ allViewMode: 'detail' });
   let didInitialFetch = $state(false);
 
   let filteredBookmarks = $derived(
@@ -22,6 +23,36 @@
       ? bookmarks
       : bookmarks.filter((b) => b.categoryId === activeCategoryId)
   );
+
+  // The currently-selected category object (null for "all"), drives the view mode.
+  let activeCategory = $derived(
+    activeCategoryId === 'all'
+      ? null
+      : categories.find((c) => c.id === activeCategoryId) ?? null
+  );
+  let displayMode = $derived(activeCategory?.displayMode ?? viewSettings.allViewMode);
+  // Now both real categories and the "All" view persist a view mode, so always toggleable.
+  let canToggleDisplayMode = $derived(true);
+
+  async function handleSetDisplayMode(mode: 'compact' | 'detail') {
+    if (activeCategory) {
+      if (activeCategory.displayMode === mode) return;
+      try {
+        const updated = await api.put<Category>(`/api/categories/${activeCategory.id}`, { displayMode: mode });
+        categories = categories.map((c) => (c.id === activeCategory.id ? updated : c));
+      } catch (err) {
+        console.error('Failed to update view mode:', err);
+      }
+    } else {
+      if (viewSettings.allViewMode === mode) return;
+      try {
+        const updated = await api.put<ViewSettings>('/api/settings/view', { allViewMode: mode });
+        viewSettings = updated;
+      } catch (err) {
+        console.error('Failed to update view mode:', err);
+      }
+    }
+  }
 
   let categoryCounts = $derived(() => {
     const counts: Record<string, number> = { all: bookmarks.length };
@@ -34,14 +65,16 @@
   async function fetchData() {
     loading = true;
     try {
-      const [cats, bms, engines] = await Promise.all([
+      const [cats, bms, engines, settings] = await Promise.all([
         api.get<Category[]>('/api/categories'),
         api.get<Bookmark[]>('/api/bookmarks'),
         api.get<SearchEngine[]>('/api/search/engines'),
+        api.get<ViewSettings>('/api/settings/view'),
       ]);
       categories = cats;
       bookmarks = bms;
       searchEngines = engines;
+      viewSettings = settings;
     } catch (err) {
       console.error('Failed to fetch data:', err);
     } finally {
@@ -62,6 +95,7 @@
     bookmarks = [];
     searchEngines = [];
     activeCategoryId = 'all';
+    viewSettings = { allViewMode: 'detail' };
     didInitialFetch = false;
   }
 
@@ -80,6 +114,15 @@
     bookmarks = bookmarks.filter((b) => b.id !== id);
   }
 
+  async function handleReorder(items: { id: string; sortOrder: number }[]) {
+    await api.put('/api/bookmarks/reorder', { items });
+    // Apply new sortOrder locally so the persisted order sticks across refreshes.
+    const orderById = new Map(items.map((it) => [it.id, it.sortOrder]));
+    bookmarks = bookmarks.map((b) =>
+      orderById.has(b.id) ? { ...b, sortOrder: orderById.get(b.id)! } : b
+    );
+  }
+
   async function handleCategoryAdd(cat: { name: string; icon: string }) {
     const newCat = await api.post<Category>('/api/categories', cat);
     categories = [...categories, newCat];
@@ -88,6 +131,16 @@
   async function handleCategoryUpdate(id: string, patch: Partial<Category>) {
     const updated = await api.put<Category>(`/api/categories/${id}`, patch);
     categories = categories.map((c) => (c.id === id ? updated : c));
+  }
+
+  async function handleCategoryReorder(items: { id: string; sortOrder: number }[]) {
+    await api.put('/api/categories/reorder', { items });
+    // Apply new sortOrder locally so the sidebar and the "All" page section order
+    // (which derives from categories.sortOrder) update immediately.
+    const orderById = new Map(items.map((it) => [it.id, it.sortOrder]));
+    categories = categories.map((c) =>
+      orderById.has(c.id) ? { ...c, sortOrder: orderById.get(c.id)! } : c
+    );
   }
 
   async function handleCategoryDelete(id: string) {
@@ -132,6 +185,7 @@
         onadd={handleCategoryAdd}
         onupdate={handleCategoryUpdate}
         ondelete={handleCategoryDelete}
+        onreorder={handleCategoryReorder}
       />
       <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         {#if loading}
@@ -143,9 +197,14 @@
             {lang}
             bookmarks={filteredBookmarks}
             {categories}
+            {activeCategoryId}
+            {displayMode}
+            {canToggleDisplayMode}
             onadd={handleBookmarkAdd}
             onupdate={handleBookmarkUpdate}
             ondelete={handleBookmarkDelete}
+            onsetDisplayMode={handleSetDisplayMode}
+            onreorder={handleReorder}
           />
         {/if}
       </main>

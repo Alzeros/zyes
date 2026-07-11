@@ -3,16 +3,13 @@ import { resolve } from 'node:path';
 import { getDataDir } from '../config.js';
 import writeFileAtomic from 'write-file-atomic';
 import { nanoid } from 'nanoid';
-import type { AppData, Bookmark, Category, SearchEngine } from '../types.js';
+import type { AppData, Bookmark, Category, SearchEngine, ViewSettings } from '../types.js';
 
 export const DEFAULT_SEARCH_ENGINES: SearchEngine[] = [
   { id: 'google', name: 'Google', url: 'https://www.google.com/search?q={query}', icon: 'google', isActive: true },
   { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q={query}', icon: 'bing', isActive: true },
   { id: 'duckduckgo', name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q={query}', icon: 'duckduckgo', isActive: true },
-  { id: 'baidu', name: 'Baidu', url: 'https://www.baidu.com/s?wd={query}', icon: 'baidu', isActive: true },
   { id: 'github', name: 'GitHub', url: 'https://github.com/search?q={query}', icon: 'github', isActive: true },
-  { id: 'stackoverflow', name: 'Stack Overflow', url: 'https://stackoverflow.com/search?q={query}', icon: 'stackoverflow', isActive: true },
-  { id: 'npm', name: 'npm', url: 'https://www.npmjs.com/search?q={query}', icon: 'npm', isActive: true },
 ];
 
 function getStorePath(): string {
@@ -47,12 +44,32 @@ export function loadData(): AppData {
   }
   try {
     const raw = readFileSync(storePath, 'utf-8');
-    cache = JSON.parse(raw) as AppData;
+    cache = migrateData(JSON.parse(raw) as AppData);
   } catch {
     cache = defaultData();
     saveData(cache);
   }
   return cache;
+}
+
+// Backfill new fields on data written by older versions.
+function migrateData(data: AppData): AppData {
+  for (const cat of data.categories) {
+    if (cat.displayMode !== 'compact' && cat.displayMode !== 'detail') {
+      cat.displayMode = 'detail';
+    }
+  }
+  if (data.settings?.allViewMode !== 'compact' && data.settings?.allViewMode !== 'detail') {
+    data.settings = { allViewMode: 'detail' };
+  }
+  // Prune to the whitelisted engines and ensure all defaults are present,
+  // preserving any per-engine isActive toggles the user already set.
+  const existing = new Map(data.searchEngines.map((e) => [e.id, e]));
+  data.searchEngines = DEFAULT_SEARCH_ENGINES.map((def) => {
+    const cur = existing.get(def.id);
+    return cur ? { ...def, isActive: cur.isActive } : def;
+  });
+  return data;
 }
 
 export function getData(): AppData {
@@ -104,6 +121,21 @@ export function deleteBookmark(id: string): boolean {
   return true;
 }
 
+// Bulk reorder: update sortOrder for many bookmarks in one write.
+export function reorderBookmarks(items: { id: string; sortOrder: number }[]): void {
+  const data = getData();
+  const orderById = new Map(items.map((it) => [it.id, it.sortOrder]));
+  let changed = false;
+  for (const b of data.bookmarks) {
+    const next = orderById.get(b.id);
+    if (next !== undefined && next !== b.sortOrder) {
+      b.sortOrder = next;
+      changed = true;
+    }
+  }
+  if (changed) saveData(data);
+}
+
 // Category operations
 export function addCategory(input: Omit<Category, 'id' | 'createdAt'>): Category {
   const data = getData();
@@ -124,6 +156,22 @@ export function updateCategory(id: string, patch: Partial<Category>): Category |
   data.categories[idx] = { ...data.categories[idx], ...patch, id };
   saveData(data);
   return data.categories[idx];
+}
+
+// Bulk reorder: update sortOrder for many categories in one write.
+// The "All" page groups render in sortOrder, so this also reorders those sections.
+export function reorderCategories(items: { id: string; sortOrder: number }[]): void {
+  const data = getData();
+  const orderById = new Map(items.map((it) => [it.id, it.sortOrder]));
+  let changed = false;
+  for (const c of data.categories) {
+    const next = orderById.get(c.id);
+    if (next !== undefined && next !== c.sortOrder) {
+      c.sortOrder = next;
+      changed = true;
+    }
+  }
+  if (changed) saveData(data);
 }
 
 export function deleteCategory(id: string, strategy: 'move' | 'cascade' = 'move'): boolean {
@@ -152,4 +200,21 @@ export function updateSearchEngine(id: string, patch: Partial<SearchEngine>): Se
   data.searchEngines[idx] = { ...data.searchEngines[idx], ...patch };
   saveData(data);
   return data.searchEngines[idx];
+}
+
+// View settings (global, e.g. the "All" category view mode)
+export function getSettings(): ViewSettings {
+  const data = getData();
+  if (!data.settings || data.settings.allViewMode !== 'compact' && data.settings.allViewMode !== 'detail') {
+    data.settings = { allViewMode: 'detail' };
+    saveData(data);
+  }
+  return data.settings;
+}
+
+export function updateAllViewMode(mode: 'compact' | 'detail'): ViewSettings {
+  const data = getData();
+  data.settings = { allViewMode: mode };
+  saveData(data);
+  return data.settings;
 }

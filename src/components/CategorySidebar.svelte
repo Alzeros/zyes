@@ -2,7 +2,9 @@
   import type { Category } from '../lib/types';
   import CategoryModal from './CategoryModal.svelte';
   import ConfirmDialog from './ConfirmDialog.svelte';
+  import ContextMenu, { type ContextMenuItem } from './ContextMenu.svelte';
   import { t } from '../lib/i18n';
+  import { dndzone } from 'svelte-dnd-action';
 
   let {
     lang,
@@ -13,6 +15,7 @@
     onadd,
     onupdate,
     ondelete,
+    onreorder,
   }: {
     lang: string;
     categories: Category[];
@@ -22,20 +25,77 @@
     onadd: (cat: { name: string; icon: string }) => Promise<void>;
     onupdate: (id: string, patch: Partial<Category>) => Promise<void>;
     ondelete: (id: string) => Promise<void>;
+    onreorder: (items: { id: string; sortOrder: number }[]) => Promise<void>;
   } = $props();
 
   let showAddModal = $state(false);
   let editingCategory = $state<Category | null>(null);
   let deletingCategory = $state<Category | null>(null);
+  let contextMenu = $state<{ category: Category; x: number; y: number } | null>(null);
+
+  const contextItems: ContextMenuItem[] = [
+    { type: 'item', key: 'edit', label: t('sidebar.edit') },
+    { type: 'item', key: 'delete', label: t('sidebar.delete'), danger: true },
+  ];
+
+  // Local mutable copy so dndzone can reorder categories without a server round-trip
+  // on every drag tick. Resynced when the upstream `categories` prop changes.
+  let items = $state<Category[]>(categories);
+  // morphDisabled:true stops the dragged element from being stretched to the
+  // dropzone's dimensions (which produced the odd floating box). dropTargetClasses
+  // highlight the row the pointer is currently over so the drop site is obvious.
+  // flipDurationMs keeps the reorder settle in sync with the CSS transition.
+  let dndConfig = $derived({
+    items,
+    flipDurationMs: 150,
+    morphDisabled: true,
+    dropTargetClasses: ['cat-dnd-target'],
+  });
+  $effect(() => {
+    void categories;
+    items = [...categories];
+  });
 
   function selectCategory(id: string) {
     onselect(new CustomEvent('select', { detail: id }));
+  }
+
+  function handleContextMenu(e: MouseEvent, cat: Category) {
+    e.preventDefault();
+    contextMenu = { category: cat, x: e.clientX, y: e.clientY };
+  }
+
+  function handleContextSelect(key: string) {
+    const target = contextMenu?.category;
+    contextMenu = null;
+    if (!target) return;
+    if (key === 'edit') editingCategory = target;
+    else if (key === 'delete') deletingCategory = target;
+  }
+
+  // Stop the drag handle from also triggering the category click.
+  function handleGripPointerDown(e: PointerEvent) {
+    e.stopPropagation();
+  }
+
+  function handleDndConsider(e: CustomEvent<{ items: Category[] }>) {
+    items = e.detail.items;
+  }
+
+  async function handleDndFinalize(e: CustomEvent<{ items: Category[] }>) {
+    items = e.detail.items;
+    const reorder = items.map((c, i) => ({ id: c.id, sortOrder: i }));
+    try {
+      await onreorder(reorder);
+    } catch (err) {
+      console.error('Category reorder failed:', err);
+    }
   }
 </script>
 
 <!-- Desktop sidebar: fixed 260px column -->
 <aside class="hidden md:flex md:flex-col w-[260px] shrink-0 border-r border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-y-auto">
-  <nav class="flex-1 p-4 space-y-1">
+  <nav class="cat-dnd-host flex-1 p-4 space-y-1">
     <button
       onclick={() => selectCategory('all')}
       class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer {activeCategoryId === 'all' ? 'bg-primary/10 text-primary' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'}"
@@ -47,38 +107,38 @@
       <span class="text-xs opacity-60">{counts.all || 0}</span>
     </button>
 
-    {#each categories as cat (cat.id)}
-      <div class="group relative">
-        <button
-          onclick={() => selectCategory(cat.id)}
-          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer {activeCategoryId === cat.id ? 'bg-primary/10 text-primary' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'}"
-        >
-          <span class="text-base shrink-0">{cat.icon || '📁'}</span>
-          <span class="flex-1 text-left truncate">{cat.name}</span>
-          <span class="text-xs opacity-60">{counts[cat.id] || 0}</span>
-        </button>
-        <div class="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex gap-0.5">
+    <div
+      use:dndzone={dndConfig}
+      onconsider={handleDndConsider}
+      onfinalize={handleDndFinalize}
+      class="space-y-1"
+    >
+      {#each items as cat (cat.id)}
+        <div class="flex items-center gap-1 group/cat rounded-xl {activeCategoryId === cat.id ? 'bg-primary/10' : ''}">
           <button
-            onclick={(e) => { e.stopPropagation(); editingCategory = cat; }}
-            class="p-1 rounded-md hover:bg-border/50 dark:hover:bg-border-dark/50 transition-colors cursor-pointer"
-            aria-label="Edit"
+            type="button"
+            data-dnd-handle
+            onpointerdown={handleGripPointerDown}
+            aria-label={t('sidebar.dragCategory')}
+            class="shrink-0 px-1 py-2.5 rounded-lg text-text-secondary/30 dark:text-text-secondary-dark/30 hover:text-text-secondary dark:hover:text-text-secondary-dark cursor-grab active:cursor-grabbing transition-colors"
           >
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="5" cy="3" r="1.3" /><circle cx="5" cy="8" r="1.3" /><circle cx="5" cy="13" r="1.3" />
+              <circle cx="11" cy="3" r="1.3" /><circle cx="11" cy="8" r="1.3" /><circle cx="11" cy="13" r="1.3" />
             </svg>
           </button>
           <button
-            onclick={(e) => { e.stopPropagation(); deletingCategory = cat; }}
-            class="p-1 rounded-md hover:bg-danger/10 text-danger transition-colors cursor-pointer"
-            aria-label="Delete"
+            onclick={() => selectCategory(cat.id)}
+            oncontextmenu={(e) => handleContextMenu(e, cat)}
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer {activeCategoryId === cat.id ? 'bg-primary/10 text-primary' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'}"
           >
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <span class="text-base shrink-0">{cat.icon || '📁'}</span>
+            <span class="flex-1 text-left truncate">{cat.name}</span>
+            <span class="text-xs opacity-60">{counts[cat.id] || 0}</span>
           </button>
         </div>
-      </div>
-    {/each}
+      {/each}
+    </div>
   </nav>
 
   <div class="p-4 border-t border-border dark:border-border-dark">
@@ -96,7 +156,12 @@
 
 <!-- Mobile category bar: horizontal scrolling tabs -->
 <div class="md:hidden border-b border-border dark:border-border-dark bg-surface dark:bg-surface-dark">
-  <div class="flex items-center gap-1.5 px-3 py-2.5 overflow-x-auto scrollbar-hide">
+  <div
+    use:dndzone={dndConfig}
+    onconsider={handleDndConsider}
+    onfinalize={handleDndFinalize}
+    class="cat-dnd-host flex items-center gap-1.5 px-3 py-2.5 overflow-x-auto scrollbar-hide"
+  >
     <button
       onclick={() => selectCategory('all')}
       class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap {activeCategoryId === 'all' ? 'bg-primary text-white' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}"
@@ -104,14 +169,29 @@
       {t('sidebar.all')}
       <span class="ml-1 opacity-70">{counts.all || 0}</span>
     </button>
-    {#each categories as cat (cat.id)}
-      <button
-        onclick={() => selectCategory(cat.id)}
-        class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap {activeCategoryId === cat.id ? 'bg-primary text-white' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}"
-      >
-        {cat.icon || '📁'} {cat.name}
-        <span class="ml-1 opacity-70">{counts[cat.id] || 0}</span>
-      </button>
+    {#each items as cat (cat.id)}
+      <div class="flex items-center gap-0.5 shrink-0">
+        <button
+          type="button"
+          data-dnd-handle
+          onpointerdown={handleGripPointerDown}
+          aria-label={t('sidebar.dragCategory')}
+          class="shrink-0 p-1.5 rounded-full text-text-secondary/40 dark:text-text-secondary-dark/40 active:cursor-grabbing cursor-grab transition-colors"
+        >
+          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="5" cy="3" r="1.3" /><circle cx="5" cy="8" r="1.3" /><circle cx="5" cy="13" r="1.3" />
+            <circle cx="11" cy="3" r="1.3" /><circle cx="11" cy="8" r="1.3" /><circle cx="11" cy="13" r="1.3" />
+          </svg>
+        </button>
+        <button
+          onclick={() => selectCategory(cat.id)}
+          oncontextmenu={(e) => handleContextMenu(e, cat)}
+          class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap {activeCategoryId === cat.id ? 'bg-primary text-white' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}"
+        >
+          {cat.icon || '📁'} {cat.name}
+          <span class="ml-1 opacity-70">{counts[cat.id] || 0}</span>
+        </button>
+      </div>
     {/each}
     <button
       onclick={() => (showAddModal = true)}
@@ -158,5 +238,15 @@
       await ondelete(deletingCategory!.id);
       deletingCategory = null;
     }}
+  />
+{/if}
+
+{#if contextMenu}
+  <ContextMenu
+    x={contextMenu.x}
+    y={contextMenu.y}
+    items={contextItems}
+    onselect={handleContextSelect}
+    onclose={() => (contextMenu = null)}
   />
 {/if}

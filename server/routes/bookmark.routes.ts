@@ -80,4 +80,14 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
     }
     return { ok: true, data: { deleted: true } };
   });
+
+  // PUT /api/bookmarks/reorder — bulk update sortOrder across many bookmarks.
+  fastify.put('/reorder', async (request) => {
+    const body = request.body as { items?: { id: string; sortOrder: number }[] };
+    if (!body?.items || !Array.isArray(body.items)) {
+      return { ok: false, error: 'Invalid payload', code: 'INVALID_PAYLOAD' };
+    }
+    store.reorderBookmarks(body.items);
+    return { ok: true, data: { reordered: true } };
+  });
 }
