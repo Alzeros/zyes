@@ -23,7 +23,7 @@
   let iconSource = $derived(parseIcon(bookmark.icon));
 
   function openBookmark() {
-    window.open(bookmark.url, '_blank');
+    window.open(bookmark.url, bookmark.openTarget === 'self' ? '_self' : '_blank');
   }
 
   function handleKeydown(e: KeyboardEvent) {

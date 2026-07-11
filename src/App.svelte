@@ -114,13 +114,22 @@
     bookmarks = bookmarks.filter((b) => b.id !== id);
   }
 
-  async function handleReorder(items: { id: string; sortOrder: number }[]) {
-    await api.put('/api/bookmarks/reorder', { items });
-    // Apply new sortOrder locally so the persisted order sticks across refreshes.
-    const orderById = new Map(items.map((it) => [it.id, it.sortOrder]));
-    bookmarks = bookmarks.map((b) =>
-      orderById.has(b.id) ? { ...b, sortOrder: orderById.get(b.id)! } : b
-    );
+  async function handleReconcile(groupId: string, ids: string[]) {
+    // Pin every id in this group's final order to (groupId, index). Cards dragged
+    // out of another group are absent here and handled by that group's own
+    // reconcile firing (both sides share the 'bookmark' dnd type).
+    const reassign = ids.map((id, i) => ({ id, categoryId: groupId, sortOrder: i }));
+    try {
+      await api.put('/api/bookmarks/reassign', { items: reassign });
+    } catch (err) {
+      console.error('Reassign failed:', err);
+    }
+    // Apply locally so the order/ownership sticks without a refetch.
+    const patchById = new Map(reassign.map((r) => [r.id, r]));
+    bookmarks = bookmarks.map((b) => {
+      const p = patchById.get(b.id);
+      return p ? { ...b, categoryId: p.categoryId, sortOrder: p.sortOrder } : b;
+    });
   }
 
   async function handleCategoryAdd(cat: { name: string; icon: string }) {
@@ -204,7 +213,7 @@
             onupdate={handleBookmarkUpdate}
             ondelete={handleBookmarkDelete}
             onsetDisplayMode={handleSetDisplayMode}
-            onreorder={handleReorder}
+            onreconcile={handleReconcile}
           />
         {/if}
       </main>

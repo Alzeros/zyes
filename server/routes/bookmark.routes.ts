@@ -15,12 +15,13 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
 
   // POST /api/bookmarks
   fastify.post('/', async (request) => {
-    const { categoryId, title, url, description, icon } = request.body as {
+    const { categoryId, title, url, description, icon, openTarget } = request.body as {
       categoryId: string;
       title: string;
       url: string;
       description?: string;
       icon?: string | null;
+      openTarget?: 'new' | 'self';
     };
 
     // Validate URL
@@ -38,6 +39,7 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
       url,
       description: description?.trim() || '',
       icon: icon || null,
+      openTarget: openTarget === 'self' ? 'self' : 'new',
       sortOrder,
     });
     return { ok: true, data: bookmark };
@@ -52,6 +54,7 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
       url?: string;
       description?: string;
       icon?: string | null;
+      openTarget?: 'new' | 'self';
       sortOrder?: number;
     };
 
@@ -89,5 +92,18 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
     }
     store.reorderBookmarks(body.items);
     return { ok: true, data: { reordered: true } };
+  });
+
+  // PUT /api/bookmarks/reassign — bulk set categoryId + sortOrder across many
+  // bookmarks. Used for cross-category drag: each entry pins a card to a group.
+  fastify.put('/reassign', async (request) => {
+    const body = request.body as {
+      items?: { id: string; categoryId: string; sortOrder: number }[];
+    };
+    if (!body?.items || !Array.isArray(body.items)) {
+      return { ok: false, error: 'Invalid payload', code: 'INVALID_PAYLOAD' };
+    }
+    store.reassignBookmarks(body.items);
+    return { ok: true, data: { reassigned: body.items.length } };
   });
 }

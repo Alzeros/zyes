@@ -61,6 +61,26 @@ export function parseIcon(icon: string | null | undefined): IconSource {
   return { kind: 'none' };
 }
 
+// A category icon source. Categories may store an emoji (the default), an
+// iconify name (e.g. "mdi:github" / "iconify:mdi:github"), or a remote image URL.
+export type CategoryIconSource =
+  | { kind: 'iconify'; name: string }
+  | { kind: 'image'; url: string }
+  | { kind: 'emoji'; char: string };   // literal emoji / short text, rendered as-is
+
+export function parseCategoryIcon(icon: string | null | undefined, fallback = '📁'): CategoryIconSource {
+  if (!icon) return { kind: 'emoji', char: fallback };
+  const v = icon.trim();
+  if (!v) return { kind: 'emoji', char: fallback };
+  if (v.startsWith('iconify:')) {
+    const name = v.slice('iconify:'.length).trim();
+    return name ? { kind: 'iconify', name } : { kind: 'emoji', char: fallback };
+  }
+  if (/^https?:\/\//i.test(v)) return { kind: 'image', url: v };
+  if (v.includes(':')) return { kind: 'iconify', name: v };
+  return { kind: 'emoji', char: v };
+}
+
 // Brand rendering for built-in search engines in SearchBar / EngineSwitcher.
 // iconify "simple-icons" set is monochrome; color is applied via the provided hex.
 export const SEARCH_ENGINE_ICONS: Record<string, { icon: string; color: string }> = {

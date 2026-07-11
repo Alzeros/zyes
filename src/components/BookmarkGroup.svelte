@@ -4,6 +4,7 @@
   import BookmarkModal from './BookmarkModal.svelte';
   import ConfirmDialog from './ConfirmDialog.svelte';
   import ContextMenu, { type ContextMenuItem } from './ContextMenu.svelte';
+  import CategoryIcon from './CategoryIcon.svelte';
   import { t } from '../lib/i18n';
   import { dndzone } from 'svelte-dnd-action';
 
@@ -13,24 +14,29 @@
     categories,
     displayMode,
     title,
+    icon,
     addCategoryId,        // categoryId to default the add-modal to ('' for uncategorized)
     collapsible = false,  // "Uncategorized" group is hidden entirely when empty
     onadd,
     onupdate,
     ondelete,
-    onreorder,
+    onreconcile,
   }: {
     lang: string;
     bookmarks: Bookmark[];
     categories: Category[];
     displayMode: 'compact' | 'detail';
     title: string;
+    icon?: string;                // raw category icon (emoji / iconify / image URL)
     addCategoryId: string;        // '' for uncategorized
     collapsible?: boolean;
     onadd: (bookmark: Omit<Bookmark, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     onupdate: (id: string, patch: Partial<Bookmark>) => Promise<void>;
     ondelete: (id: string) => Promise<void>;
-    onreorder: (items: { id: string; sortOrder: number }[]) => Promise<void>;
+    // Report this group's final card id order after any drag settle. The parent
+    // reconciles categoryId and sortOrder — including cards dragged in from /
+    // out to other groups (all groups share a dnd type so events fire on both).
+    onreconcile: (groupId: string, ids: string[]) => Promise<void>;
   } = $props();
 
   let showAddModal = $state(false);
@@ -58,8 +64,10 @@
   let items = $state<Bookmark[]>(bookmarks);
   // morphDisabled keeps the dragged card at its native size (no stretch box);
   // dropTargetClasses highlight the hovered drop slot with the dashed outline.
+  // A shared `type` lets cards move between groups in the "All" view.
   let dndConfig = $derived({
     items,
+    type: 'bookmark',
     flipDurationMs: 150,
     morphDisabled: true,
     dropTargetClasses: ['cat-dnd-target'],
@@ -79,7 +87,7 @@
     const target = contextMenu?.bookmark;
     contextMenu = null;
     if (!target) return;
-    if (key === 'open') window.open(target.url, '_blank');
+    if (key === 'open') window.open(target.url, target.openTarget === 'self' ? '_self' : '_blank');
     else if (key === 'edit') editingBookmark = target;
     else if (key === 'delete') deletingBookmark = target;
   }
@@ -90,18 +98,24 @@
 
   async function handleDndFinalize(e: CustomEvent<{ items: Bookmark[] }>) {
     items = e.detail.items;
-    const reorder = items.map((b, i) => ({ id: b.id, sortOrder: i }));
+    // Report this group's final id order; the parent reconciles categoryId +
+    // sortOrder. For cross-group drags the source group also fires finalize
+    // with the card removed, so both sides stay consistent.
+    const ids = items.map((b) => b.id);
     try {
-      await onreorder(reorder);
+      await onreconcile(addCategoryId, ids);
     } catch (err) {
-      console.error('Reorder failed:', err);
+      console.error('Reconcile failed:', err);
     }
   }
 </script>
 
 {#if visible}
   <div class="mb-8 last:mb-0">
-    <h2 class="text-sm font-semibold text-text-secondary dark:text-text-secondary-dark uppercase tracking-wide mb-3">
+    <h2 class="flex items-center gap-1.5 text-sm font-semibold text-text-secondary dark:text-text-secondary-dark uppercase tracking-wide mb-3">
+      <span class="inline-flex items-center text-base leading-none">
+        <CategoryIcon icon={icon} />
+      </span>
       {title}
     </h2>
 

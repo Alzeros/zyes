@@ -3,6 +3,7 @@
   import CategoryModal from './CategoryModal.svelte';
   import ConfirmDialog from './ConfirmDialog.svelte';
   import ContextMenu, { type ContextMenuItem } from './ContextMenu.svelte';
+  import CategoryIcon from './CategoryIcon.svelte';
   import { t } from '../lib/i18n';
   import { dndzone } from 'svelte-dnd-action';
 
@@ -132,7 +133,9 @@
             oncontextmenu={(e) => handleContextMenu(e, cat)}
             class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer {activeCategoryId === cat.id ? 'bg-primary/10 text-primary' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'}"
           >
-            <span class="text-base shrink-0">{cat.icon || '📁'}</span>
+            <span class="shrink-0 flex items-center justify-center text-base text-current">
+              <CategoryIcon icon={cat.icon} />
+            </span>
             <span class="flex-1 text-left truncate">{cat.name}</span>
             <span class="text-xs opacity-60">{counts[cat.id] || 0}</span>
           </button>
@@ -186,9 +189,10 @@
         <button
           onclick={() => selectCategory(cat.id)}
           oncontextmenu={(e) => handleContextMenu(e, cat)}
-          class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap {activeCategoryId === cat.id ? 'bg-primary text-white' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}"
+          class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap {activeCategoryId === cat.id ? 'bg-primary text-white' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}"
         >
-          {cat.icon || '📁'} {cat.name}
+          <span class="inline-flex items-center text-base text-current"><CategoryIcon icon={cat.icon} /></span>
+          {cat.name}
           <span class="ml-1 opacity-70">{counts[cat.id] || 0}</span>
         </button>
       </div>

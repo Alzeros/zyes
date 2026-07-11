@@ -1,6 +1,9 @@
 <script lang="ts">
   import type { Category } from '../lib/types';
   import { t } from '../lib/i18n';
+  import { parseCategoryIcon } from '../lib/utils';
+  import IconView from './IconView.svelte';
+  import Icon from '@iconify/svelte';
 
   let {
     lang,
@@ -22,10 +25,13 @@
 
   const emojiOptions = ['📁', '💻', '🔧', '📚', '🌐', '🎨', '🎮', '🎵', '📱', '⚡', '🔒', '🛠️', '📊', '🚀', '💡'];
 
+  // Preview of the chosen category icon: emoji rendered literally, iconify /
+  // image rendered through the shared IconView/Icon path.
+  let preview = $derived(parseCategoryIcon(icon, '📁'));
+
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     if (!name.trim()) return;
-
     saving = true;
     try {
       await onsave({ name: name.trim(), icon: icon || '📁' });
@@ -67,7 +73,7 @@
 
       <div>
         <label for="cat-icon" class="block text-sm font-medium mb-2 text-text dark:text-text-dark">{t('modal.icon')}</label>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 mb-3">
           {#each emojiOptions as emoji}
             <button
               type="button"
@@ -77,6 +83,37 @@
               {emoji}
             </button>
           {/each}
+        </div>
+        <div class="flex items-stretch gap-3">
+          <div class="flex items-center justify-center rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark w-14 h-14 shrink-0 overflow-hidden text-2xl">
+            {#if preview.kind === 'emoji'}
+              <span>{preview.char}</span>
+            {:else if preview.kind === 'iconify'}
+              <Icon icon={preview.name} width={26} height={26} />
+            {:else}
+              <img src={preview.url} alt="" class="object-contain w-full h-full" style="padding:6%" />
+            {/if}
+          </div>
+          <div class="flex-1 min-w-0">
+            <input
+              id="cat-icon"
+              type="text"
+              bind:value={icon}
+              placeholder={t('modal.iconPlaceholder')}
+              class="w-full px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark placeholder-text-secondary dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+            />
+            <p class="mt-1 text-xs text-text-secondary dark:text-text-secondary-dark">
+              {t('modal.iconHintPrefix')}
+              <a
+                href="https://icon-sets.iconify.design/"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-primary hover:underline"
+                onclick={(e) => e.stopPropagation()}
+              >icon-sets.iconify.design</a>
+              {t('modal.iconHintSuffix')}
+            </p>
+          </div>
         </div>
       </div>
 

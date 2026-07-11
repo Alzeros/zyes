@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Bookmark, Category } from '../lib/types';
-  import { isValidUrl, getFaviconUrl, parseIcon } from '../lib/utils';
+  import { isValidUrl, getFaviconUrl, parseIcon, parseCategoryIcon } from '../lib/utils';
   import { t } from '../lib/i18n';
   import IconView from './IconView.svelte';
 
@@ -29,6 +29,7 @@
   );
   let description = $state(bookmark?.description || '');
   let icon = $state(bookmark?.icon || '');
+  let openTarget = $state<'new' | 'self'>(bookmark?.openTarget === 'self' ? 'self' : 'new');
   let saving = $state(false);
   let urlError = $state('');
 
@@ -59,6 +60,7 @@
         url: url.trim(),
         description: description.trim(),
         icon: icon.trim() || null,
+        openTarget,
         sortOrder: bookmark?.sortOrder ?? 0,
       });
     } catch (err) {
@@ -155,9 +157,29 @@
         >
           <option value="">{t('modal.uncategorized')}</option>
           {#each categories as cat}
-            <option value={cat.id}>{cat.icon} {cat.name}</option>
+            <option value={cat.id}>{parseCategoryIcon(cat.icon).kind === 'emoji' ? `${parseCategoryIcon(cat.icon).char} ` : ''}{cat.name}</option>
           {/each}
         </select>
+      </div>
+
+      <div>
+        <span class="block text-sm font-medium mb-1 text-text dark:text-text-dark">{t('modal.openTarget')}</span>
+        <div class="inline-flex items-center gap-1 p-1 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark">
+          <button
+            type="button"
+            onclick={() => (openTarget = 'new')}
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer {openTarget === 'new' ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
+          >
+            {t('modal.openNew')}
+          </button>
+          <button
+            type="button"
+            onclick={() => (openTarget = 'self')}
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer {openTarget === 'self' ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
+          >
+            {t('modal.openSelf')}
+          </button>
+        </div>
       </div>
 
       <div>

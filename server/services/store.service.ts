@@ -59,6 +59,11 @@ function migrateData(data: AppData): AppData {
       cat.displayMode = 'detail';
     }
   }
+  for (const b of data.bookmarks) {
+    if (b.openTarget !== 'new' && b.openTarget !== 'self') {
+      b.openTarget = 'new';
+    }
+  }
   if (data.settings?.allViewMode !== 'compact' && data.settings?.allViewMode !== 'detail') {
     data.settings = { allViewMode: 'detail' };
   }
@@ -132,6 +137,21 @@ export function reorderBookmarks(items: { id: string; sortOrder: number }[]): vo
       b.sortOrder = next;
       changed = true;
     }
+  }
+  if (changed) saveData(data);
+}
+
+// Bulk reassign: set categoryId and sortOrder for many bookmarks in one write.
+// Used for cross-category drag: each entry pins a card to a target group at an index.
+export function reassignBookmarks(items: { id: string; categoryId: string; sortOrder: number }[]): void {
+  const data = getData();
+  const patchById = new Map(items.map((it) => [it.id, it]));
+  let changed = false;
+  for (const b of data.bookmarks) {
+    const patch = patchById.get(b.id);
+    if (!patch) continue;
+    if (b.categoryId !== patch.categoryId) { b.categoryId = patch.categoryId; changed = true; }
+    if (b.sortOrder !== patch.sortOrder) { b.sortOrder = patch.sortOrder; changed = true; }
   }
   if (changed) saveData(data);
 }

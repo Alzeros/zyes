@@ -14,7 +14,7 @@
     onupdate,
     ondelete,
     onsetDisplayMode,
-    onreorder,
+    onreconcile,
   }: {
     lang: string;
     bookmarks: Bookmark[];
@@ -26,7 +26,9 @@
     onupdate: (id: string, patch: Partial<Bookmark>) => Promise<void>;
     ondelete: (id: string) => Promise<void>;
     onsetDisplayMode: (mode: 'compact' | 'detail') => void;
-    onreorder: (items: { id: string; sortOrder: number }[]) => Promise<void>;
+    // Reconcile a group's final id order after a drag (same-group reorder +
+    // cross-group moves, sharing the 'bookmark' dnd type).
+    onreconcile: (groupId: string, ids: string[]) => Promise<void>;
   } = $props();
 
   // The "All" view renders a group per category plus a trailing "Uncategorized" group.
@@ -34,19 +36,23 @@
   let isAll = $derived(activeCategoryId === 'all');
 
   // Groups for the "All" view: each known category (in its sortOrder), then uncategorized.
-  let groups = $derived<{ title: string; categoryId: string; items: Bookmark[]; collapsible: boolean }[]>(
+  // `icon` carries the raw category icon (emoji / iconify name / image URL); the header
+  // renders it via CategoryIcon so iconify glyphs work, not just literal emojis.
+  let groups = $derived<{ title: string; icon: string; categoryId: string; items: Bookmark[]; collapsible: boolean }[]>(
     isAll
       ? [
           ...[...categories]
             .sort((a, b) => a.sortOrder - b.sortOrder)
             .map((c) => ({
-              title: `${c.icon || '📁'} ${c.name}`,
+              title: c.name,
+              icon: c.icon,
               categoryId: c.id,
               items: bookmarks.filter((b) => b.categoryId === c.id),
               collapsible: false,
             })),
           {
             title: t('grid.uncategorized'),
+            icon: 'openmoji:card-index-dividers',
             categoryId: '',
             items: bookmarks.filter((b) => b.categoryId === ''),
             collapsible: true, // hidden when empty
@@ -56,7 +62,11 @@
           {
             title: (() => {
               const c = categories.find((x) => x.id === activeCategoryId);
-              return c ? `${c.icon || '📁'} ${c.name}` : t('grid.uncategorized');
+              return c ? c.name : t('grid.uncategorized');
+            })(),
+            icon: (() => {
+              const c = categories.find((x) => x.id === activeCategoryId);
+              return c ? c.icon : 'openmoji:card-index-dividers';
             })(),
             categoryId: activeCategoryId,
             items: bookmarks, // App already filtered for a single category
@@ -103,12 +113,13 @@
       {categories}
       {displayMode}
       title={g.title}
+      icon={g.icon}
       addCategoryId={g.categoryId}
       collapsible={g.collapsible}
       {onadd}
       {onupdate}
       {ondelete}
-      {onreorder}
+      {onreconcile}
     />
   {/each}
 {/if}
