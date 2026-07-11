@@ -1,6 +1,6 @@
-# zyes
+# Zyes
 
-zyes 是一款专为多设备开发者打造的轻量级、跨设备书签跳转与聚合搜索门户。
+Zyes 是一款专为多设备开发者打造的轻量级、跨设备书签跳转与聚合搜索门户。
 
 一份前端（Svelte 5 + Vite + Tailwind v4），两套等价后端：
 
@@ -41,8 +41,10 @@ npm run build && npm start
 
 > ⚠️ 两个变量都设为 **Text（明文）类型**而非 Secret，这样部署后还能在 Cloudflare 控制台 **Settings → Variables** 里直接看到/改值，不用猜自己当初填了什么。
 > ⚠️ 登录后如果忘了 `ZYES_PASSWORD`，直接去控制台改值即可，不需要重新部署。
+>
+> **关于 fork 与同步更新**：Deploy 按钮会创建独立仓库（非 fork），无法同步上游更新。如果你想跟踪本仓库的后续更新，请**先 fork 本仓库**，再把按钮 URL 里的 `Alzeros/zyes` 换成 `你的用户名/zyes` 再点。这样你的 fork 保留 GitHub fork 关系，可以用 Sync fork 按钮拉取更新。
 
-> Fork 者把仓库 fork 到自己账号后，把按钮 URL 里的 `Alzeros/zyes` 换成 `你的用户名/zyes` 再点。
+> **推荐做法**：先把本仓库 fork 到自己账号，再把按钮 URL 里的 `Alzeros/zyes` 换成 `你的用户名/zyes` 再点。这样你的 fork 保留 GitHub fork 关系，以后可以用 Sync fork 按钮拉取本仓库的更新。
 
 ### 手动部署（CLI / 已有 Cloudflare 账号）
 
