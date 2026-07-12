@@ -2,13 +2,11 @@
   import { t } from '../lib/i18n';
   import { CARD_SIZE_LABELS } from '../lib/cardSize';
   import { isTouchDevice } from '../lib/utils';
-  import type { Bookmark, CardSize } from '../lib/types';
-  import BookmarkCard from './BookmarkCard.svelte';
+  import type { CardSize } from '../lib/types';
 
   let {
     lang,
     cardSize,
-    displayMode,
     enableDrag,
     siteName,
     onsave,
@@ -16,7 +14,6 @@
   }: {
     lang: string;
     cardSize: CardSize;
-    displayMode: 'compact' | 'detail';
     enableDrag: boolean;
     siteName: string;
     onsave: (patch: { cardSize?: CardSize; enableDrag?: boolean; siteName?: string }) => Promise<boolean>;
@@ -83,22 +80,6 @@
     return CARD_SIZE_LABELS[s][lang === 'zh' ? 'zh' : 'en'];
   }
 
-  // Sample bookmarks rendered with the REAL BookmarkCard so the preview is a
-  // faithful miniature of the main grid (square compact tiles vs. horizontal
-  // detail tiles, real padding/fonts, real favicon fallback). `interactive:false`
-  // disables navigation/ctx-menu so clicking a preview tile does nothing.
-  const sampleBookmarks: Bookmark[] = [
-    { id: 'p1', categoryId: '', title: t('cardSize.previewTitle'), url: 'https://example.com', description: t('cardSize.sampleDesc'), icon: null, openTarget: 'new', sortOrder: 0, createdAt: '', updatedAt: '' },
-    { id: 'p2', categoryId: '', title: 'Zyes', url: 'https://zyes.app', description: t('cardSize.sampleDesc2'), icon: null, openTarget: 'new', sortOrder: 1, createdAt: '', updatedAt: '' },
-    { id: 'p3', categoryId: '', title: 'GitHub', url: 'https://github.com', description: '', icon: null, openTarget: 'new', sortOrder: 2, createdAt: '', updatedAt: '' },
-    { id: 'p4', categoryId: '', title: 'Hacker News', url: 'https://news.ycombinator.com', description: '', icon: null, openTarget: 'new', sortOrder: 3, createdAt: '', updatedAt: '' },
-  ];
-  // Fixed preview grid: compact → many small square tiles, detail → 2 wider tiles.
-  // (Not the responsive cols from sizeSpec, which depend on viewport width that
-  // the panel can't reproduce; fixed columns keep the preview shape stable.)
-  let previewCols = $derived(displayMode === 'compact' ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2');
-  let previewGap = $derived(displayMode === 'compact' ? 'gap-2' : 'gap-3');
-
   const groups = [
     { id: 'cards' as const, label: t('cardSize.nav.cards'), icon: 'M4 5h16M4 12h16M4 19h7' },
     { id: 'site' as const, label: t('cardSize.nav.site'), icon: 'M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18' },
@@ -162,24 +143,6 @@
             </div>
           </section>
 
-          <span class="block text-xs font-medium mb-2 text-text-secondary dark:text-text-secondary-dark">{t('cardSize.preview')}</span>
-          <div class="rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark p-3 mb-6">
-            <div class="grid {previewCols} {previewGap}">
-              {#each sampleBookmarks as b}
-                <BookmarkCard
-                  bookmark={b}
-                  {lang}
-                  {displayMode}
-                  cardSize={draftCardSize}
-                  interactive={false}
-                  onedit={() => {}}
-                  ondelete={() => {}}
-                  oncontext={() => {}}
-                />
-              {/each}
-            </div>
-          </div>
-
           <!-- ── Drag to reorder (touch only) ─────────────────── -->
           {#if showDragToggle}
             <section class="pt-5 border-t border-border dark:border-border-dark">
@@ -216,15 +179,6 @@
                 class="w-full px-3 py-2 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-sm text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
               />
             </label>
-
-            <!-- Live tab preview (reflects the draft, not persisted) -->
-            <div class="mt-6">
-              <span class="block text-xs font-medium mb-2 text-text-secondary dark:text-text-secondary-dark">{t('cardSize.preview')}</span>
-              <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg dark:bg-bg-dark border border-border dark:border-border-dark max-w-[280px]">
-                <span class="w-3.5 h-3.5 rounded-full bg-primary/70 shrink-0"></span>
-                <span class="text-xs text-text dark:text-text-dark truncate">{draftSiteName.trim() || 'zyes'}</span>
-              </div>
-            </div>
           </section>
         {/if}
       </div>

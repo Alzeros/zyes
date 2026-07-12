@@ -228,7 +228,6 @@
       {searchEngines}
       {lang}
       {cardSize}
-      {displayMode}
       {siteName}
       enableDrag={enableDrag}
       onlogout={handleLogout}

@@ -10,7 +10,6 @@
     searchEngines,
     lang,
     cardSize,
-    displayMode,
     enableDrag,
     siteName,
     onlogout,
@@ -20,7 +19,6 @@
     searchEngines: SearchEngine[];
     lang: string;
     cardSize: CardSize;
-    displayMode: 'compact' | 'detail';
     enableDrag: boolean;
     siteName: string;
     onlogout: () => void;
@@ -183,7 +181,6 @@
   <SettingsModal
     {lang}
     {cardSize}
-    {displayMode}
     {enableDrag}
     {siteName}
     {onsave}
