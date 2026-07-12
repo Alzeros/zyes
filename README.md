@@ -26,58 +26,56 @@ npm run build && npm start
 
 ## Cloudflare Workers 后端（`worker/`）
 
-### 一键部署（推荐，无需 CLI）
+### Deploy to Cloudflare 按钮（一键体验）
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Alzeros/zyes)
 
-点击上方按钮后：
+点击按钮后：
+1. Cloudflare 自动创建仓库并部署 Worker（注意：**非 fork，无法 sync 更新**）。
+2. 表单填两个 Text 变量（`ZYES_PASSWORD` = 你的登录密码，`JWT_SECRET` = 随机串）。
+3. 部署完成后在 CF 控制台绑定 D1 + 访问 `/api/init` 建表。
+4. 打开 Worker 域名，用你设的密码登录。
 
-1. Cloudflare 自动 fork 模板 / 用你的仓库，**自动创建 D1 数据库**并绑定到 Worker（`database_id` 占位由按钮回写真实 id）。
-2. `package.json` 的 `deploy` 脚本会先跑 `wrangler d1 migrations apply DB --remote`（自动建表 + 播种），再 `wrangler deploy`。**fork 者无需手动建表、无需粘 SQL**。
-3. 按钮流程的 deploy 表单会让你填两个 **Text 类型**变量（`.dev.vars.example` 里声明的，`package.json` 的 `cloudflare.bindings` 会给每项中文说明）：
-   - `ZYES_PASSWORD` — **你要用的登录密码**，自己定一个（不填会无法登录）
-   - `JWT_SECRET` — 签发 token 的密钥，**务必改成随机串**，别用占位值。生成命令：`openssl rand -hex 32`（不填或留占位 = 任何人都能伪造你的登录 token）
-4. 部署完成后访问 Worker 域名，用 `ZYES_PASSWORD` 登录即可。
+> **此路径不能 Sync 更新。** 需要跟踪本仓库后续更新请走下面 Fork 路径。
 
-> ⚠️ 两个变量都设为 **Text（明文）类型**而非 Secret，这样部署后还能在 Cloudflare 控制台 **Settings → Variables** 里直接看到/改值，不用猜自己当初填了什么。
-> ⚠️ 登录后如果忘了 `ZYES_PASSWORD`，直接去控制台改值即可，不需要重新部署。
->
-> **关于 fork 与同步更新**：Deploy 按钮会创建独立仓库（非 fork），无法同步上游更新。如果你想跟踪本仓库的后续更新，请**先 fork 本仓库**，再把按钮 URL 里的 `Alzeros/zyes` 换成 `你的用户名/zyes` 再点。这样你的 fork 保留 GitHub fork 关系，可以用 Sync fork 按钮拉取更新。
-
-> **推荐做法**：先把本仓库 fork 到自己账号，再把按钮 URL 里的 `Alzeros/zyes` 换成 `你的用户名/zyes` 再点。这样你的 fork 保留 GitHub fork 关系，以后可以用 Sync fork 按钮拉取本仓库的更新。
-
-### 手动部署（CLI / 已有 Cloudflare 账号）
+### Fork 手动部署（推荐，支持 Sync 更新）
 
 ```bash
-npm install
-npm run db:create               # 创建 D1 数据库，按钮路径不必跑这步
-npm run deploy                  # = wrangler d1 migrations apply DB --remote && wrangler deploy
-# 在 Cloudflare 控制台该 Worker 的 Settings → Variables 中设置：
-#   JWT_SECRET  = 随机串（>= 32 字节）
-#   ZYES_PASSWORD = 你的登录密码
+# 1. Fork 本仓库 & clone
+# 2. Cloudflare 控制台 → 创建 D1 数据库（记住名字）
+# 3. 在 Worker 控制台 Settings → Bindings → 添加 D1，名字填 DB
+# 4. 添加两个 Text 变量：JWT_SECRET（openssl rand -hex 32 生成）+ ZYES_PASSWORD
+# 5. push 任意改动（或直接 CF 里 rebuild）→ 自动部署
+# 6. 第一次访问 /api/init → 自动建表+播种
+# 7. 打开 Worker 域名，用 ZYES_PASSWORD 登录
 ```
 
-本地调试：`npm run db:migrations:apply:local`（建表）、`npm run dev:worker`（本地 Worker + 本地 D1），并在项目根放一个 `.dev.vars`（参考 `.dev.vars.example`）填 `JWT_SECRET` + `ZYES_PASSWORD`。
+> ✅ Fork 保留 GitHub fork 关系，主仓库更新后点 **Sync fork** 拉取更新，CF 自动 rebuild。
+
+### 初始化数据库 — 访问 `/api/init`
+
+绑定 D1 后**只需一次**：浏览器打开 `你的Worker域名/api/init`，Worker 自动创建所有表、播种 4 个默认搜索引擎、写默认设置。所有 SQL 都带 `IF NOT EXISTS`/`ON CONFLICT`，重复调用幂等。
+
+GET `/api/init` 可查看是否已完成初始化。
 
 ### 迁移已有 Node 数据（可选）
 
 ```bash
 npm run import-d1 > sql/import.sql
-wrangler d1 execute zyes-db --remote --file=sql/import.sql
+# 把 sql/import.sql 粘贴到 D1 控制台 SQL 编辑器执行
 ```
-
-`import-d1` 会读 `server/data/data.json`，回填缺失字段（`openTarget`/`displayMode`/`allViewMode`），输出 categories / bookmarks / search_engines / settings 的 `INSERT` 语句。密码请单独在 Worker 变量 `ZYES_PASSWORD` 中设置（不再走 D1 meta）。
 
 ### 开发与部署命令速查
 
 ```bash
-npm run dev:worker             # wrangler dev（本地 Worker + 本地 D1）→ http://127.0.0.1:8787
-npm run dev:worker:client      # 同时起 Worker + Vite(HMR 前端)，前端 dev 代理 /api → Worker
-npm run build                  # 构建前端到 dist/client，供 Worker [assets] 托管
-npm run deploy                 # 远程迁移 + 部署线上
-npm run db:migrations:apply    # 单独应用远程迁移（deploy 已含此步，幂等）
+npm run dev:worker             # wrangler dev (wrangler.dev.toml) → http://127.0.0.1:8787
+npm run dev:worker:client      # 同时起 Worker + Vite(HMR 前端)，代理 /api → Worker
+npm run build                  # 构建前端到 dist/client
+npm run deploy                 # wrangler deploy（D1 已从 toml 移除，控制台绑定）
 npm run cf-typecheck           # 仅类型检查 worker/
 ```
+
+本地开发用 `wrangler.dev.toml`：包含本地 D1 绑定（`database_id: "local-dev"`），`wrangler dev` 自动创嵌入式 SQLite。`dev:worker` 脚本已指向这个 dev 配置。
 
 > **两种 dev 形态连同一个 Vite 前端**：
 > - 连 Node 后端：`npm run dev`（Vite dev 代理 `/api` → `localhost:3847`，默认）
@@ -101,12 +99,8 @@ npm run cf-typecheck           # 仅类型检查 worker/
 | 命令 | 说明 |
 |---|---|
 | `npm run dev` | Node 形态本地开发（前端 + 后端） |
-| `npm run dev:worker` | Worker 形态本地开发 |
+| `npm run dev:worker` | Worker 形态本地开发 (wrangler.dev.toml) |
 | `npm run dev:worker:client` | Worker 后端 + Vite 前端（HMR）一起起 |
-| `npm run db:create` | 创建 D1 数据库（一键部署不必跑） |
-| `npm run db:migrations:apply` / `:local` | 应用迁移（建表+种子，幂等） |
-| `npm run db:migrate` / `:local` | 旧式直接执行 0001_init.sql（兼容保留） |
-| `npm run seed:engines` / `:local` | 旧式直接执行种子 SQL（兼容保留） |
 | `npm run import-d1` | 从 Node data.json 导出 D1 导入 SQL |
-| `npm run deploy` | 远程迁移 + 部署线上（= migrations apply && wrangler deploy） |
+| `npm run deploy` | wrangler deploy（D1 绑定在控制台） |
 | `npm run cf-typecheck` | Worker 类型检查 |

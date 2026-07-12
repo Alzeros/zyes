@@ -10,17 +10,12 @@ compatibility_flags = ["nodejs_compat"]
 directory = "./dist/client"
 binding = "ASSETS"
 
-# The single D1 database backing all bookmark/category/settings data.
-# `database_id` MUST hold a placeholder value the Deploy-to-Cloudflare button can
-# rewrite; it auto-provisions the DB and overwrites this id. For local dev the
-# id is ignored (wrangler dev --local uses an embedded SQLite).
-[[d1_databases]]
-binding = "DB"
-database_name = "zyes-db"
-database_id = "00000000-0000-0000-0000-000000000000"
-migrations_dir = "migrations"
-
-
+# D1 binding: NOT declared here — instead bind manually in the Cloudflare
+# dashboard (Workers & Pages → Settings → Bindings → D1, name "DB").
+# This keeps `wrangler deploy` agnostic to your personal database_id so both
+# fork deployment and the Deploy-to-Cloudflare button work without editing
+# this file.
+#
 # Worker variables (set as Text type in the dashboard / deploy button form):
 #   JWT_SECRET    — random string (>= 32 bytes) to sign JWTs. MUST be changed,
 #                   never use the placeholder from .dev.vars.example.

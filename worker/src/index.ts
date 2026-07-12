@@ -7,13 +7,13 @@ import { bookmarkRoutes } from './routes/bookmarks';
 import { categoryRoutes } from './routes/categories';
 import { searchRoutes } from './routes/search';
 import { settingsRoutes } from './routes/settings';
+import { initRoutes } from './routes/init';
 
 const app = new Hono<{ Bindings: Env }>();
 
 app.use('*', cors({ origin: '*', credentials: true }));
 
-// Public API paths that don't require auth (mirrors server/index.ts PUBLIC_*).
-const PUBLIC_PATHS = new Set(['/api/auth/login']);
+const PUBLIC_PATHS = new Set(['/api/auth/login', '/api/init']);
 const PUBLIC_GET = ['/api/search/engines'];
 
 function isPublic(method: string, url: string): boolean {
@@ -44,6 +44,7 @@ app.route('/api/bookmarks', bookmarkRoutes());
 app.route('/api/categories', categoryRoutes());
 app.route('/api/search', searchRoutes());
 app.route('/api/settings', settingsRoutes());
+app.route('/api/init', initRoutes());
 
 // SPA fallback: any non-/api path serves the built client via the assets binding.
 app.get('*', (c) => c.env.ASSETS.fetch(c.req.raw));
