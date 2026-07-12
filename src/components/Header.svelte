@@ -50,8 +50,8 @@
 </script>
 
 <header class="sticky top-0 z-30 bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border dark:border-border-dark">
-  <div class="flex items-center gap-3 px-4 py-3 lg:px-6">
-    <a href="/" class="flex items-center gap-1 shrink-0 group/logo">
+  <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 lg:px-6">
+    <a href="/" class="flex items-center gap-1 shrink-0 group/logo justify-self-start">
       <!-- Mark: Design #1 – sharp miter Z, tight crop -->
       <span class="inline-grid place-items-center" style="width:22px;height:28px">
         <!-- viewBox tightly crops just the Z: x 6..23, y 5..27 -->
@@ -71,12 +71,15 @@
       <span class="zyes-word text-2xl font-bold tracking-tight">yes</span>
     </a>
 
-    <!-- Desktop search bar: centered, fills remaining space -->
-    <div class="hidden md:flex flex-1 justify-center px-2">
+    <!-- Desktop search bar: centered on the page midline via CSS grid
+         (1fr | auto | 1fr). The left/right 1fr tracks are equal so the
+         auto-sized middle track sits exactly on the page center, regardless
+         of how wide the logo vs the buttons are. -->
+    <div class="hidden md:flex justify-self-center w-full max-w-xl">
       <SearchBar {searchEngines} {lang} />
     </div>
 
-    <div class="flex items-center gap-1 shrink-0 md:ml-0 ml-auto">
+    <div class="flex items-center gap-1 shrink-0 justify-self-end md:ml-0 ml-auto">
       <!-- Language toggle -->
       <button
         onclick={ontoggleLang}
