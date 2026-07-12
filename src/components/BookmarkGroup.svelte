@@ -7,12 +7,15 @@
   import CategoryIcon from './CategoryIcon.svelte';
   import { t } from '../lib/i18n';
   import { dndzone } from 'svelte-dnd-action';
+  import { sizeSpec } from '../lib/cardSize';
+  import type { CardSize } from '../lib/types';
 
   let {
     lang,
     bookmarks,
     categories,
     displayMode,
+    cardSize = 'md',
     title,
     icon,
     addCategoryId,        // categoryId to default the add-modal to ('' for uncategorized)
@@ -26,6 +29,7 @@
     bookmarks: Bookmark[];
     categories: Category[];
     displayMode: 'compact' | 'detail';
+    cardSize?: CardSize;
     title: string;
     icon?: string;                // raw category icon (emoji / iconify / image URL)
     addCategoryId: string;        // '' for uncategorized
@@ -44,11 +48,8 @@
   let deletingBookmark = $state<Bookmark | null>(null);
   let contextMenu = $state<{ bookmark: Bookmark; x: number; y: number } | null>(null);
 
-  let cols = $derived(
-    displayMode === 'compact'
-      ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10'
-      : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-  );
+  let cols = $derived(spec.cols);
+  let gridClass = $derived(`grid ${cols} ${spec.gap}`);
 
   const contextItems: ContextMenuItem[] = [
     { type: 'item', key: 'open', label: t('grid.open') },
@@ -119,18 +120,19 @@
       {title}
     </h2>
 
-    {#key displayMode}
+    {#key displayMode}{#key cardSize}
       <div
         use:dndzone={dndConfig}
         onconsider={handleDndConsider}
         onfinalize={handleDndFinalize}
-        class="cat-dnd-host grid {cols} gap-4"
+        class="cat-dnd-host {gridClass}"
       >
         {#each items as bookmark (bookmark.id)}
           <BookmarkCard
             {bookmark}
             {lang}
             {displayMode}
+            {cardSize}
             onedit={() => (editingBookmark = bookmark)}
             ondelete={() => (deletingBookmark = bookmark)}
             oncontext={(e) => handleContextMenu(e, bookmark)}
@@ -139,7 +141,7 @@
 
         <button
           onclick={() => (showAddModal = true)}
-          class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 cursor-pointer {displayMode === 'compact' ? 'aspect-square p-2' : 'min-h-[140px] gap-2'}"
+          class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 cursor-pointer {displayMode === 'compact' ? 'aspect-square p-2' : `${spec.detailPad} ${spec.detailMinH} gap-2`}"
         >
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -147,7 +149,7 @@
           <span class="text-sm font-medium {displayMode === 'compact' ? 'line-clamp-2 break-all' : ''}">{t('grid.addCard')}</span>
         </button>
       </div>
-    {/key}
+    {/key}{/key}
   </div>
 {/if}
 

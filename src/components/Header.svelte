@@ -2,23 +2,32 @@
   import type { SearchEngine } from '../lib/types';
   import SearchBar from './SearchBar.svelte';
   import AboutModal from './AboutModal.svelte';
+  import CardSizeModal from './CardSizeModal.svelte';
   import { t } from '../lib/i18n';
+  import type { CardSize } from '../lib/types';
 
   let {
     searchEngines,
     lang,
+    cardSize,
+    displayMode,
     onlogout,
     ontoggleLang,
+    onsetCardSize,
   }: {
     searchEngines: SearchEngine[];
     lang: string;
+    cardSize: CardSize;
+    displayMode: 'compact' | 'detail';
     onlogout: () => void;
     ontoggleLang: () => void;
+    onsetCardSize: (size: CardSize) => void;
   } = $props();
 
   let darkMode = $state(localStorage.getItem('zyes_dark') === 'true');
   let menuOpen = $state(false);
   let aboutOpen = $state(false);
+  let cardSizeOpen = $state(false);
 
   function toggleDark() {
     darkMode = !darkMode;
@@ -122,6 +131,16 @@
           <div class="absolute right-0 mt-2 w-44 rounded-xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shadow-xl py-1 z-50 origin-top-right">
             <button
               type="button"
+              onclick={() => { cardSizeOpen = true; menuOpen = false; }}
+              class="w-full flex items-center gap-2 px-3 py-2 text-sm text-text dark:text-text-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h16M4 12h16M4 19h7" />
+              </svg>
+              {t('settings.cardSize')}
+            </button>
+            <button
+              type="button"
               onclick={() => { aboutOpen = true; menuOpen = false; }}
               class="w-full flex items-center gap-2 px-3 py-2 text-sm text-text dark:text-text-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
             >
@@ -154,4 +173,14 @@
 
 {#if aboutOpen}
   <AboutModal {lang} onclose={() => (aboutOpen = false)} />
+{/if}
+
+{#if cardSizeOpen}
+  <CardSizeModal
+    {lang}
+    {cardSize}
+    {displayMode}
+    onselect={(s) => onsetCardSize(s)}
+    onclose={() => (cardSizeOpen = false)}
+  />
 {/if}

@@ -67,7 +67,11 @@ const mapEngine = (r: SearchEngineRow): SearchEngine => ({
 
 export const mapSettings = (rows: SettingsRow[]): ViewSettings => {
   const all = rows.find((r) => r.key === 'all_view_mode')?.value;
-  return { allViewMode: all === 'compact' || all === 'detail' ? all : 'detail' };
+  const card = rows.find((r) => r.key === 'card_size')?.value;
+  return {
+    allViewMode: all === 'compact' || all === 'detail' ? all : 'detail',
+    cardSize: card === 'xs' || card === 'sm' || card === 'lg' ? (card as ViewSettings['cardSize']) : 'md',
+  };
 };
 
 // ── Tiny query helpers around env.DB ─────────────────────────────────────────
@@ -230,6 +234,10 @@ export class Db {
 
   async setAllViewMode(mode: 'compact' | 'detail'): Promise<void> {
     await this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind('all_view_mode', mode).run();
+  }
+
+  async setCardSize(size: ViewSettings['cardSize']): Promise<void> {
+    await this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind('card_size', size).run();
   }
 
   // Next sort index for a new item appended to a group.

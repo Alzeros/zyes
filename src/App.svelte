@@ -15,7 +15,7 @@
   let bookmarks = $state<Bookmark[]>([]);
   let searchEngines = $state<SearchEngine[]>([]);
   let activeCategoryId = $state<string>('all');
-  let viewSettings = $state<ViewSettings>({ allViewMode: 'detail' });
+  let viewSettings = $state<ViewSettings>({ allViewMode: 'detail', cardSize: 'md' });
   let didInitialFetch = $state(false);
 
   let filteredBookmarks = $derived(
@@ -31,6 +31,7 @@
       : categories.find((c) => c.id === activeCategoryId) ?? null
   );
   let displayMode = $derived(activeCategory?.displayMode ?? viewSettings.allViewMode);
+  let cardSize = $derived(viewSettings.cardSize);
   // Now both real categories and the "All" view persist a view mode, so always toggleable.
   let canToggleDisplayMode = $derived(true);
 
@@ -47,10 +48,20 @@
       if (viewSettings.allViewMode === mode) return;
       try {
         const updated = await api.put<ViewSettings>('/api/settings/view', { allViewMode: mode });
-        viewSettings = updated;
+        viewSettings = { ...viewSettings, ...updated };
       } catch (err) {
         console.error('Failed to update view mode:', err);
       }
+    }
+  }
+
+  async function handleSetCardSize(size: ViewSettings['cardSize']) {
+    if (viewSettings.cardSize === size) return;
+    try {
+      const updated = await api.put<ViewSettings>('/api/settings/view', { cardSize: size });
+      viewSettings = { ...viewSettings, ...updated };
+    } catch (err) {
+      console.error('Failed to update card size:', err);
     }
   }
 
@@ -95,7 +106,7 @@
     bookmarks = [];
     searchEngines = [];
     activeCategoryId = 'all';
-    viewSettings = { allViewMode: 'detail' };
+    viewSettings = { allViewMode: 'detail', cardSize: 'md' };
     didInitialFetch = false;
   }
 
@@ -181,8 +192,11 @@
     <Header
       {searchEngines}
       {lang}
+      {cardSize}
+      {displayMode}
       onlogout={handleLogout}
       ontoggleLang={handleSwitchLang}
+      onsetCardSize={handleSetCardSize}
     />
     <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
       <CategorySidebar
@@ -208,6 +222,7 @@
             {categories}
             {activeCategoryId}
             {displayMode}
+            {cardSize}
             {canToggleDisplayMode}
             onadd={handleBookmarkAdd}
             onupdate={handleBookmarkUpdate}

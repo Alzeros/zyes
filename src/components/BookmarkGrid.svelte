@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Bookmark, Category } from '../lib/types';
+  import type { Bookmark, Category, CardSize } from '../lib/types';
   import BookmarkGroup from './BookmarkGroup.svelte';
   import { t } from '../lib/i18n';
 
@@ -9,6 +9,7 @@
     categories,
     activeCategoryId,
     displayMode,
+    cardSize,
     canToggleDisplayMode,
     onadd,
     onupdate,
@@ -21,13 +22,12 @@
     categories: Category[];
     activeCategoryId: string;
     displayMode: 'compact' | 'detail';
+    cardSize: CardSize;
     canToggleDisplayMode: boolean;
     onadd: (bookmark: Omit<Bookmark, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     onupdate: (id: string, patch: Partial<Bookmark>) => Promise<void>;
     ondelete: (id: string) => Promise<void>;
     onsetDisplayMode: (mode: 'compact' | 'detail') => void;
-    // Reconcile a group's final id order after a drag (same-group reorder +
-    // cross-group moves, sharing the 'bookmark' dnd type).
     onreconcile: (groupId: string, ids: string[]) => Promise<void>;
   } = $props();
 
@@ -112,6 +112,7 @@
       bookmarks={g.items}
       {categories}
       {displayMode}
+      {cardSize}
       title={g.title}
       icon={g.icon}
       addCategoryId={g.categoryId}

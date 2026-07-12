@@ -28,8 +28,11 @@ export interface SearchEngine {
   isActive: boolean;
 }
 
+export type CardSize = 'xs' | 'sm' | 'md' | 'lg';
+
 export interface ViewSettings {
   allViewMode: 'compact' | 'detail';
+  cardSize: CardSize;
 }
 
 export interface AppData {
