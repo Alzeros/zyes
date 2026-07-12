@@ -3,6 +3,12 @@ main = "worker/src/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Preserve dashboard-set environment variables across `wrangler deploy`.
+# Without this, every deploy wipes ZYES_PASSWORD/JWT_SECRET (which forkers set
+# in the dashboard, not in this file). Same effect as `wrangler deploy --keep-vars`
+# but survives regardless of the deploy command Workers Builds runs.
+keep_vars = true
+
 # Frontend static assets served by the Worker (vite build output -> dist/client).
 # On Cloudflare, prefer Workers Assets; this [assets] block maps the built client
 # to the Worker's static path so non-/api routes return the SPA.
