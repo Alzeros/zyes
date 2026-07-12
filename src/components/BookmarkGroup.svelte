@@ -50,6 +50,7 @@
   let deletingBookmark = $state<Bookmark | null>(null);
   let contextMenu = $state<{ bookmark: Bookmark; x: number; y: number } | null>(null);
 
+  let spec = $derived(sizeSpec(cardSize, displayMode));
   let cols = $derived(spec.cols);
   let gridClass = $derived(`grid ${cols} ${spec.gap}`);
 
