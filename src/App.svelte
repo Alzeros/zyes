@@ -74,22 +74,29 @@
     }
   }
 
-  async function handleSetCardSize(size: ViewSettings['cardSize']) {
-    if (viewSettings.cardSize === size) return;
-    try {
-      const updated = await api.put<ViewSettings>('/api/settings/view', { cardSize: size });
-      viewSettings = { ...viewSettings, ...updated };
-    } catch (err) {
-      console.error('Failed to update card size:', err);
-    }
+  // Unified "apply" from the settings panel: a single save of all edited fields.
+  // Drag is local-only (localStorage); cardSize/siteName go through one PUT so
+  // only one network round-trip happens even when both changed. Empty/unchanged
+  // fields are omitted from the PUT body.
+  interface SettingsPatch {
+    cardSize?: ViewSettings['cardSize'];
+    enableDrag?: boolean;
+    siteName?: string;
   }
-
-  async function handleSetSiteName(name: string) {
+  async function handleSaveSettings(patch: SettingsPatch): Promise<boolean> {
     try {
-      const updated = await api.put<ViewSettings>('/api/settings/view', { siteName: name });
-      viewSettings = { ...viewSettings, ...updated };
+      if (patch.enableDrag !== undefined) handleSetEnableDrag(patch.enableDrag);
+      const apiBody: Record<string, string> = {};
+      if (patch.cardSize !== undefined && patch.cardSize !== viewSettings.cardSize) apiBody.cardSize = patch.cardSize;
+      if (patch.siteName !== undefined && patch.siteName !== viewSettings.siteName) apiBody.siteName = patch.siteName.slice(0, 64).trim();
+      if (Object.keys(apiBody).length > 0) {
+        const updated = await api.put<ViewSettings>('/api/settings/view', apiBody);
+        viewSettings = { ...viewSettings, ...updated };
+      }
+      return true;
     } catch (err) {
-      console.error('Failed to update site name:', err);
+      console.error('Failed to save settings:', err);
+      return false;
     }
   }
 
@@ -226,9 +233,7 @@
       enableDrag={enableDrag}
       onlogout={handleLogout}
       ontoggleLang={handleSwitchLang}
-      onsetCardSize={handleSetCardSize}
-      onsetEnableDrag={handleSetEnableDrag}
-      onsetSiteName={handleSetSiteName}
+      onsave={handleSaveSettings}
     />
     <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
       <CategorySidebar

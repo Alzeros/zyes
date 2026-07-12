@@ -10,9 +10,7 @@
     displayMode,
     enableDrag,
     siteName,
-    onselect,
-    onsetEnableDrag,
-    onsetSiteName,
+    onsave,
     onclose,
   }: {
     lang: string;
@@ -20,9 +18,7 @@
     displayMode: 'compact' | 'detail';
     enableDrag: boolean;
     siteName: string;
-    onselect: (size: CardSize) => void;
-    onsetEnableDrag: (v: boolean) => void;
-    onsetSiteName: (v: string) => void;
+    onsave: (patch: { cardSize?: CardSize; enableDrag?: boolean; siteName?: string }) => Promise<boolean>;
     onclose: () => void;
   } = $props();
 
@@ -32,33 +28,55 @@
   // Active settings group: 'cards' | 'site'
   let activeGroup = $state<'cards' | 'site'>('cards');
 
-  // Live preview spec for the chosen size under the current display mode.
-  let spec = $derived(sizeSpec(cardSize, displayMode));
-  let gridClass = $derived(`grid ${spec.cols} ${spec.gap}`);
+  // ── Drafts: the panel edits local copies and only commits on "Apply". Until
+  // then the backend / parent state is untouched, so previewing a size can't
+  // trigger a network round-trip or hang the page.
+  let draftCardSize = $state<CardSize>(cardSize);
+  let draftEnableDrag = $state<boolean>(enableDrag);
+  let draftSiteName = $state<string>(siteName);
+  let saving = $state(false);
 
-  // Local draft for the site name so the input is snappy; commit to the backend
-  // on blur (or close). `committed` tracks the last value we persisted so we can
-  // show the "unsaved" hint.
-  let siteDraft = $state(siteName);
-  let committed = $state(siteName);
-  let dirty = $derived(siteDraft !== committed);
-  // Keep the draft in sync if the prop changes externally (e.g. another tab).
+  // Re-seed drafts whenever the panel is (re)opened with fresh props.
   $effect(() => {
-    siteDraft = siteName;
-    committed = siteName;
+    draftCardSize = cardSize;
+    draftEnableDrag = enableDrag;
+    draftSiteName = siteName;
   });
 
-  function commitSiteName() {
-    if (!dirty) return;
-    onsetSiteName(siteDraft);
+  // Has the user touched anything vs. the last persisted values?
+  let dirty = $derived(
+    draftCardSize !== cardSize ||
+    draftEnableDrag !== enableDrag ||
+    draftSiteName !== siteName
+  );
+
+  // Live preview spec derived from the DRAFT size (not the applied one).
+  let spec = $derived(sizeSpec(draftCardSize, displayMode));
+  let gridClass = $derived(`grid ${spec.cols} ${spec.gap}`);
+
+  async function apply() {
+    if (!dirty || saving) return;
+    saving = true;
+    const ok = await onsave({
+      cardSize: draftCardSize,
+      enableDrag: draftEnableDrag,
+      siteName: draftSiteName,
+    });
+    saving = false;
+    if (ok) onclose();
+  }
+
+  function cancel() {
+    // Discard drafts by reseeding from the (unchanged) persisted props.
+    draftCardSize = cardSize;
+    draftEnableDrag = enableDrag;
+    draftSiteName = siteName;
+    onclose();
   }
 
   $effect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        commitSiteName();
-        onclose();
-      }
+      if (e.key === 'Escape') cancel();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -75,7 +93,7 @@
 </script>
 
 <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick={() => { commitSiteName(); onclose(); }} onkeydown={() => {}} role="button" tabindex="-1"></div>
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick={cancel} onkeydown={() => {}} role="button" tabindex="-1"></div>
 
   <div class="relative w-full max-w-2xl h-[80vh] max-h-[600px] bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark shadow-xl flex flex-col overflow-hidden">
     <!-- Header -->
@@ -83,7 +101,7 @@
       <h2 class="text-base font-semibold text-text dark:text-text-dark">{t('cardSize.title')}</h2>
       <button
         type="button"
-        onclick={() => { commitSiteName(); onclose(); }}
+        onclick={cancel}
         class="p-1.5 rounded-lg hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer text-text-secondary dark:text-text-secondary-dark"
         aria-label="close"
       >
@@ -94,7 +112,7 @@
     </div>
 
     <div class="flex flex-1 min-h-0 flex-col sm:flex-row">
-      <!-- Group nav: top bar on mobile, left rail on desktop -->
+      <!-- Group nav -->
       <nav class="flex sm:flex-col gap-1 p-3 sm:w-44 sm:shrink-0 border-b sm:border-b-0 sm:border-r border-border dark:border-border-dark">
         {#each groups as g}
           <button
@@ -122,8 +140,8 @@
               {#each SIZES as s}
                 <button
                   type="button"
-                  onclick={() => onselect(s)}
-                  class="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer {cardSize === s ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
+                  onclick={() => (draftCardSize = s)}
+                  class="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer {draftCardSize === s ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
                 >
                   {label(s)}
                 </button>
@@ -169,13 +187,13 @@
               <button
                 type="button"
                 role="switch"
-                aria-checked={enableDrag}
-                onclick={() => onsetEnableDrag(!enableDrag)}
+                aria-checked={draftEnableDrag}
+                onclick={() => (draftEnableDrag = !draftEnableDrag)}
                 class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark hover:border-primary/40 transition-colors cursor-pointer"
               >
                 <span class="text-sm font-medium text-text dark:text-text-dark">{t('cardSize.enableDrag')}</span>
-                <span class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {enableDrag ? 'bg-primary' : 'bg-text-secondary/30 dark:bg-text-secondary-dark/30'}">
-                  <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform {enableDrag ? 'translate-x-6' : 'translate-x-1'}"></span>
+                <span class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {draftEnableDrag ? 'bg-primary' : 'bg-text-secondary/30 dark:bg-text-secondary-dark/30'}">
+                  <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform {draftEnableDrag ? 'translate-x-6' : 'translate-x-1'}"></span>
                 </span>
               </button>
             </section>
@@ -190,30 +208,47 @@
               <span class="block text-xs font-medium mb-1.5 text-text-secondary dark:text-text-secondary-dark">{t('cardSize.siteSection')}</span>
               <input
                 type="text"
-                value={siteDraft}
+                value={draftSiteName}
                 maxlength="64"
                 placeholder={t('cardSize.siteNamePlaceholder')}
-                oninput={(e) => (siteDraft = e.currentTarget.value)}
-                onblur={commitSiteName}
+                oninput={(e) => (draftSiteName = e.currentTarget.value)}
                 class="w-full px-3 py-2 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-sm text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
               />
             </label>
 
-            {#if dirty}
-              <p class="mt-2 text-xs text-amber-500 dark:text-amber-400">{t('cardSize.draft')}</p>
-            {/if}
-
-            <!-- Live tab preview -->
+            <!-- Live tab preview (reflects the draft, not persisted) -->
             <div class="mt-6">
               <span class="block text-xs font-medium mb-2 text-text-secondary dark:text-text-secondary-dark">{t('cardSize.preview')}</span>
               <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg dark:bg-bg-dark border border-border dark:border-border-dark max-w-[280px]">
                 <span class="w-3.5 h-3.5 rounded-full bg-primary/70 shrink-0"></span>
-                <span class="text-xs text-text dark:text-text-dark truncate">{siteDraft.trim() || 'zyes'}</span>
+                <span class="text-xs text-text dark:text-text-dark truncate">{draftSiteName.trim() || 'zyes'}</span>
               </div>
             </div>
           </section>
         {/if}
       </div>
+    </div>
+
+    <!-- Footer: Apply / Cancel -->
+    <div class="flex items-center justify-end gap-2 px-5 py-3 border-t border-border dark:border-border-dark shrink-0">
+      <button
+        type="button"
+        onclick={cancel}
+        class="px-4 py-2 rounded-xl text-sm font-medium text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
+      >
+        {t('cardSize.cancel')}
+      </button>
+      <button
+        type="button"
+        onclick={apply}
+        disabled={!dirty || saving}
+        class="px-4 py-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary-hover text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+      >
+        {#if saving}
+          <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+        {/if}
+        {t('cardSize.apply')}
+      </button>
     </div>
   </div>
 </div>
