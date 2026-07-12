@@ -21,7 +21,7 @@ binding = "ASSETS"
 # Requires wrangler 4.x (auto-provisioning GA, 2025-10).
 [[d1_databases]]
 binding = "DB"
-database_name = "zyes-db"
+database_name = "zyes-d1"
 migrations_dir = "migrations"
 
 # Worker variables (set as Text type in the dashboard / deploy button form):
