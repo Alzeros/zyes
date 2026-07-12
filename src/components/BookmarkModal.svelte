@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { Bookmark, Category } from '../lib/types';
-  import { isValidUrl, getFaviconUrls, parseIcon, parseCategoryIcon } from '../lib/utils';
+  import { isValidUrl, parseIcon, parseCategoryIcon } from '../lib/utils';
   import { t } from '../lib/i18n';
   import IconView from './IconView.svelte';
+  import IconPickerModal from './IconPickerModal.svelte';
 
   let {
     lang,
@@ -32,14 +33,12 @@
   let openTarget = $state<'new' | 'self'>(bookmark?.openTarget === 'self' ? 'self' : 'new');
   let saving = $state(false);
   let urlError = $state('');
+  let pickerOpen = $state(false);
 
   const isEdit = !!bookmark;
 
   // Live preview of the chosen icon, falling back to the auto favicon from the URL field.
   let previewSource = $derived(parseIcon(icon.trim()));
-  let previewFallback = $derived(
-    url.trim() && isValidUrl(url.trim()) ? getFaviconUrls(url.trim()) : []
-  );
   let previewTitle = $derived(title.trim() || url.trim() || 'zyes');
 
   async function handleSubmit(e: SubmitEvent) {
@@ -120,31 +119,26 @@
 
       <div>
         <label for="bm-icon" class="block text-sm font-medium mb-1 text-text dark:text-text-dark">{t('modal.icon')}</label>
-        <div class="flex items-stretch gap-3">
-          <div class="flex items-center justify-center rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark w-14 h-14 shrink-0 overflow-hidden">
-            <IconView source={previewSource} fallbackUrls={previewFallback} title={previewTitle} size="sm" />
+        <button
+          type="button"
+          onclick={() => (pickerOpen = true)}
+          disabled={!url.trim() && !icon.trim()}
+          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-left transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed hover:border-primary/40 cursor-pointer"
+        >
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shrink-0 overflow-hidden">
+            <IconView source={previewSource} fallbackUrls={[]} fallbackUrl="" title={previewTitle} size="md" fill />
           </div>
-          <div class="flex-1 min-w-0">
-            <input
-              id="bm-icon"
-              type="text"
-              bind:value={icon}
-              placeholder={t('modal.iconPlaceholder')}
-              class="w-full px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark placeholder-text-secondary dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
-            />
-            <p class="mt-1 text-xs text-text-secondary dark:text-text-secondary-dark">
-              {t('modal.iconHintPrefix')}
-              <a
-                href="https://icon-sets.iconify.design/"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-primary hover:underline"
-                onclick={(e) => e.stopPropagation()}
-              >icon-sets.iconify.design</a>
-              {t('modal.iconHintSuffix')}
-            </p>
-          </div>
-        </div>
+          <span class="flex-1 min-w-0 text-sm text-text-secondary dark:text-text-secondary-dark truncate">
+            {#if icon.trim()}
+              {icon.trim()}
+            {:else}
+              {t('modal.iconPickerCta')}
+            {/if}
+          </span>
+          <svg class="w-4 h-4 text-text-secondary dark:text-text-secondary-dark shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+        </button>
       </div>
 
       <div>
@@ -211,3 +205,14 @@
     </form>
   </div>
 </div>
+
+{#if pickerOpen}
+  <IconPickerModal
+    {lang}
+    url={url.trim()}
+    currentIcon={icon}
+    title={title.trim()}
+    onclose={() => (pickerOpen = false)}
+    onsave={(picked) => { icon = picked; pickerOpen = false; }}
+  />
+{/if}
