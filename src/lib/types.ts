@@ -33,6 +33,7 @@ export type CardSize = 'xs' | 'sm' | 'md' | 'lg';
 export interface ViewSettings {
   allViewMode: 'compact' | 'detail';
   cardSize: CardSize;
+  siteName: string;
 }
 
 export interface AppData {

@@ -69,6 +69,9 @@ export function initRoutes(): Hono<{ Bindings: Env }> {
 
       `INSERT INTO settings (key, value) VALUES ('card_size', 'md')
         ON CONFLICT(key) DO NOTHING`,
+
+      `INSERT INTO settings (key, value) VALUES ('site_name', 'zyes')
+        ON CONFLICT(key) DO NOTHING`,
     ];
 
     try {

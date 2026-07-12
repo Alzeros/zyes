@@ -2,7 +2,7 @@
   import type { SearchEngine } from '../lib/types';
   import SearchBar from './SearchBar.svelte';
   import AboutModal from './AboutModal.svelte';
-  import CardSizeModal from './CardSizeModal.svelte';
+  import SettingsModal from './SettingsModal.svelte';
   import { t } from '../lib/i18n';
   import type { CardSize } from '../lib/types';
 
@@ -12,26 +12,30 @@
     cardSize,
     displayMode,
     enableDrag,
+    siteName,
     onlogout,
     ontoggleLang,
     onsetCardSize,
     onsetEnableDrag,
+    onsetSiteName,
   }: {
     searchEngines: SearchEngine[];
     lang: string;
     cardSize: CardSize;
     displayMode: 'compact' | 'detail';
     enableDrag: boolean;
+    siteName: string;
     onlogout: () => void;
     ontoggleLang: () => void;
     onsetCardSize: (size: CardSize) => void;
     onsetEnableDrag: (v: boolean) => void;
+    onsetSiteName: (v: string) => void;
   } = $props();
 
   let darkMode = $state(localStorage.getItem('zyes_dark') === 'true');
   let menuOpen = $state(false);
   let aboutOpen = $state(false);
-  let cardSizeOpen = $state(false);
+  let settingsOpen = $state(false);
 
   function toggleDark() {
     darkMode = !darkMode;
@@ -135,11 +139,11 @@
           <div class="absolute right-0 mt-2 w-44 rounded-xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shadow-xl py-1 z-50 origin-top-right">
             <button
               type="button"
-              onclick={() => { cardSizeOpen = true; menuOpen = false; }}
+              onclick={() => { settingsOpen = true; menuOpen = false; }}
               class="w-full flex items-center gap-2 px-3 py-2 text-sm text-text dark:text-text-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h16M4 12h16M4 19h7" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2" />
               </svg>
               {t('settings.cardSize')}
             </button>
@@ -179,14 +183,16 @@
   <AboutModal {lang} onclose={() => (aboutOpen = false)} />
 {/if}
 
-{#if cardSizeOpen}
-  <CardSizeModal
+{#if settingsOpen}
+  <SettingsModal
     {lang}
     {cardSize}
     {displayMode}
     {enableDrag}
+    {siteName}
     onselect={(s) => onsetCardSize(s)}
     onsetEnableDrag={onsetEnableDrag}
-    onclose={() => (cardSizeOpen = false)}
+    onsetSiteName={onsetSiteName}
+    onclose={() => (settingsOpen = false)}
   />
 {/if}

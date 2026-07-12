@@ -16,8 +16,14 @@
   let bookmarks = $state<Bookmark[]>([]);
   let searchEngines = $state<SearchEngine[]>([]);
   let activeCategoryId = $state<string>('all');
-  let viewSettings = $state<ViewSettings>({ allViewMode: 'detail', cardSize: 'md' });
+  let viewSettings = $state<ViewSettings>({ allViewMode: 'detail', cardSize: 'md', siteName: 'zyes' });
   let didInitialFetch = $state(false);
+
+  // Keep the browser tab title in sync with the persisted site name. Falls back
+  // to 'zyes' whenever the settings value is blank.
+  $effect(() => {
+    document.title = viewSettings.siteName.trim() || 'zyes';
+  });
 
   // Drag-to-reorder is always available on desktop. On touch devices it is gated
   // by a local preference (zyes_enable_drag) because drag-on-touch is jittery
@@ -44,6 +50,7 @@
   );
   let displayMode = $derived(activeCategory?.displayMode ?? viewSettings.allViewMode);
   let cardSize = $derived(viewSettings.cardSize);
+  let siteName = $derived(viewSettings.siteName);
   // Now both real categories and the "All" view persist a view mode, so always toggleable.
   let canToggleDisplayMode = $derived(true);
 
@@ -74,6 +81,15 @@
       viewSettings = { ...viewSettings, ...updated };
     } catch (err) {
       console.error('Failed to update card size:', err);
+    }
+  }
+
+  async function handleSetSiteName(name: string) {
+    try {
+      const updated = await api.put<ViewSettings>('/api/settings/view', { siteName: name });
+      viewSettings = { ...viewSettings, ...updated };
+    } catch (err) {
+      console.error('Failed to update site name:', err);
     }
   }
 
@@ -118,7 +134,7 @@
     bookmarks = [];
     searchEngines = [];
     activeCategoryId = 'all';
-    viewSettings = { allViewMode: 'detail', cardSize: 'md' };
+    viewSettings = { allViewMode: 'detail', cardSize: 'md', siteName: 'zyes' };
     didInitialFetch = false;
   }
 
@@ -206,11 +222,13 @@
       {lang}
       {cardSize}
       {displayMode}
+      {siteName}
       enableDrag={enableDrag}
       onlogout={handleLogout}
       ontoggleLang={handleSwitchLang}
       onsetCardSize={handleSetCardSize}
       onsetEnableDrag={handleSetEnableDrag}
+      onsetSiteName={handleSetSiteName}
     />
     <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
       <CategorySidebar
