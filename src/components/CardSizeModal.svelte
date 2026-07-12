@@ -1,23 +1,29 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
   import { sizeSpec, CARD_SIZE_LABELS } from '../lib/cardSize';
+  import { isTouchDevice } from '../lib/utils';
   import type { CardSize } from '../lib/types';
 
   let {
     lang,
     cardSize,
     displayMode,
+    enableDrag,
     onselect,
+    onsetEnableDrag,
     onclose,
   }: {
     lang: string;
     cardSize: CardSize;
     displayMode: 'compact' | 'detail';
+    enableDrag: boolean;
     onselect: (size: CardSize) => void;
+    onsetEnableDrag: (v: boolean) => void;
     onclose: () => void;
   } = $props();
 
   const SIZES: CardSize[] = ['xs', 'sm', 'md', 'lg'];
+  const showDragToggle = isTouchDevice();
 
   // Live preview spec for the chosen size under the current display mode.
   let spec = $derived(sizeSpec(cardSize, displayMode));
@@ -85,6 +91,26 @@
         {/each}
       </div>
     </div>
+
+    <!-- Drag-to-reorder (only surfaced on touch devices) -->
+    {#if showDragToggle}
+      <div class="mt-5 pt-4 border-t border-border dark:border-border-dark">
+        <span class="block text-xs font-medium mb-1 text-text-secondary dark:text-text-secondary-dark">{t('cardSize.dragSection')}</span>
+        <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-3 leading-relaxed">{t('cardSize.dragHint')}</p>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enableDrag}
+          onclick={() => onsetEnableDrag(!enableDrag)}
+          class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark hover:border-primary/40 transition-colors cursor-pointer"
+        >
+          <span class="text-sm font-medium text-text dark:text-text-dark">{t('cardSize.enableDrag')}</span>
+          <span class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {enableDrag ? 'bg-primary' : 'bg-text-secondary/30 dark:bg-text-secondary-dark/30'}">
+            <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform {enableDrag ? 'translate-x-6' : 'translate-x-1'}"></span>
+          </span>
+        </button>
+      </div>
+    {/if}
 
     <div class="flex justify-end gap-2 pt-2">
       <button

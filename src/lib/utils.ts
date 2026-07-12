@@ -31,6 +31,19 @@ export function isValidUrl(str: string): boolean {
   }
 }
 
+// True on touch-primary devices (phones/tablets). Used to gate the drag-to-
+// reorder feature, which is too jittery on small touchscreens by default.
+// `pointer: coarse` covers modern touch devices; ontouchstart is the legacy
+// fallback. Guarded for SSR / envs without window/matchMedia.
+export function isTouchDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.matchMedia) {
+    const coarse = window.matchMedia('(pointer: coarse)');
+    if (typeof coarse.matches === 'boolean') return coarse.matches;
+  }
+  return 'ontouchstart' in window;
+}
+
 export function truncateUrl(url: string, maxLen = 40): string {
   try {
     const u = new URL(url);

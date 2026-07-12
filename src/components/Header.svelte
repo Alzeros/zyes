@@ -11,17 +11,21 @@
     lang,
     cardSize,
     displayMode,
+    enableDrag,
     onlogout,
     ontoggleLang,
     onsetCardSize,
+    onsetEnableDrag,
   }: {
     searchEngines: SearchEngine[];
     lang: string;
     cardSize: CardSize;
     displayMode: 'compact' | 'detail';
+    enableDrag: boolean;
     onlogout: () => void;
     ontoggleLang: () => void;
     onsetCardSize: (size: CardSize) => void;
+    onsetEnableDrag: (v: boolean) => void;
   } = $props();
 
   let darkMode = $state(localStorage.getItem('zyes_dark') === 'true');
@@ -180,7 +184,9 @@
     {lang}
     {cardSize}
     {displayMode}
+    {enableDrag}
     onselect={(s) => onsetCardSize(s)}
+    onsetEnableDrag={onsetEnableDrag}
     onclose={() => (cardSizeOpen = false)}
   />
 {/if}

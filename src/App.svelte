@@ -2,6 +2,7 @@
   import { isAuthenticated, getToken, setToken, removeToken } from './lib/auth';
   import { api } from './lib/api';
   import { getLang, toggleLang } from './lib/i18n';
+  import { isTouchDevice } from './lib/utils';
   import type { Bookmark, Category, SearchEngine, ViewSettings } from './lib/types';
   import LoginScreen from './components/LoginScreen.svelte';
   import Header from './components/Header.svelte';
@@ -17,6 +18,17 @@
   let activeCategoryId = $state<string>('all');
   let viewSettings = $state<ViewSettings>({ allViewMode: 'detail', cardSize: 'md' });
   let didInitialFetch = $state(false);
+
+  // Drag-to-reorder is always available on desktop. On touch devices it is gated
+  // by a local preference (zyes_enable_drag) because drag-on-touch is jittery
+  // by default; the user opts in from the card settings panel.
+  const DRAG_KEY = 'zyes_enable_drag';
+  let enableDrag = $state<boolean>(localStorage.getItem(DRAG_KEY) === 'true');
+  let canDrag = $derived(!isTouchDevice() || enableDrag);
+  function handleSetEnableDrag(v: boolean) {
+    enableDrag = v;
+    localStorage.setItem(DRAG_KEY, String(v));
+  }
 
   let filteredBookmarks = $derived(
     activeCategoryId === 'all'
@@ -194,9 +206,11 @@
       {lang}
       {cardSize}
       {displayMode}
+      enableDrag={enableDrag}
       onlogout={handleLogout}
       ontoggleLang={handleSwitchLang}
       onsetCardSize={handleSetCardSize}
+      onsetEnableDrag={handleSetEnableDrag}
     />
     <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
       <CategorySidebar
@@ -223,6 +237,7 @@
             {activeCategoryId}
             {displayMode}
             {cardSize}
+            {canDrag}
             {canToggleDisplayMode}
             onadd={handleBookmarkAdd}
             onupdate={handleBookmarkUpdate}

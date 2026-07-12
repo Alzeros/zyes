@@ -10,6 +10,7 @@
     activeCategoryId,
     displayMode,
     cardSize,
+    canDrag = true,
     canToggleDisplayMode,
     onadd,
     onupdate,
@@ -23,6 +24,7 @@
     activeCategoryId: string;
     displayMode: 'compact' | 'detail';
     cardSize: CardSize;
+    canDrag?: boolean;
     canToggleDisplayMode: boolean;
     onadd: (bookmark: Omit<Bookmark, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     onupdate: (id: string, patch: Partial<Bookmark>) => Promise<void>;
@@ -113,6 +115,7 @@
       {categories}
       {displayMode}
       {cardSize}
+      {canDrag}
       title={g.title}
       icon={g.icon}
       addCategoryId={g.categoryId}

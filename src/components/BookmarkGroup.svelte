@@ -16,6 +16,7 @@
     categories,
     displayMode,
     cardSize = 'md',
+    canDrag = true,
     title,
     icon,
     addCategoryId,        // categoryId to default the add-modal to ('' for uncategorized)
@@ -30,6 +31,7 @@
     categories: Category[];
     displayMode: 'compact' | 'detail';
     cardSize?: CardSize;
+    canDrag?: boolean;
     title: string;
     icon?: string;                // raw category icon (emoji / iconify / image URL)
     addCategoryId: string;        // '' for uncategorized
@@ -72,6 +74,15 @@
     flipDurationMs: 150,
     morphDisabled: true,
     dropTargetClasses: ['cat-dnd-target'],
+    // When the user has disabled drag (or is on a touch device that hasn't
+    // explicitly enabled it), disable drag AND drop so the zone is a no-op.
+    dragDisabled: !canDrag,
+    // dropFromOthersDisabled must be mirrored or cross-group drops in the "All"
+    // view would bypass the local drag-disable.
+    dropFromOthersDisabled: !canDrag,
+    // Touch UX: require a long-press before dragging starts, so a swipe to
+    // scroll the page doesn't launch a drag. Only meaningful when drag is on.
+    delayTouchStart: 140,
   });
   $effect(() => {
     void bookmarks;
