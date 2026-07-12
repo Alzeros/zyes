@@ -1,10 +1,10 @@
 // Favicon auto-fetch: multiple sources are tried in order because no single
-// service covers every site. Google's service misses many newer / smaller /
-// regional domains; icon.horse and DuckDuckGo cover different long tails.
+// service covers every site. icon.horse is first (best coverage, actively
+// scrapes the site's real favicon); Google and DuckDuckGo cover fallbacks.
 // The <img> tag in IconView walks this list via onerror until one loads.
 const FAVICON_SOURCES = [
-  (d: string) => `https://www.google.com/s2/favicons?domain=${d}&sz=64`,
   (d: string) => `https://icon.horse/icon/${d}`,
+  (d: string) => `https://www.google.com/s2/favicons?domain=${d}&sz=64`,
   (d: string) => `https://icons.duckduckgo.com/ip3/${d}.ico`,
 ];
 

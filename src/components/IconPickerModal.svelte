@@ -33,7 +33,7 @@
   // user can overwrite this in the text-icon input.
   let textIcon = $state(title.trim().charAt(0).toUpperCase() || 'N');
 
-  const FAVICON_SOURCE_LABELS = ['Google', 'icon.horse', 'DuckDuckGo'];
+  const FAVICON_SOURCE_LABELS = ['icon.horse', 'Google', 'DuckDuckGo'];
 
   function fetchCandidates() {
     const u = url.trim();
