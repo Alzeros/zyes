@@ -27,12 +27,23 @@ const DETAIL: Record<CardSize, Pick<SizeSpec, 'cols' | 'gap' | 'detailPad' | 'de
   lg: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',                gap: 'gap-5', detailPad: 'p-5', detailMinH: 'min-h-[160px]', detailTitle: 'text-base' },
 };
 
-export function sizeSpec(size: CardSize, mode: 'compact' | 'detail'): SizeSpec {
-  const c = COMPACT[size];
-  const d = DETAIL[size];
+// Look up a size spec, defaulting to 'md' for any unknown/undefined size and
+// 'compact' for an unknown mode. The card stack cascades cardSize through a
+// few props; a transient undefined (e.g. before the parent's derived resolves)
+// would otherwise become `COMPACT[undefined]` → undefined → a template crash
+// ("spec is not defined"). This guard keeps rendering safe at every tick.
+function isCardSize(v: unknown): v is CardSize {
+  return v === 'xs' || v === 'sm' || v === 'md' || v === 'lg';
+}
+
+export function sizeSpec(size: CardSize | undefined | null, mode: 'compact' | 'detail' | undefined | null): SizeSpec {
+  const s: CardSize = isCardSize(size) ? size : 'md';
+  const m = mode === 'detail' ? 'detail' : 'compact';
+  const c = COMPACT[s];
+  const d = DETAIL[s];
   return {
-    cols: mode === 'compact' ? c.cols : d.cols,
-    gap: mode === 'compact' ? c.gap : d.gap,
+    cols: m === 'compact' ? c.cols : d.cols,
+    gap: m === 'compact' ? c.gap : d.gap,
     compactTitle: c.compactTitle,
     detailPad: d.detailPad,
     detailMinH: d.detailMinH,
