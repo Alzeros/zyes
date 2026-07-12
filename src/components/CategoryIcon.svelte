@@ -5,7 +5,7 @@
   let {
     icon,
     size = 'base',
-    fallback = '📁',
+    fallback = 'lucide:folder',
   }: {
     icon: string | null | undefined;
     size?: 'base' | 'lg' | 'inline';

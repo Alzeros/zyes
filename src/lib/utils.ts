@@ -68,16 +68,18 @@ export type CategoryIconSource =
   | { kind: 'image'; url: string }
   | { kind: 'emoji'; char: string };   // literal emoji / short text, rendered as-is
 
-export function parseCategoryIcon(icon: string | null | undefined, fallback = '📁'): CategoryIconSource {
-  if (!icon) return { kind: 'emoji', char: fallback };
+export function parseCategoryIcon(icon: string | null | undefined, fallback = 'lucide:folder'): CategoryIconSource {
+  if (!icon) return { kind: 'iconify', name: fallback };
   const v = icon.trim();
-  if (!v) return { kind: 'emoji', char: fallback };
+  if (!v) return { kind: 'iconify', name: fallback };
   if (v.startsWith('iconify:')) {
     const name = v.slice('iconify:'.length).trim();
-    return name ? { kind: 'iconify', name } : { kind: 'emoji', char: fallback };
+    return name ? { kind: 'iconify', name } : { kind: 'iconify', name: fallback };
   }
   if (/^https?:\/\//i.test(v)) return { kind: 'image', url: v };
+  // iconify name (e.g. "lucide:folder" / "mdi:github") — contains a colon
   if (v.includes(':')) return { kind: 'iconify', name: v };
+  // plain emoji / short text
   return { kind: 'emoji', char: v };
 }
 

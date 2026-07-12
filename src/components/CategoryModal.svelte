@@ -23,18 +23,33 @@
 
   const isEdit = !!category;
 
-  const emojiOptions = ['📁', '💻', '🔧', '📚', '🌐', '🎨', '🎮', '🎵', '📱', '⚡', '🔒', '🛠️', '📊', '🚀', '💡'];
+  const categoryIconOptions = [
+    { id: 'code', label: '代码开发', icon: 'lucide:code-2', color: '#3b82f6' },
+    { id: 'server', label: '服务器', icon: 'lucide:server', color: '#10b981' },
+    { id: 'network', label: '网络节点', icon: 'lucide:globe', color: '#6366f1' },
+    { id: 'terminal', label: '脚本工具', icon: 'lucide:terminal', color: '#4b5563' },
+    { id: 'tools', label: '常用工具', icon: 'lucide:wrench', color: '#f59e0b' },
+    { id: 'cloud', label: '云盘存储', icon: 'lucide:cloud', color: '#06b6d4' },
+    { id: 'docs', label: '文档笔记', icon: 'lucide:file-text', color: '#8b5cf6' },
+    { id: 'design', label: '设计素材', icon: 'lucide:palette', color: '#ec4899' },
+    { id: 'media', label: '流媒体', icon: 'lucide:video', color: '#ef4444' },
+    { id: 'community', label: '社交社区', icon: 'lucide:messages-square', color: '#14b8a6' },
+    { id: 'game', label: '游戏摸鱼', icon: 'lucide:gamepad-2', color: '#f43f5e' },
+    { id: 'finance', label: '财务账单', icon: 'lucide:wallet', color: '#eab308' },
+    { id: 'star', label: '特别关注', icon: 'lucide:folder-heart', color: '#a855f7' },
+    { id: 'default', label: '其它/未分类', icon: 'lucide:folder', color: '#6b7280' },
+  ];
 
   // Preview of the chosen category icon: emoji rendered literally, iconify /
   // image rendered through the shared IconView/Icon path.
-  let preview = $derived(parseCategoryIcon(icon, '📁'));
+  let preview = $derived(parseCategoryIcon(icon, 'lucide:folder'));
 
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     if (!name.trim()) return;
     saving = true;
     try {
-      await onsave({ name: name.trim(), icon: icon || '📁' });
+      await onsave({ name: name.trim(), icon: icon || 'lucide:folder' });
     } catch (err) {
       console.error('Save failed:', err);
     } finally {
@@ -73,14 +88,15 @@
 
       <div>
         <label for="cat-icon" class="block text-sm font-medium mb-2 text-text dark:text-text-dark">{t('modal.icon')}</label>
-        <div class="flex flex-wrap gap-2 mb-3">
-          {#each emojiOptions as emoji}
+        <div class="flex flex-wrap gap-1.5 mb-3">
+          {#each categoryIconOptions as opt}
             <button
               type="button"
-              onclick={() => (icon = emoji)}
-              class="w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all cursor-pointer {icon === emoji ? 'bg-primary/10 ring-2 ring-primary scale-110' : 'bg-bg dark:bg-bg-dark hover:bg-border dark:hover:bg-border-dark'}"
+              onclick={() => (icon = opt.icon)}
+              title={opt.label}
+              class="w-9 h-9 rounded-lg flex items-center justify-center transition-all cursor-pointer {icon === opt.icon ? 'bg-primary/10 ring-2 ring-primary scale-110' : 'bg-bg dark:bg-bg-dark hover:bg-border dark:hover:bg-border-dark'}"
             >
-              {emoji}
+              <Icon icon={opt.icon} width={18} height={18} color={opt.color} />
             </button>
           {/each}
         </div>
