@@ -123,21 +123,21 @@
           </button>
         </div>
         {#if candidates.length > 0}
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap gap-3">
             {#each candidates as c}
               <button
                 type="button"
                 onclick={() => chooseImage(c.url)}
                 title={c.label}
-                class="w-10 h-10 rounded-lg flex items-center justify-center bg-bg dark:bg-bg-dark border transition-all cursor-pointer {icon === c.url ? 'ring-2 ring-primary border-primary' : 'border-border dark:border-border-dark hover:border-primary/40'}"
+                class="w-16 h-16 rounded-lg flex items-center justify-center bg-bg dark:bg-bg-dark border transition-all cursor-pointer {icon === c.url ? 'ring-2 ring-primary border-primary' : 'border-border dark:border-border-dark hover:border-primary/40'}"
               >
                 {#if c.failed}
-                  <span class="text-[10px] text-text-secondary dark:text-text-secondary-dark">{c.label.slice(0, 3)}</span>
+                  <span class="text-[11px] text-text-secondary dark:text-text-secondary-dark">{c.label.slice(0, 3)}</span>
                 {:else}
                   <img
                     src={c.url}
                     alt={c.label}
-                    class="w-6 h-6 object-contain"
+                    class="w-10 h-10 object-contain p-1"
                     onload={() => (c.loaded = true)}
                     onerror={() => (c.failed = true)}
                   />
