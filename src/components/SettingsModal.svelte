@@ -1,8 +1,9 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
-  import { sizeSpec, CARD_SIZE_LABELS } from '../lib/cardSize';
+  import { CARD_SIZE_LABELS } from '../lib/cardSize';
   import { isTouchDevice } from '../lib/utils';
-  import type { CardSize } from '../lib/types';
+  import type { Bookmark, CardSize } from '../lib/types';
+  import BookmarkCard from './BookmarkCard.svelte';
 
   let {
     lang,
@@ -50,10 +51,6 @@
     draftSiteName !== siteName
   );
 
-  // Live preview spec derived from the DRAFT size (not the applied one).
-  let spec = $derived(sizeSpec(draftCardSize, displayMode));
-  let gridClass = $derived(`grid ${spec.cols} ${spec.gap}`);
-
   async function apply() {
     if (!dirty || saving) return;
     saving = true;
@@ -85,6 +82,22 @@
   function label(s: CardSize) {
     return CARD_SIZE_LABELS[s][lang === 'zh' ? 'zh' : 'en'];
   }
+
+  // Sample bookmarks rendered with the REAL BookmarkCard so the preview is a
+  // faithful miniature of the main grid (square compact tiles vs. horizontal
+  // detail tiles, real padding/fonts, real favicon fallback). `interactive:false`
+  // disables navigation/ctx-menu so clicking a preview tile does nothing.
+  const sampleBookmarks: Bookmark[] = [
+    { id: 'p1', categoryId: '', title: t('cardSize.previewTitle'), url: 'https://example.com', description: t('cardSize.sampleDesc'), icon: null, openTarget: 'new', sortOrder: 0, createdAt: '', updatedAt: '' },
+    { id: 'p2', categoryId: '', title: 'Zyes', url: 'https://zyes.app', description: t('cardSize.sampleDesc2'), icon: null, openTarget: 'new', sortOrder: 1, createdAt: '', updatedAt: '' },
+    { id: 'p3', categoryId: '', title: 'GitHub', url: 'https://github.com', description: '', icon: null, openTarget: 'new', sortOrder: 2, createdAt: '', updatedAt: '' },
+    { id: 'p4', categoryId: '', title: 'Hacker News', url: 'https://news.ycombinator.com', description: '', icon: null, openTarget: 'new', sortOrder: 3, createdAt: '', updatedAt: '' },
+  ];
+  // Fixed preview grid: compact → many small square tiles, detail → 2 wider tiles.
+  // (Not the responsive cols from sizeSpec, which depend on viewport width that
+  // the panel can't reproduce; fixed columns keep the preview shape stable.)
+  let previewCols = $derived(displayMode === 'compact' ? 'grid-cols-4 sm:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2');
+  let previewGap = $derived(displayMode === 'compact' ? 'gap-2' : 'gap-3');
 
   const groups = [
     { id: 'cards' as const, label: t('cardSize.nav.cards'), icon: 'M4 5h16M4 12h16M4 19h7' },
@@ -151,30 +164,18 @@
 
           <span class="block text-xs font-medium mb-2 text-text-secondary dark:text-text-secondary-dark">{t('cardSize.preview')}</span>
           <div class="rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark p-3 mb-6">
-            <div class={gridClass}>
-              {#each [{ title: t('cardSize.previewTitle'), url: 'https://example.com' }, { title: 'Zyes', url: 'https://zyes.app' }] as sample}
-                {#if displayMode === 'compact'}
-                  <div class="flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden text-center">
-                    <div class="flex-1 flex items-center justify-center p-2 min-h-0">
-                      <span class="font-bold text-primary" style="font-size:min(40vw,2rem)">{sample.title.charAt(0).toUpperCase()}</span>
-                    </div>
-                    <div class="px-1.5 pb-2 pt-1 shrink-0">
-                      <h3 class="font-medium text-text dark:text-text-dark line-clamp-2 break-all {spec.compactTitle}">{sample.title}</h3>
-                    </div>
-                  </div>
-                {:else}
-                  <div class="flex flex-col {spec.detailPad} {spec.detailMinH} bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark text-left">
-                    <div class="flex items-start gap-3 mb-3">
-                      <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-bg dark:bg-bg-dark shrink-0">
-                        <span class="font-bold text-primary" style="font-size:14px">{sample.title.charAt(0).toUpperCase()}</span>
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <h3 class="font-semibold text-text dark:text-text-dark truncate {spec.detailTitle}">{sample.title}</h3>
-                        <p class="text-xs text-text-secondary dark:text-text-secondary-dark truncate mt-0.5">{sample.url}</p>
-                      </div>
-                    </div>
-                  </div>
-                {/if}
+            <div class="grid {previewCols} {previewGap}">
+              {#each sampleBookmarks as b}
+                <BookmarkCard
+                  bookmark={b}
+                  {lang}
+                  {displayMode}
+                  cardSize={draftCardSize}
+                  interactive={false}
+                  onedit={() => {}}
+                  ondelete={() => {}}
+                  oncontext={() => {}}
+                />
               {/each}
             </div>
           </div>

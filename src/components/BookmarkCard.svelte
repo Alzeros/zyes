@@ -10,6 +10,7 @@
     lang,
     displayMode = 'detail',
     cardSize = 'md',
+    interactive = true,
     onedit,
     ondelete,
     oncontext,
@@ -18,6 +19,7 @@
     lang: string;
     displayMode?: 'compact' | 'detail';
     cardSize?: CardSize;
+    interactive?: boolean;   // false for non-interactive previews (no nav, no ctx menu)
     onedit: () => void;
     ondelete: () => void;
     oncontext: (e: MouseEvent) => void;
@@ -45,13 +47,13 @@
 
 {#if displayMode === 'compact'}
   <div
-    onclick={openBookmark}
-    onkeydown={handleKeydown}
-    oncontextmenu={handleContext}
-    role="button"
-    tabindex="0"
+    onclick={interactive ? openBookmark : undefined}
+    onkeydown={interactive ? handleKeydown : undefined}
+    oncontextmenu={interactive ? handleContext : undefined}
+    role={interactive ? 'button' : undefined}
+    tabindex={interactive ? 0 : undefined}
     title={bookmark.url}
-    class="group relative flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 ease-out text-center cursor-pointer select-none"
+    class="group relative flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-center select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
   >
     <!-- Square logo fills the area above the title bar -->
     <div class="flex-1 flex items-center justify-center p-2 min-h-0">
@@ -66,12 +68,12 @@
   </div>
 {:else}
   <div
-    onclick={openBookmark}
-    onkeydown={handleKeydown}
-    oncontextmenu={handleContext}
-    role="button"
-    tabindex="0"
-    class="group relative flex flex-col {spec.detailPad} {spec.detailMinH} bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 ease-out text-left cursor-pointer select-none"
+    onclick={interactive ? openBookmark : undefined}
+    onkeydown={interactive ? handleKeydown : undefined}
+    oncontextmenu={interactive ? handleContext : undefined}
+    role={interactive ? 'button' : undefined}
+    tabindex={interactive ? 0 : undefined}
+    class="group relative flex flex-col {spec.detailPad} {spec.detailMinH} bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark transition-all duration-200 ease-out text-left select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
   >
     <div class="flex items-start gap-3 mb-3">
       <IconView source={iconSource} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} size="sm" bg />
