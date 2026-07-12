@@ -1,10 +1,25 @@
-export function getFaviconUrl(url: string): string {
+// Favicon auto-fetch: multiple sources are tried in order because no single
+// service covers every site. Google's service misses many newer / smaller /
+// regional domains; icon.horse and DuckDuckGo cover different long tails.
+// The <img> tag in IconView walks this list via onerror until one loads.
+const FAVICON_SOURCES = [
+  (d: string) => `https://www.google.com/s2/favicons?domain=${d}&sz=64`,
+  (d: string) => `https://icon.horse/icon/${d}`,
+  (d: string) => `https://icons.duckduckgo.com/ip3/${d}.ico`,
+];
+
+export function getFaviconUrls(url: string): string[] {
   try {
     const domain = new URL(url).hostname;
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    return FAVICON_SOURCES.map((fn) => fn(domain));
   } catch {
-    return '';
+    return [];
   }
+}
+
+// Back-compat single-URL form (still used by a couple of call sites).
+export function getFaviconUrl(url: string): string {
+  return getFaviconUrls(url)[0] ?? '';
 }
 
 export function isValidUrl(str: string): boolean {

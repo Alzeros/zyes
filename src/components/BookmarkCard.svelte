@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Bookmark } from '../lib/types';
-  import { getFaviconUrl, truncateUrl, parseIcon } from '../lib/utils';
+  import { getFaviconUrls, truncateUrl, parseIcon } from '../lib/utils';
   import { t } from '../lib/i18n';
   import IconView from './IconView.svelte';
 
@@ -51,7 +51,7 @@
   >
     <!-- Square logo fills the area above the title bar -->
     <div class="flex-1 flex items-center justify-center p-2 min-h-0">
-      <IconView source={iconSource} fallbackUrl={getFaviconUrl(bookmark.url)} title={bookmark.title} fill />
+      <IconView source={iconSource} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill />
     </div>
     <!-- Title pinned to the bottom -->
     <div class="px-1.5 pb-2 pt-1 shrink-0">
@@ -70,7 +70,7 @@
     class="group relative flex flex-col p-4 min-h-[140px] bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 ease-out text-left cursor-pointer select-none"
   >
     <div class="flex items-start gap-3 mb-3">
-      <IconView source={iconSource} fallbackUrl={getFaviconUrl(bookmark.url)} title={bookmark.title} size="sm" bg />
+      <IconView source={iconSource} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} size="sm" bg />
       <div class="flex-1 min-w-0">
         <h3 class="font-semibold text-sm text-text dark:text-text-dark truncate">{bookmark.title}</h3>
         <p class="text-xs text-text-secondary dark:text-text-secondary-dark truncate mt-0.5">
