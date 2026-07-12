@@ -10,3 +10,4 @@ src/logo-preview.html
 .dev.vars
 .wrangler/
 sql/
+worker-configuration.d.ts

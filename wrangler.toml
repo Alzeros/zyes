@@ -10,12 +10,20 @@ compatibility_flags = ["nodejs_compat"]
 directory = "./dist/client"
 binding = "ASSETS"
 
-# D1 binding: NOT declared here — instead bind manually in the Cloudflare
-# dashboard (Workers & Pages → Settings → Bindings → D1, name "DB").
-# This keeps `wrangler deploy` agnostic to your personal database_id so both
-# fork deployment and the Deploy-to-Cloudflare button work without editing
-# this file.
-#
+# D1 database binding. `database_id` is intentionally omitted — on the first
+# `wrangler deploy` with wrangler 4.x+, Cloudflare auto-provisions a D1 named
+# `zyes-db` (prefixed with the Worker name) and tracks the generated id
+# internally via the inherit-symbol mechanism. This means:
+#   - You do NOT need to edit this file with your personal database_id
+#   - Forkers can deploy without creating their D1 first
+#   - The binding survives across future deploys (unlike dashboard-only binds,
+#     which `wrangler deploy` overwrites because wrangler.toml is source-of-truth)
+# Requires wrangler 4.x (auto-provisioning GA, 2025-10).
+[[d1_databases]]
+binding = "DB"
+database_name = "zyes-db"
+migrations_dir = "migrations"
+
 # Worker variables (set as Text type in the dashboard / deploy button form):
 #   JWT_SECRET    — random string (>= 32 bytes) to sign JWTs. MUST be changed,
 #                   never use the placeholder from .dev.vars.example.

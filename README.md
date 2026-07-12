@@ -33,8 +33,9 @@ npm run build && npm start
 点击按钮后：
 1. Cloudflare 自动创建仓库并部署 Worker（注意：**非 fork，无法 sync 更新**）。
 2. 表单填两个 Text 变量（`ZYES_PASSWORD` = 你的登录密码，`JWT_SECRET` = 随机串）。
-3. 部署完成后在 CF 控制台绑定 D1 + 访问 `/api/init` 建表。
-4. 打开 Worker 域名，用你设的密码登录。
+3. 部署时自动 provision 一个 D1 数据库 `zyes-db`（无需手动创建、无需绑绑定）。
+4. 部署完成后访问一次 `/api/init` → 自动建表+播种。
+5. 打开 Worker 域名，用你设的密码登录。
 
 > **此路径不能 Sync 更新。** 需要跟踪本仓库后续更新请走下面 Fork 路径。
 
@@ -42,15 +43,17 @@ npm run build && npm start
 
 ```bash
 # 1. Fork 本仓库 & clone
-# 2. Cloudflare 控制台 → 创建 D1 数据库（记住名字）
-# 3. 在 Worker 控制台 Settings → Bindings → 添加 D1，名字填 DB
-# 4. 添加两个 Text 变量：JWT_SECRET（openssl rand -hex 32 生成）+ ZYES_PASSWORD
-# 5. push 任意改动（或直接 CF 里 rebuild）→ 自动部署
-# 6. 第一次访问 /api/init → 自动建表+播种
-# 7. 打开 Worker 域名，用 ZYES_PASSWORD 登录
+# 2. Cloudflare 控制台：Workers & Pages → Create → Workers → Git 导入你的 fork
+#    构建命令：npm run build      部署命令：npm run deploy
+#    添加两个 Text 变量：JWT_SECRET（openssl rand -hex 32 生成）+ ZYES_PASSWORD（你的登录密码）
+# 3. push 到你的 fork → Cloudflare 自动部署
+#    首次 deploy 时 wrangler 会自动 provision D1 数据库 zyes-db 并绑定，无需手动创建
+# 4. 第一次访问 /api/init → 自动建表+播种
+# 5. 打开 Worker 域名，用 ZYES_PASSWORD 登录
 ```
 
 > ✅ Fork 保留 GitHub fork 关系，主仓库更新后点 **Sync fork** 拉取更新，CF 自动 rebuild。
+> ✅ D1 绑定写在 `wrangler.toml` 里（省略 `database_id`），由 wrangler 4.x 自动 provision，**deploy 不会清掉绑定或变量**（`deploy` 脚本带 `--keep-vars`）。
 
 ### 初始化数据库 — 访问 `/api/init`
 
@@ -71,7 +74,7 @@ npm run import-d1 > sql/import.sql
 npm run dev:worker             # wrangler dev (wrangler.dev.toml) → http://127.0.0.1:8787
 npm run dev:worker:client      # 同时起 Worker + Vite(HMR 前端)，代理 /api → Worker
 npm run build                  # 构建前端到 dist/client
-npm run deploy                 # wrangler deploy（D1 已从 toml 移除，控制台绑定）
+npm run deploy                 # wrangler deploy --keep-vars（D1 自动 provision,变量保留）
 npm run cf-typecheck           # 仅类型检查 worker/
 ```
 
