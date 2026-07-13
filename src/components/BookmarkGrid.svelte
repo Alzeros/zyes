@@ -10,8 +10,11 @@
     activeCategoryId,
     displayMode,
     cardSize,
-    canDrag = true,
-    canToggleDisplayMode,
+    editMode = false,
+    hasPendingChanges = false,
+    onenterEdit,
+    onexitEdit,
+    onapplyEdits,
     onadd,
     onupdate,
     ondelete,
@@ -24,13 +27,16 @@
     activeCategoryId: string;
     displayMode: 'compact' | 'detail';
     cardSize: CardSize;
-    canDrag?: boolean;
-    canToggleDisplayMode: boolean;
+    editMode?: boolean;
+    hasPendingChanges?: boolean;
+    onenterEdit: () => void;
+    onexitEdit: () => void;
+    onapplyEdits: () => Promise<void> | void;
     onadd: (bookmark: Omit<Bookmark, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     onupdate: (id: string, patch: Partial<Bookmark>) => Promise<void>;
     ondelete: (id: string) => Promise<void>;
     onsetDisplayMode: (mode: 'compact' | 'detail') => void;
-    onreconcile: (groupId: string, ids: string[]) => Promise<void>;
+    onreconcile: (groupId: string, ids: string[]) => Promise<void> | void;
   } = $props();
 
   // The "All" view renders a group per category plus a trailing "Uncategorized" group.
@@ -78,9 +84,27 @@
   );
 </script>
 
-<!-- Per-category view switcher (compact / detail) -->
-{#if canToggleDisplayMode}
-  <div class="flex items-center justify-end mb-4">
+<!-- Toolbar: compact/detail switch (hidden while editing) + edit mode controls -->
+<div class="flex items-center justify-end mb-4 gap-2">
+  {#if editMode}
+    <!-- Editing: show Apply / Cancel -->
+    <button
+      type="button"
+      onclick={() => onexitEdit()}
+      class="px-3 py-1.5 rounded-full text-xs font-medium border border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark transition-all duration-200 cursor-pointer"
+    >
+      {t('grid.editCancel')}
+    </button>
+    <button
+      type="button"
+      onclick={() => onapplyEdits()}
+      disabled={!hasPendingChanges}
+      class="px-3 py-1.5 rounded-full text-xs font-medium bg-primary hover:bg-primary-hover text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+    >
+      {t('grid.editApply')}
+    </button>
+  {:else}
+    <!-- Not editing: compact/detail switcher -->
     <div class="inline-flex items-center gap-1 p-1 rounded-full bg-bg dark:bg-bg-dark border border-border dark:border-border-dark">
       <button
         onclick={() => onsetDisplayMode('compact')}
@@ -97,8 +121,19 @@
         {t('grid.viewDetail')}
       </button>
     </div>
-  </div>
-{/if}
+    <button
+      type="button"
+      onclick={() => onenterEdit()}
+      class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark hover:border-primary/40 hover:text-primary transition-all duration-200 cursor-pointer"
+      title={t('grid.editEnter')}
+    >
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+      </svg>
+      {t('grid.editEnter')}
+    </button>
+  {/if}
+</div>
 
 {#if bookmarks.length === 0 && !isAll}
   <div class="text-center py-16">
@@ -115,7 +150,7 @@
       {categories}
       {displayMode}
       {cardSize}
-      {canDrag}
+      canDrag={editMode}
       title={g.title}
       icon={g.icon}
       addCategoryId={g.categoryId}

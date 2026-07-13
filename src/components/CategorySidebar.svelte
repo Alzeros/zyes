@@ -157,14 +157,12 @@
   </div>
 </aside>
 
-<!-- Mobile category bar: horizontal scrolling tabs -->
+<!-- Mobile category bar: horizontal scrolling tabs. NO drag-to-reorder on
+     mobile — the touch drag in this horizontal strip was jittery and error-prone
+     (cards reorder on a stray swipe). Mobile users edit category order from a
+     desktop device; the bar here is tap-to-select only. -->
 <div class="md:hidden border-b border-border dark:border-border-dark bg-surface dark:bg-surface-dark">
-  <div
-    use:dndzone={dndConfig}
-    onconsider={handleDndConsider}
-    onfinalize={handleDndFinalize}
-    class="cat-dnd-host flex items-center gap-1.5 px-3 py-2.5 overflow-x-auto scrollbar-hide"
-  >
+  <div class="flex items-center gap-1.5 px-3 py-2.5 overflow-x-auto scrollbar-hide">
     <button
       onclick={() => selectCategory('all')}
       class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap {activeCategoryId === 'all' ? 'bg-primary text-white' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}"
@@ -173,29 +171,14 @@
       <span class="ml-1 opacity-70">{counts.all || 0}</span>
     </button>
     {#each items as cat (cat.id)}
-      <div class="flex items-center gap-0.5 shrink-0">
-        <button
-          type="button"
-          data-dnd-handle
-          onpointerdown={handleGripPointerDown}
-          aria-label={t('sidebar.dragCategory')}
-          class="shrink-0 p-1.5 rounded-full text-text-secondary/40 dark:text-text-secondary-dark/40 active:cursor-grabbing cursor-grab transition-colors"
-        >
-          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
-            <circle cx="5" cy="3" r="1.3" /><circle cx="5" cy="8" r="1.3" /><circle cx="5" cy="13" r="1.3" />
-            <circle cx="11" cy="3" r="1.3" /><circle cx="11" cy="8" r="1.3" /><circle cx="11" cy="13" r="1.3" />
-          </svg>
-        </button>
-        <button
-          onclick={() => selectCategory(cat.id)}
-          oncontextmenu={(e) => handleContextMenu(e, cat)}
-          class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap {activeCategoryId === cat.id ? 'bg-primary text-white' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}"
-        >
-          <span class="inline-flex items-center text-base text-current"><CategoryIcon icon={cat.icon} /></span>
-          {cat.name}
-          <span class="ml-1 opacity-70">{counts[cat.id] || 0}</span>
-        </button>
-      </div>
+      <button
+        onclick={() => selectCategory(cat.id)}
+        class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap {activeCategoryId === cat.id ? 'bg-primary text-white' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}"
+      >
+        <span class="inline-flex items-center text-base text-current"><CategoryIcon icon={cat.icon} /></span>
+        {cat.name}
+        <span class="ml-1 opacity-70">{counts[cat.id] || 0}</span>
+      </button>
     {/each}
     <button
       onclick={() => (showAddModal = true)}

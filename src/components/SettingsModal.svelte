@@ -1,27 +1,23 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
   import { CARD_SIZE_LABELS } from '../lib/cardSize';
-  import { isTouchDevice } from '../lib/utils';
   import type { CardSize } from '../lib/types';
 
   let {
     lang,
     cardSize,
-    enableDrag,
     siteName,
     onsave,
     onclose,
   }: {
     lang: string;
     cardSize: CardSize;
-    enableDrag: boolean;
     siteName: string;
-    onsave: (patch: { cardSize?: CardSize; enableDrag?: boolean; siteName?: string }) => Promise<boolean>;
+    onsave: (patch: { cardSize?: CardSize; siteName?: string }) => Promise<boolean>;
     onclose: () => void;
   } = $props();
 
   const SIZES: CardSize[] = ['xs', 'sm', 'md', 'lg'];
-  const showDragToggle = isTouchDevice();
 
   // Active settings group: 'cards' | 'site'
   let activeGroup = $state<'cards' | 'site'>('cards');
@@ -30,21 +26,18 @@
   // then the backend / parent state is untouched, so previewing a size can't
   // trigger a network round-trip or hang the page.
   let draftCardSize = $state<CardSize>(cardSize);
-  let draftEnableDrag = $state<boolean>(enableDrag);
   let draftSiteName = $state<string>(siteName);
   let saving = $state(false);
 
   // Re-seed drafts whenever the panel is (re)opened with fresh props.
   $effect(() => {
     draftCardSize = cardSize;
-    draftEnableDrag = enableDrag;
     draftSiteName = siteName;
   });
 
   // Has the user touched anything vs. the last persisted values?
   let dirty = $derived(
     draftCardSize !== cardSize ||
-    draftEnableDrag !== enableDrag ||
     draftSiteName !== siteName
   );
 
@@ -53,7 +46,6 @@
     saving = true;
     const ok = await onsave({
       cardSize: draftCardSize,
-      enableDrag: draftEnableDrag,
       siteName: draftSiteName,
     });
     saving = false;
@@ -63,7 +55,6 @@
   function cancel() {
     // Discard drafts by reseeding from the (unchanged) persisted props.
     draftCardSize = cardSize;
-    draftEnableDrag = enableDrag;
     draftSiteName = siteName;
     onclose();
   }
@@ -141,27 +132,8 @@
                 </button>
               {/each}
             </div>
+            <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-3 leading-relaxed">{t('cardSize.dragMovedHint')}</p>
           </section>
-
-          <!-- ── Drag to reorder (touch only) ─────────────────── -->
-          {#if showDragToggle}
-            <section class="pt-5 border-t border-border dark:border-border-dark">
-              <h3 class="text-sm font-semibold text-text dark:text-text-dark mb-1">{t('cardSize.dragSection')}</h3>
-              <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-3 leading-relaxed">{t('cardSize.dragHint')}</p>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={draftEnableDrag}
-                onclick={() => (draftEnableDrag = !draftEnableDrag)}
-                class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark hover:border-primary/40 transition-colors cursor-pointer"
-              >
-                <span class="text-sm font-medium text-text dark:text-text-dark">{t('cardSize.enableDrag')}</span>
-                <span class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {draftEnableDrag ? 'bg-primary' : 'bg-text-secondary/30 dark:bg-text-secondary-dark/30'}">
-                  <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform {draftEnableDrag ? 'translate-x-6' : 'translate-x-1'}"></span>
-                </span>
-              </button>
-            </section>
-          {/if}
         {:else}
           <!-- ── Site title ────────────────────────────────────── -->
           <section>

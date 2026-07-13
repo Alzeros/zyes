@@ -2,7 +2,6 @@
   import { isAuthenticated, getToken, setToken, removeToken } from './lib/auth';
   import { api } from './lib/api';
   import { getLang, toggleLang } from './lib/i18n';
-  import { isTouchDevice } from './lib/utils';
   import type { Bookmark, Category, SearchEngine, ViewSettings } from './lib/types';
   import LoginScreen from './components/LoginScreen.svelte';
   import Header from './components/Header.svelte';
@@ -25,15 +24,61 @@
     document.title = viewSettings.siteName.trim() || 'zyes';
   });
 
-  // Drag-to-reorder is always available on desktop. On touch devices it is gated
-  // by a local preference (zyes_enable_drag) because drag-on-touch is jittery
-  // by default; the user opts in from the card settings panel.
-  const DRAG_KEY = 'zyes_enable_drag';
-  let enableDrag = $state<boolean>(localStorage.getItem(DRAG_KEY) === 'true');
-  let canDrag = $derived(!isTouchDevice() || enableDrag);
-  function handleSetEnableDrag(v: boolean) {
-    enableDrag = v;
-    localStorage.setItem(DRAG_KEY, String(v));
+  // Card edit mode: an explicit toggle next to the compact/detail switch.
+  // When ON, card drag-to-reorder is enabled on EVERY device (desktop included —
+  // it used to be always-on on desktop and gated on touch). Drag is now local-only
+  // until the user clicks Apply: each group's finalised order is staged in
+  // `pendingReorders` and reconciled to the server in one batch on Apply.
+  // Exiting edit mode without Apply DISCARDS local reorder changes (the saved
+  // server order is restored by re-fetching).
+  let cardEditMode = $state(false);
+  // groupId → final card id order reported by that group during edit mode.
+  // 'all' view: one entry per category group + the 'uncategorized' (key '').
+  let pendingReorders = $state<Map<string, string[]>>(new Map());
+  let hasPendingChanges = $derived(pendingReorders.size > 0);
+
+  function enterCardEdit() {
+    cardEditMode = true;
+    pendingReorders = new Map();
+  }
+  function exitCardEdit() {
+    // Discard: drop staged reorders, leave edit mode, and refetch so each
+    // group's local dnd `items` is reset back to the saved server order. The
+    // refetch is the authoritative "undo" — it also rebuilds cross-group
+    // membership cleanly (cross-group drags share a dnd type, so local-only
+    // state is the messiest part to roll back by hand).
+    cardEditMode = false;
+    pendingReorders = new Map();
+    if (authenticated) void fetchData();
+  }
+  async function applyCardEdits() {
+    // Reconcile every changed group in one pass. Each entry pins a card to
+    // (groupId, index); cross-group drags are covered because both the source
+    // and target groups report their final order.
+    for (const [groupId, ids] of pendingReorders) {
+      const reassign = ids.map((id, i) => ({ id, categoryId: groupId, sortOrder: i }));
+      try {
+        await api.put('/api/bookmarks/reassign', { items: reassign });
+      } catch (err) {
+        console.error('Reassign failed for group', groupId, err);
+      }
+      // Apply locally so the order/ownership sticks without a refetch.
+      const patchById = new Map(reassign.map((r) => [r.id, r]));
+      bookmarks = bookmarks.map((b) => {
+        const p = patchById.get(b.id);
+        return p ? { ...b, categoryId: p.categoryId, sortOrder: p.sortOrder } : b;
+      });
+    }
+    cardEditMode = false;
+    pendingReorders = new Map();
+  }
+  // Stage a group's finalised order (called by BookmarkGroup's onreconcile
+  // while in edit mode). Outside edit mode this isn't wired up — drag is off.
+  function stageReorder(groupId: string, ids: string[]) {
+    if (!cardEditMode) return;
+    const next = new Map(pendingReorders);
+    next.set(groupId, ids);
+    pendingReorders = next;
   }
 
   let filteredBookmarks = $derived(
@@ -51,8 +96,6 @@
   let displayMode = $derived(activeCategory?.displayMode ?? viewSettings.allViewMode);
   let cardSize = $derived(viewSettings.cardSize);
   let siteName = $derived(viewSettings.siteName);
-  // Now both real categories and the "All" view persist a view mode, so always toggleable.
-  let canToggleDisplayMode = $derived(true);
 
   async function handleSetDisplayMode(mode: 'compact' | 'detail') {
     if (activeCategory) {
@@ -75,17 +118,15 @@
   }
 
   // Unified "apply" from the settings panel: a single save of all edited fields.
-  // Drag is local-only (localStorage); cardSize/siteName go through one PUT so
-  // only one network round-trip happens even when both changed. Empty/unchanged
-  // fields are omitted from the PUT body.
+  // cardSize/siteName go through one PUT so only one network round-trip happens
+  // even when both changed. Empty/unchanged fields are omitted from the PUT body.
+  // (Card drag is no longer a setting — it's the edit-mode toggle on the grid.)
   interface SettingsPatch {
     cardSize?: ViewSettings['cardSize'];
-    enableDrag?: boolean;
     siteName?: string;
   }
   async function handleSaveSettings(patch: SettingsPatch): Promise<boolean> {
     try {
-      if (patch.enableDrag !== undefined) handleSetEnableDrag(patch.enableDrag);
       const apiBody: Record<string, string> = {};
       if (patch.cardSize !== undefined && patch.cardSize !== viewSettings.cardSize) apiBody.cardSize = patch.cardSize;
       if (patch.siteName !== undefined && patch.siteName !== viewSettings.siteName) apiBody.siteName = patch.siteName.slice(0, 64).trim();
@@ -160,23 +201,9 @@
     bookmarks = bookmarks.filter((b) => b.id !== id);
   }
 
-  async function handleReconcile(groupId: string, ids: string[]) {
-    // Pin every id in this group's final order to (groupId, index). Cards dragged
-    // out of another group are absent here and handled by that group's own
-    // reconcile firing (both sides share the 'bookmark' dnd type).
-    const reassign = ids.map((id, i) => ({ id, categoryId: groupId, sortOrder: i }));
-    try {
-      await api.put('/api/bookmarks/reassign', { items: reassign });
-    } catch (err) {
-      console.error('Reassign failed:', err);
-    }
-    // Apply locally so the order/ownership sticks without a refetch.
-    const patchById = new Map(reassign.map((r) => [r.id, r]));
-    bookmarks = bookmarks.map((b) => {
-      const p = patchById.get(b.id);
-      return p ? { ...b, categoryId: p.categoryId, sortOrder: p.sortOrder } : b;
-    });
-  }
+  // Bookmarks reconciliation is now staged during card edit mode (see
+  // stageReorder/applyCardEdits). Outside edit mode drag is off, so there's no
+  // per-drag reconcile handler anymore.
 
   async function handleCategoryAdd(cat: { name: string; icon: string }) {
     const newCat = await api.post<Category>('/api/categories', cat);
@@ -229,7 +256,6 @@
       {lang}
       {cardSize}
       {siteName}
-      enableDrag={enableDrag}
       onlogout={handleLogout}
       ontoggleLang={handleSwitchLang}
       onsave={handleSaveSettings}
@@ -259,13 +285,16 @@
             {activeCategoryId}
             {displayMode}
             {cardSize}
-            {canDrag}
-            {canToggleDisplayMode}
+            editMode={cardEditMode}
+            hasPendingChanges
+            onenterEdit={enterCardEdit}
+            onexitEdit={exitCardEdit}
+            onapplyEdits={applyCardEdits}
             onadd={handleBookmarkAdd}
             onupdate={handleBookmarkUpdate}
             ondelete={handleBookmarkDelete}
             onsetDisplayMode={handleSetDisplayMode}
-            onreconcile={handleReconcile}
+            onreconcile={stageReorder}
           />
         {/if}
       </main>
