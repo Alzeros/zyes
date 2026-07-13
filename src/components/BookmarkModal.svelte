@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Bookmark, Category } from '../lib/types';
-  import { isValidUrl, parseIcon, parseCategoryIcon } from '../lib/utils';
+  import { isValidUrl, parseIcon, parseCategoryIcon, getIconProxyUrl } from '../lib/utils';
   import { t } from '../lib/i18n';
   import IconView from './IconView.svelte';
   import IconPickerModal from './IconPickerModal.svelte';
@@ -126,7 +126,7 @@
           class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-left transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed hover:border-primary/40 cursor-pointer"
         >
           <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shrink-0 overflow-hidden">
-            <IconView source={previewSource} fallbackUrls={[]} fallbackUrl="" title={previewTitle} size="md" fill />
+            <IconView source={previewSource} proxyUrl={getIconProxyUrl(url.trim())} fallbackUrls={[]} fallbackUrl="" title={previewTitle} size="md" fill />
           </div>
           <span class="flex-1 min-w-0 text-sm text-text-secondary dark:text-text-secondary-dark truncate">
             {#if icon.trim()}

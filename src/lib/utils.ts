@@ -1,7 +1,31 @@
-// Favicon auto-fetch: multiple sources are tried in order because no single
-// service covers every site. icon.horse is first (best coverage, actively
-// scrapes the site's real favicon); Google and DuckDuckGo cover fallbacks.
-// The <img> tag in IconView walks this list via onerror until one loads.
+// Favicon auto-fetch is now routed through the backend icon proxy:
+//   GET /api/icon?url=<bookmark url>[&t=<jwt>]
+// The backend fetches the favicon sources (icon.horse → Google → DuckDuckGo)
+// server-side, caches the bytes (Workers: Cache API / 30d; Node: in-memory Map),
+// and streams them back. Moving fetch off the client has two wins: the favicon
+// is fetched once per edge node instead of per-device-per-pageload, and the
+// user's IP is no longer exposed to the favicon providers.
+//
+// `t` carries the JWT because <img> requests can't set Authorization headers.
+// Left blank for the public (unauth) path; the auth-gated backend reads it from
+// the query string in the same hook that reads the Bearer header.
+import { getToken } from './auth';
+
+export function getIconProxyUrl(url: string): string {
+  try {
+    new URL(url);
+  } catch {
+    return '';
+  }
+  const t = getToken();
+  const q = new URLSearchParams({ url });
+  if (t) q.set('t', t);
+  return `/api/icon?${q.toString()}`;
+}
+
+// Legacy multi-source favicon list, still used as a final client-side fallback
+// if the proxy itself errors (e.g. token expired / network blip). Kept so the
+// <img onerror> chain has somewhere to fall through to.
 const FAVICON_SOURCES = [
   (d: string) => `https://icon.horse/icon/${d}`,
   (d: string) => `https://www.google.com/s2/favicons?domain=${d}&sz=64`,

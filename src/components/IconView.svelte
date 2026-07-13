@@ -1,11 +1,12 @@
 <script lang="ts">
   import Icon from '@iconify/svelte';
-  import type { IconSource } from '../lib/utils';
+  import { type IconSource } from '../lib/utils';
 
   let {
     source,
     fallbackUrls = [],
     fallbackUrl = '',
+    proxyUrl = '',
     title,
     size = 'md',
     bg = false,
@@ -14,6 +15,7 @@
     source: IconSource;
     fallbackUrls?: string[];     // auto-favicon sources tried in order on error
     fallbackUrl?: string;        // legacy single-URL form; merged into fallbackUrls
+    proxyUrl?: string;            // backend icon-proxy URL; tried FIRST when kind==='none'
     title: string;               // for initial fallback on favicon error
     size?: 'sm' | 'md' | 'lg';
     bg?: boolean;                // render a rounded surface background tile
@@ -30,6 +32,16 @@
     [...(fallbackUrl ? [fallbackUrl] : []), ...fallbackUrls].filter(Boolean)
   );
 
+  // Candidate URLs to try in order: when the bookmark has no custom icon
+  // (kind === 'none'), the caller passes a backend icon-proxy URL which we try
+  // FIRST — it fetches+caches server-side. If it errors (token expired, network
+  // blip) the legacy direct multi-source list carries on as before. Empty proxy
+  // => behaves exactly as before.
+  const tryList = $derived(
+    [...(source.kind === 'none' && proxyUrl ? [proxyUrl] : []), ...sources]
+  );
+
+
   // Index into `sources` we are currently trying. When an <img> errors, we
   // advance to the next source; when all fail, show the initial-letter fallback.
   let sourceIdx = $state(0);
@@ -37,7 +49,7 @@
 
   // Reset when the candidate list changes (new bookmark being edited, etc).
   $effect(() => {
-    void sources;
+    void tryList;
     sourceIdx = 0;
     allFailed = false;
   });
@@ -55,14 +67,14 @@
     />
   {:else if source.kind === 'image'}
     <img src={source.url} alt="" class="object-contain w-full h-full" style={fill ? 'padding: 6%' : ''} />
-  {:else if !allFailed && sources[sourceIdx]}
+  {:else if !allFailed && tryList[sourceIdx]}
     <img
-      src={sources[sourceIdx]}
+      src={tryList[sourceIdx]}
       alt=""
       class="object-contain"
       style={fill ? 'width:100%;height:100%;padding:6%' : `width:${faviconFwd}px;height:${faviconFwd}px`}
       onerror={() => {
-        if (sourceIdx < sources.length - 1) {
+        if (sourceIdx < tryList.length - 1) {
           sourceIdx += 1;
         } else {
           allFailed = true;

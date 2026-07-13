@@ -4,6 +4,16 @@ import type { CardSize } from './types';
 // class string; `gap` the grid gap; `card` carries per-card visual tweaks
 // (padding for detail cards; title font size for compact cards). IconView's
 // own slot size is left alone — it scales with the card box.
+//
+// Sizing ladder design notes:
+//   * Each size step must read as visibly different. The compact `cols`/`gap`
+//     and detail `cols`/`gap`/`min-height` are spread out so xs (very small)
+//     packs many small cards and lg shows few large ones — no two adjacent
+//     sizes collapse to the same density.
+//   * Compact card title font has a readability floor. xs is the smallest card
+//     so titles get the least space, but the title font is held to never drop
+//     below `text-xs` (12px). A sub-12px title is unreadable on the square
+//     compact cards especially for CJK; the two-line clamp already bounds it.
 export type SizeSpec = {
   cols: string;
   gap: string;
@@ -14,17 +24,20 @@ export type SizeSpec = {
 };
 
 const COMPACT: Record<CardSize, Omit<SizeSpec, 'detailPad' | 'detailMinH' | 'detailTitle'>> = {
-  xs: { cols: 'grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-12', gap: 'gap-2', compactTitle: 'text-[10px] leading-tight' },
-  sm: { cols: 'grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10', gap: 'gap-3', compactTitle: 'text-[11px] leading-tight' },
-  md: { cols: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10', gap: 'gap-4', compactTitle: 'text-xs leading-tight' },
-  lg: { cols: 'grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8',  gap: 'gap-5', compactTitle: 'text-sm leading-tight' },
+  // xs: the most cards per row, tightest gap — visibly the smallest tile.
+  // grid-cols-13/14 exceed Tailwind's default 1–12 scale, so use the arbitrary
+  // value form `grid-cols-[repeat(N,minmax(0,1fr))]` for the densest breakpoints.
+  xs: { cols: 'grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-[repeat(14,minmax(0,1fr))]', gap: 'gap-1.5', compactTitle: 'text-xs leading-tight' },
+  sm: { cols: 'grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9  xl:grid-cols-11', gap: 'gap-2',   compactTitle: 'text-xs leading-tight' },
+  md: { cols: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7  xl:grid-cols-9',  gap: 'gap-3',   compactTitle: 'text-[13px] leading-tight' },
+  lg: { cols: 'grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6  xl:grid-cols-7',  gap: 'gap-4',   compactTitle: 'text-sm leading-tight' },
 };
 
 const DETAIL: Record<CardSize, Pick<SizeSpec, 'cols' | 'gap' | 'detailPad' | 'detailMinH' | 'detailTitle'>> = {
-  xs: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5', gap: 'gap-3', detailPad: 'p-3', detailMinH: 'min-h-[112px]', detailTitle: 'text-xs' },
-  sm: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', gap: 'gap-3', detailPad: 'p-3.5', detailMinH: 'min-h-[126px]', detailTitle: 'text-sm' },
-  md: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', gap: 'gap-4', detailPad: 'p-4', detailMinH: 'min-h-[140px]', detailTitle: 'text-sm' },
-  lg: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',                gap: 'gap-5', detailPad: 'p-5', detailMinH: 'min-h-[160px]', detailTitle: 'text-base' },
+  xs: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6', gap: 'gap-3',   detailPad: 'p-3',   detailMinH: 'min-h-[104px]', detailTitle: 'text-xs' },
+  sm: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5', gap: 'gap-3',   detailPad: 'p-3.5', detailMinH: 'min-h-[118px]', detailTitle: 'text-xs' },
+  md: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', gap: 'gap-4',   detailPad: 'p-4',   detailMinH: 'min-h-[140px]', detailTitle: 'text-sm' },
+  lg: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',                gap: 'gap-5',   detailPad: 'p-5',   detailMinH: 'min-h-[160px]', detailTitle: 'text-base' },
 };
 
 // Look up a size spec, defaulting to 'md' for any unknown/undefined size and

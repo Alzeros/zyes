@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Bookmark, CardSize } from '../lib/types';
-  import { getFaviconUrls, truncateUrl, parseIcon } from '../lib/utils';
+  import { getFaviconUrls, getIconProxyUrl, truncateUrl, parseIcon } from '../lib/utils';
   import { t } from '../lib/i18n';
   import IconView from './IconView.svelte';
   import { sizeSpec } from '../lib/cardSize';
@@ -27,6 +27,10 @@
 
   let spec = $derived(sizeSpec(cardSize, displayMode));
   let iconSource = $derived(parseIcon(bookmark.icon));
+  // When the bookmark has no custom icon, route favicon load through the
+  // backend icon proxy (server-side fetch + cache). Bound here so the token
+  // query param is re-read reactively if it changes.
+  let proxyUrl = $derived(iconSource.kind === 'none' ? getIconProxyUrl(bookmark.url) : '');
 
   function openBookmark() {
     window.open(bookmark.url, bookmark.openTarget === 'self' ? '_self' : '_blank');
@@ -57,7 +61,8 @@
   >
     <!-- Square logo fills the area above the title bar -->
     <div class="flex-1 flex items-center justify-center p-2 min-h-0">
-      <IconView source={iconSource} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill />
+      <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill />
+
     </div>
     <!-- Title pinned to the bottom -->
     <div class="px-1.5 pb-2 pt-1 shrink-0">
@@ -76,7 +81,7 @@
     class="group relative flex flex-col {spec.detailPad} {spec.detailMinH} bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark transition-all duration-200 ease-out text-left select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
   >
     <div class="flex items-start gap-3 mb-3">
-      <IconView source={iconSource} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} size="sm" bg />
+      <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} size="sm" bg />
       <div class="flex-1 min-w-0">
         <h3 class="font-semibold text-text dark:text-text-dark truncate {spec.detailTitle}">{bookmark.title}</h3>
         <p class="text-xs text-text-secondary dark:text-text-secondary-dark truncate mt-0.5">

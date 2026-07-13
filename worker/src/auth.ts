@@ -35,3 +35,18 @@ export async function verifyToken(token: string, secret: string): Promise<boolea
     return false;
   }
 }
+
+// Pull a JWT from a request, accepting EITHER the Authorization: Bearer header
+// (used by the regular API client) OR a `t` query param. The `t` param exists
+// because <img src> requests can't set Authorization headers - the icon proxy
+// route's <img> consumers append ?t=<jwt>. Returns '' when neither is present.
+export function tokenFromRequest(c: { req: { header: (n: string) => string | undefined; query: (k: string) => string | undefined } }): string {
+  const auth = c.req.header('authorization');
+  if (auth && auth.startsWith('Bearer ')) return auth.slice('Bearer '.length).trim();
+  const q = c.req.query('t');
+  return q ? q.trim() : '';
+}
+
+// Alias kept for clarity at call sites that conceptually "verify a query token"
+// - same verify under the hood.
+export const verifyQueryToken = verifyToken;

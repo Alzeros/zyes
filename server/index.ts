@@ -15,6 +15,7 @@ import { bookmarkRoutes } from './routes/bookmark.routes.js';
 import { categoryRoutes } from './routes/category.routes.js';
 import { searchRoutes } from './routes/search.routes.js';
 import { settingsRoutes } from './routes/settings.routes.js';
+import { iconRoutes } from './routes/icon.routes.js';
 
 // Auto-initialize if config doesn't exist
 async function autoInit() {
@@ -72,17 +73,26 @@ const fastify = Fastify({
   },
 });
 
-// Add auth hook at root level (before route registration)
+// Add auth hook at root level (before route registration). Accepts the JWT
+// from EITHER the Authorization: Bearer header (regular API client) OR a `t`
+// query param — the <img>-driven icon proxy at /api/icon can't set headers, so
+// the frontend appends ?t=<jwt> there. Public paths skip auth entirely.
 fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
-  if (isPublic(request.method, request.url)) return;
+  // Strip query string before public-path matching so /api/auth/login?t=... still
+  // counts as public (login itself needs no token).
+  const pathOnly = request.url.split('?')[0];
+  if (isPublic(request.method, pathOnly)) return;
 
   const authHeader = request.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  const headerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  const queryToken = (request.query as { t?: string } | undefined)?.t?.trim() || '';
+  const token = headerToken || queryToken;
+
+  if (!token) {
     reply.status(401).send({ ok: false, error: 'Unauthorized', code: 'NO_TOKEN' });
     return;
   }
 
-  const token = authHeader.slice(7);
   const payload = verifyToken(token, config.jwtSecret);
 
   if (!payload) {
@@ -105,6 +115,7 @@ async function start() {
   await fastify.register(categoryRoutes, { prefix: '/api/categories' });
   await fastify.register(searchRoutes, { prefix: '/api/search' });
   await fastify.register(settingsRoutes, { prefix: '/api/settings' });
+  await fastify.register(iconRoutes, { prefix: '/api/icon' });
 
   // Static file serving (production)
   await fastify.register(staticPlugin);
