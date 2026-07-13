@@ -5,9 +5,18 @@ import type { CardSize } from './types';
 // 2:1 box) individually — see BookmarkCard.svelte for the col-span classes.
 //
 // Sizing ladder design notes:
-//   * Each size step reads as visibly different: xs packs the most cards with
-//     the tightest gap; lg shows the fewest. No two adjacent sizes collapse to
-//     the same density.
+//   * Each size step reads as visibly different via its card MINIMUM width,
+//     not a fixed column count: the grid uses `repeat(auto-fill, minmax(MIN,1fr))`
+//     so the browser computes the column count from the container width. Wide
+//     screens get more columns (denser), narrow screens / phones get fewer
+//     (bigger cards) — but a card is NEVER smaller than its MIN, so the icon
+//     + title always have room. This is what gives cross-platform consistency:
+//     a given size's cards have the same physical floor on a phone and a desktop.
+//   * Why min-width floor and not fixed columns: the title font has a
+//     readability floor (`text-xs` = 12px, below is unreadable for CJK). With a
+//     fixed 6-col layout on a 375px phone, each ~58px card is too small for a
+//     12px title + an icon — the title eats the whole card. The min-width floor
+//     guarantees enough card area, decoupling card size from the font floor.
 //   * Compact card title font has a readability floor of `text-xs` (12px). xs is
 //     the smallest tile so titles get the least space, but sub-12px is unreadable
 //     for CJK; the two-line clamp already bounds it.
@@ -24,40 +33,46 @@ export type SizeSpec = {
   detailTitle: string;    // detail card title font size
 };
 
+// Min card width (px) per size. auto-fill uses this as the floor: column count
+// = floor(containerWidth / min). Bigger size → bigger floor → fewer columns.
+// Tuned so that even on a 375px phone the smallest card (xs, 64px) leaves room
+// for a visible icon above a 2-line 12px title. Detail cards span 2 cols so
+// their min effective width is 2*min + 1 gap — comfortably readable.
+const MIN_W: Record<CardSize, string> = {
+  xs: '64px',
+  sm: '84px',
+  md: '104px',
+  lg: '140px',
+};
+
 const SPECS: Record<CardSize, SizeSpec> = {
-  // Size ladder (xl breakpoint column counts shown as the headline density):
-  //   xs (极小): 20 cols — denser than the old xs (16), scaled down ~equally.
-  //   sm (小):   16 cols — was the old xs.
-  //   md (中):   12 cols — midway between sm(16) and lg(9).
-  //   lg (大):    9 cols — was the old md.
-  // Gap and font/padding step down with size. grid-cols > 12 use the arbitrary
-  // value form grid-cols-[repeat(N,minmax(0,1fr))] (Tailwind's default caps at 12).
+  // Size ladder: each size's grid uses auto-fill + minmax(minW, 1fr), so column
+  // count adapts to container width while each card stays ≥ its floor (see
+  // MIN_W). No fixed per-breakpoint counts anymore — the floor IS the sizing
+  // contract. Gap and font/padding still step down with size.
   xs: {
-    cols: 'grid-cols-6 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-14 xl:grid-cols-[repeat(20,minmax(0,1fr))]',
+    cols: `grid-cols-[repeat(auto-fill,minmax(${MIN_W.xs},1fr))]`,
     gap: 'gap-1',
     compactTitle: 'text-xs leading-tight',
     detailPad: 'p-1.5',
     detailTitle: 'text-[10px]',
   },
   sm: {
-    // was the old xs
-    cols: 'grid-cols-5 sm:grid-cols-6 md:grid-cols-9 lg:grid-cols-11 xl:grid-cols-[repeat(16,minmax(0,1fr))]',
+    cols: `grid-cols-[repeat(auto-fill,minmax(${MIN_W.sm},1fr))]`,
     gap: 'gap-1',
     compactTitle: 'text-xs leading-tight',
     detailPad: 'p-2',
     detailTitle: 'text-[10px]',
   },
   md: {
-    // midway between sm(16) and lg(9) → 12
-    cols: 'grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-12',
+    cols: `grid-cols-[repeat(auto-fill,minmax(${MIN_W.md},1fr))]`,
     gap: 'gap-2',
     compactTitle: 'text-xs leading-tight',
     detailPad: 'p-2.5',
     detailTitle: 'text-xs',
   },
   lg: {
-    // was the old md
-    cols: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-9',
+    cols: `grid-cols-[repeat(auto-fill,minmax(${MIN_W.lg},1fr))]`,
     gap: 'gap-3',
     compactTitle: 'text-[13px] leading-tight',
     detailPad: 'p-3',
