@@ -1,6 +1,7 @@
 <script lang="ts">
   import { t } from '../lib/i18n';
   import { CARD_SIZE_LABELS } from '../lib/cardSize';
+  import { parseNetscape } from '../lib/netscape';
   import type { CardSize } from '../lib/types';
 
   let {
@@ -43,6 +44,15 @@
   let dataMsg = $state<{ kind: 'ok' | 'err'; text: string } | null>(null);
   let jsonFileInput = $state<HTMLInputElement | null>(null);
   let htmlFileInput = $state<HTMLInputElement | null>(null);
+  // HTML import mode panel: shown after a file is picked. We pre-parse the
+  // file client-side (parseNetscape is shared with the backend) to show the
+  // user exactly how many bookmarks/categories will land before they choose
+  // replace vs merge. `replaceArmed` toggles the two-click confirm on the
+  // replace button (first click arms it red, second executes).
+  let htmlModeOpen = $state(false);
+  let htmlPendingFile = $state<File | null>(null);
+  let htmlPreview = $state<{ bm: number; cat: number; fail: boolean } | null>(null);
+  let replaceArmed = $state(false);
 
   // Re-seed drafts whenever the panel is (re)opened with fresh props.
   $effect(() => {
@@ -120,18 +130,47 @@
     dataMsg = null;
     htmlFileInput?.click();
   }
+  // Pick the file, then open the mode-choice panel (no native confirms).
+  // We pre-parse client-side via the shared parseNetscape so the panel can show
+  // the exact bookmark/category count before the user chooses replace/merge.
   async function onHtmlChosen(e: Event) {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
     if (!file) return;
-    // Choose mode: native confirm returns a boolean, so we use a two-step
-    // confirm — first asks if they want REPLACE (overwrite), if they decline
-    // we offer MERGE. Declining both cancels.
-    const replace = confirm(`${t('data.modeTitle')}\n\n1. ${t('data.modeReplace')}\n   ${t('data.modeReplaceDesc')}\n\n2. ${t('data.modeMerge')}\n   ${t('data.modeMergeDesc')}\n\n${t('data.modeReplace')}? (取消则询问追加)`);
-    const mode: 'replace' | 'merge' | null = replace ? 'replace' : (confirm(`${t('data.modeMerge')}?\n${t('data.modeMergeDesc')}`) ? 'merge' : null);
-    if (!mode) return;
-    if (mode === 'replace' && !confirm(t('data.importConfirm'))) return;
+    let text: string;
+    try {
+      text = await file.text();
+    } catch {
+      dataMsg = { kind: 'err', text: t('data.importError') };
+      return;
+    }
+    let bm = 0, cat = 0, fail = false;
+    try {
+      const parsed = parseNetscape(text);
+      cat = parsed.categories.length;
+      bm = parsed.unfiled.length + parsed.categories.reduce((n, c) => n + c.bookmarks.length, 0);
+      if (bm === 0) fail = true;
+    } catch {
+      fail = true;
+    }
+    if (fail) {
+      dataMsg = { kind: 'err', text: t('data.importHtmlParseFail') };
+      return;
+    }
+    htmlPendingFile = file;
+    htmlPreview = { bm, cat, fail };
+    replaceArmed = false;
+    htmlModeOpen = true;
+  }
+
+  // Execute the chosen mode. Called from the panel buttons. replace is only
+  // reached after the two-click arm (see onClickReplace).
+  async function doHtmlImport(mode: 'replace' | 'merge') {
+    const file = htmlPendingFile;
+    if (!file) return;
+    htmlModeOpen = false;
+    replaceArmed = false;
     importing = true;
     dataMsg = null;
     try {
@@ -142,6 +181,23 @@
     } finally {
       importing = false;
     }
+  }
+
+  // Two-click confirm on the replace button: first click arms it (button turns
+  // red, label → "confirm replace"), second click executes. Resets if the
+  // panel reopens or the other button is used.
+  function onClickReplace() {
+    if (replaceArmed) {
+      void doHtmlImport('replace');
+    } else {
+      replaceArmed = true;
+    }
+  }
+  function cancelHtmlImport() {
+    htmlModeOpen = false;
+    htmlPendingFile = null;
+    htmlPreview = null;
+    replaceArmed = false;
   }
 
   $effect(() => {
@@ -302,7 +358,7 @@
               <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                   <p class="text-sm text-text dark:text-text-dark">{t('data.importHtml')}</p>
-                  <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-0.5 leading-relaxed">{t('data.exportHtmlHint')}</p>
+                  <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-0.5 leading-relaxed">{t('data.importHtmlHint')}</p>
                 </div>
                 <button
                   type="button"
@@ -351,3 +407,64 @@
     </div>
   </div>
 </div>
+
+{#if htmlModeOpen && htmlPreview}
+  <!-- HTML import mode chooser: shown after a file is picked + pre-parsed.
+       Replaces the old chain of native confirm() dialogs. Shows the exact
+       count of bookmarks/categories to import, then offers replace (two-click
+       armed confirm) or merge (one-click). -->
+  <div class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick={cancelHtmlImport} onkeydown={() => {}} role="button" tabindex="-1"></div>
+    <div class="relative w-full max-w-md bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark p-6 shadow-xl">
+      <h2 class="text-lg font-semibold mb-1 text-text dark:text-text-dark">{t('data.importHtmlTitle')}</h2>
+      <p class="text-sm text-text-secondary dark:text-text-secondary-dark mb-5">
+        {t('data.importHtmlCount', { bm: String(htmlPreview.bm), cat: String(htmlPreview.cat) })}
+      </p>
+
+      <div class="grid grid-cols-2 gap-3">
+        <!-- Replace: two-click. First click arms (red, label flips to confirm).
+             Second click executes. -->
+        <button
+          type="button"
+          onclick={onClickReplace}
+          disabled={importing}
+          class="flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed {replaceArmed
+            ? 'border-danger bg-danger/10 text-danger'
+            : 'border-border dark:border-border-dark text-text dark:text-text-dark hover:border-danger/50'}"
+        >
+          <span class="text-sm font-semibold">{replaceArmed ? t('data.confirmReplace') : t('data.modeReplace')}</span>
+          <span class="text-xs text-text-secondary dark:text-text-secondary-dark text-center leading-relaxed">{replaceArmed ? t('data.modeReplaceWarn') : t('data.modeReplaceDesc')}</span>
+        </button>
+
+        <!-- Merge: one-click execute. -->
+        <button
+          type="button"
+          onclick={() => doHtmlImport('merge')}
+          disabled={importing}
+          class="flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 border-border dark:border-border-dark text-text dark:text-text-dark hover:border-primary/50 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span class="text-sm font-semibold">{t('data.modeMerge')}</span>
+          <span class="text-xs text-text-secondary dark:text-text-secondary-dark text-center leading-relaxed">{t('data.modeMergeDesc')}</span>
+        </button>
+      </div>
+
+      {#if importing}
+        <div class="mt-4 flex items-center justify-center gap-2 text-sm text-text-secondary dark:text-text-secondary-dark">
+          <span class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+          {t('data.importing')}
+        </div>
+      {/if}
+
+      <div class="flex justify-end mt-5">
+        <button
+          type="button"
+          onclick={cancelHtmlImport}
+          disabled={importing}
+          class="px-4 py-2 rounded-xl text-sm font-medium text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer disabled:opacity-50"
+        >
+          {t('cardSize.cancel')}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
