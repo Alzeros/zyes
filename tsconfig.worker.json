@@ -13,6 +13,6 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["worker/**/*.ts", "src/lib/types.ts"],
+  "include": ["worker/**/*.ts", "src/lib/types.ts", "src/lib/netscape.ts"],
   "exclude": ["node_modules", "dist", "server"]
 }

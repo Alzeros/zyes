@@ -4,6 +4,7 @@ import { getDataDir } from '../config.js';
 import writeFileAtomic from 'write-file-atomic';
 import { nanoid } from 'nanoid';
 import type { AppData, Bookmark, Category, ExportData, SearchEngine, ViewSettings } from '../types.js';
+import { parseNetscape } from '../../src/lib/netscape.js';
 
 export const DEFAULT_SEARCH_ENGINES: SearchEngine[] = [
   { id: 'google', name: 'Google', url: 'https://www.google.com/search?q={query}', icon: 'google', isActive: true },
@@ -357,4 +358,107 @@ export function importData(raw: unknown): { ok: true; settings: ViewSettings } |
   // Persist settings through updateSettings so defaults/validation apply.
   const settings = updateSettings(parsed.settings);
   return { ok: true, settings };
+}
+
+// ── HTML import (NETSCAPE-Bookmark-file-1) ────────────────────────────────
+// Lets users pull in bookmarks exported from any browser. Parsing is shared
+// with the Worker via src/lib/netscape.ts (pure functions, no DOM). The parsed
+// tree is flattened: top-level folders → categories, nested folders' bookmarks
+// attach to their top-level ancestor, root-level bookmarks → uncategorized.
+// Icons are dropped (re-fetched via the icon proxy).
+//
+// mode='replace': wipe + write (like importData). Backs up first.
+// mode='merge': keep existing data; reuse a category by name if it exists,
+//   else create it; append bookmarks with fresh ids and continuing sortOrder.
+//   Duplicate URLs are allowed (the user de-dupes by hand later).
+export function importHtmlData(
+  html: string,
+  mode: 'replace' | 'merge'
+): { ok: true; settings: ViewSettings } | { ok: false; error: string } {
+  let parsed: ReturnType<typeof parseNetscape>;
+  try {
+    parsed = parseNetscape(html);
+  } catch (e) {
+    return { ok: false, error: `解析 HTML 失败: ${String(e)}` };
+  }
+
+  const totalBookmarks = parsed.unfiled.length + parsed.categories.reduce((n, c) => n + c.bookmarks.length, 0);
+  if (totalBookmarks === 0) {
+    return { ok: false, error: '文件中未找到任何书签(可能不是有效的 NETSCAPE 书签文件)' };
+  }
+
+  // Helper: build a Bookmark from a parsed entry at a given categoryId/sortOrder.
+  const now = () => new Date().toISOString();
+  const toBookmark = (b: { title: string; url: string; addDate?: number }, categoryId: string, sortOrder: number): Bookmark => ({
+    id: nanoid(10),
+    categoryId,
+    title: b.title || b.url,
+    url: b.url,
+    description: '',
+    icon: null,
+    openTarget: 'new',
+    displayMode: 'compact',
+    sortOrder,
+    createdAt: b.addDate ? new Date(b.addDate * 1000).toISOString() : now(),
+    updatedAt: b.addDate ? new Date(b.addDate * 1000).toISOString() : now(),
+  });
+
+  // Safety backup before any mutation (both modes — merge can also go wrong,
+  // and the user confirmed).
+  const dataPath = getStorePath();
+  if (existsSync(dataPath)) {
+    try { copyFileSync(dataPath, `${dataPath}.bak`); } catch (e) { console.error('html import backup failed (non-fatal):', String(e)); }
+  }
+
+  const data = getData();
+
+  if (mode === 'replace') {
+    // Wipe + write. Build categories/bookmarks from the parsed tree.
+    const categories: Category[] = [];
+    const bookmarks: Bookmark[] = [];
+    parsed.categories.forEach((c, ci) => {
+      const catId = nanoid(10);
+      categories.push({
+        id: catId, name: c.name, icon: '', sortOrder: ci, displayMode: 'detail', createdAt: now(),
+      });
+      c.bookmarks.forEach((b, bi) => bookmarks.push(toBookmark(b, catId, bi)));
+    });
+    parsed.unfiled.forEach((b, i) => bookmarks.push(toBookmark(b, '', i)));
+    data.categories = categories;
+    data.bookmarks = bookmarks;
+    saveData(data);
+    return { ok: true, settings: getSettings() };
+  }
+
+  // merge: reuse existing categories by name, create missing ones, append.
+  const existingByName = new Map(data.categories.map((c) => [c.name, c]));
+  const maxSortByCat = new Map<string, number>();
+  for (const b of data.bookmarks) {
+    const cur = maxSortByCat.get(b.categoryId) ?? -1;
+    if (b.sortOrder > cur) maxSortByCat.set(b.categoryId, b.sortOrder);
+  }
+  const nextSort = (catId: string): number => {
+    const cur = maxSortByCat.get(catId) ?? -1;
+    const next = cur + 1;
+    maxSortByCat.set(catId, next);
+    return next;
+  };
+
+  parsed.categories.forEach((c, ci) => {
+    let cat = existingByName.get(c.name);
+    if (!cat) {
+      cat = {
+        id: nanoid(10), name: c.name, icon: '',
+        sortOrder: data.categories.length + ci, displayMode: 'detail', createdAt: now(),
+      };
+      data.categories.push(cat);
+      existingByName.set(c.name, cat);
+    }
+    c.bookmarks.forEach((b) => data.bookmarks.push(toBookmark(b, cat!.id, nextSort(cat!.id))));
+  });
+  // Unfiled → uncategorized (categoryId ''), continuing that bucket's order.
+  parsed.unfiled.forEach((b) => data.bookmarks.push(toBookmark(b, '', nextSort(''))));
+
+  saveData(data);
+  return { ok: true, settings: getSettings() };
 }

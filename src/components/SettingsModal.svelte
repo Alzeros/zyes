@@ -10,6 +10,8 @@
     onsave,
     onexport,
     onimport,
+    onexportHtml,
+    onimportHtml,
     onclose,
   }: {
     lang: string;
@@ -18,6 +20,8 @@
     onsave: (patch: { cardSize?: CardSize; siteName?: string }) => Promise<boolean>;
     onexport: () => Promise<void>;
     onimport: (file: File) => Promise<void>;
+    onexportHtml: () => Promise<void>;
+    onimportHtml: (file: File, mode: 'replace' | 'merge') => Promise<void>;
     onclose: () => void;
   } = $props();
 
@@ -37,7 +41,8 @@
   let exporting = $state(false);
   let importing = $state(false);
   let dataMsg = $state<{ kind: 'ok' | 'err'; text: string } | null>(null);
-  let fileInput = $state<HTMLInputElement | null>(null);
+  let jsonFileInput = $state<HTMLInputElement | null>(null);
+  let htmlFileInput = $state<HTMLInputElement | null>(null);
 
   // Re-seed drafts whenever the panel is (re)opened with fresh props.
   $effect(() => {
@@ -69,14 +74,15 @@
     onclose();
   }
 
-  // Export: delegate to App (auth header + download trigger). Surface any
-  // failure inline so the user sees it rather than a silent no-op.
-  async function handleExport() {
+  // Export: JSON backup or HTML bookmarks. Both delegate to App (auth header +
+  // download trigger). Surface any failure inline.
+  async function handleExport(kind: 'json' | 'html') {
     if (exporting) return;
     exporting = true;
     dataMsg = null;
     try {
-      await onexport();
+      if (kind === 'json') await onexport();
+      else await onexportHtml();
     } catch (e) {
       dataMsg = { kind: 'err', text: String(e) };
     } finally {
@@ -84,18 +90,14 @@
     }
   }
 
-  // Import: pick a file → confirm overwrite → delegate to App. The confirm is a
-  // native dialog (two-step: pick, then confirm) so the user can't accidentally
-  // wipe data. App does the actual overwrite + post-import refresh; the
-  // backend auto-backs-up first regardless.
-  function pickImportFile() {
+  // JSON import: pick file → confirm overwrite → delegate. REPLACE only.
+  function pickJsonImport() {
     dataMsg = null;
-    fileInput?.click();
+    jsonFileInput?.click();
   }
-  async function onFileChosen(e: Event) {
+  async function onJsonChosen(e: Event) {
     const input = e.target as HTMLInputElement;
     const file = input.files?.[0];
-    // Reset so selecting the same file twice still fires change.
     input.value = '';
     if (!file) return;
     if (!confirm(t('data.importConfirm'))) return;
@@ -103,6 +105,37 @@
     dataMsg = null;
     try {
       await onimport(file);
+      dataMsg = { kind: 'ok', text: t('data.importSuccess') };
+    } catch (e) {
+      dataMsg = { kind: 'err', text: `${t('data.importError')}: ${e instanceof Error ? e.message : String(e)}` };
+    } finally {
+      importing = false;
+    }
+  }
+
+  // HTML import (browser bookmarks): pick file → choose replace/merge →
+  // confirm → delegate. replace needs the overwrite confirm; merge is
+  // non-destructive (append) so we just proceed.
+  function pickHtmlImport() {
+    dataMsg = null;
+    htmlFileInput?.click();
+  }
+  async function onHtmlChosen(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    // Choose mode: native confirm returns a boolean, so we use a two-step
+    // confirm — first asks if they want REPLACE (overwrite), if they decline
+    // we offer MERGE. Declining both cancels.
+    const replace = confirm(`${t('data.modeTitle')}\n\n1. ${t('data.modeReplace')}\n   ${t('data.modeReplaceDesc')}\n\n2. ${t('data.modeMerge')}\n   ${t('data.modeMergeDesc')}\n\n${t('data.modeReplace')}? (取消则询问追加)`);
+    const mode: 'replace' | 'merge' | null = replace ? 'replace' : (confirm(`${t('data.modeMerge')}?\n${t('data.modeMergeDesc')}`) ? 'merge' : null);
+    if (!mode) return;
+    if (mode === 'replace' && !confirm(t('data.importConfirm'))) return;
+    importing = true;
+    dataMsg = null;
+    try {
+      await onimportHtml(file, mode);
       dataMsg = { kind: 'ok', text: t('data.importSuccess') };
     } catch (e) {
       dataMsg = { kind: 'err', text: `${t('data.importError')}: ${e instanceof Error ? e.message : String(e)}` };
@@ -209,61 +242,87 @@
           <!-- ── Data: export / import ─────────────────────────── -->
           <section>
             <h3 class="text-sm font-semibold text-text dark:text-text-dark mb-1">{t('data.section')}</h3>
-            <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-4">{t('data.importHint')}</p>
+            <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-4">{t('data.exportHint')}</p>
 
             <!-- Export -->
             <div class="rounded-xl border border-border dark:border-border-dark p-4 mb-3">
-              <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center justify-between gap-3 mb-3">
                 <div class="min-w-0">
                   <p class="text-sm font-medium text-text dark:text-text-dark">{t('data.export')}</p>
                   <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-0.5 leading-relaxed">{t('data.exportHint')}</p>
                 </div>
                 <button
                   type="button"
-                  onclick={handleExport}
+                  onclick={() => handleExport('json')}
                   disabled={exporting}
-                  class="shrink-0 px-4 py-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary-hover text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  class="shrink-0 px-3 py-2 rounded-xl text-xs font-medium bg-primary hover:bg-primary-hover text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {#if exporting}
-                    <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                  {/if}
+                  {#if exporting}<span class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>{/if}
                   {t('data.export')}
+                </button>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-text dark:text-text-dark">{t('data.exportHtml')}</p>
+                  <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-0.5 leading-relaxed">{t('data.exportHtmlHint')}</p>
+                </div>
+                <button
+                  type="button"
+                  onclick={() => handleExport('html')}
+                  disabled={exporting}
+                  class="shrink-0 px-3 py-2 rounded-xl text-xs font-medium bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark hover:border-primary/40 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t('data.exportHtml')}
                 </button>
               </div>
             </div>
 
             <!-- Import -->
             <div class="rounded-xl border border-border dark:border-border-dark p-4">
-              <div class="flex items-center justify-between gap-3">
+              <p class="text-sm font-medium text-text dark:text-text-dark mb-3">{t('data.import')}</p>
+
+              <!-- JSON backup import (replace only) -->
+              <div class="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-border dark:border-border-dark">
                 <div class="min-w-0">
-                  <p class="text-sm font-medium text-text dark:text-text-dark">{t('data.import')}</p>
+                  <p class="text-sm text-text dark:text-text-dark">{t('data.importJson')}</p>
                   <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-0.5 leading-relaxed">{t('data.importHint')}</p>
                 </div>
                 <button
                   type="button"
-                  onclick={pickImportFile}
+                  onclick={pickJsonImport}
                   disabled={importing}
-                  class="shrink-0 px-4 py-2 rounded-xl text-sm font-medium bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark hover:border-primary/40 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  class="shrink-0 px-3 py-2 rounded-xl text-xs font-medium bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark hover:border-primary/40 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {#if importing}
-                    <span class="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
-                  {/if}
+                  {#if importing}<span class="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>{/if}
                   {importing ? t('data.importing') : t('data.importPick')}
                 </button>
               </div>
+
+              <!-- Browser bookmarks (HTML) import — replace or merge -->
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-sm text-text dark:text-text-dark">{t('data.importHtml')}</p>
+                  <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-0.5 leading-relaxed">{t('data.exportHtmlHint')}</p>
+                </div>
+                <button
+                  type="button"
+                  onclick={pickHtmlImport}
+                  disabled={importing}
+                  class="shrink-0 px-3 py-2 rounded-xl text-xs font-medium bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark hover:border-primary/40 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {#if importing}<span class="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>{/if}
+                  {importing ? t('data.importing') : t('data.importHtmlPick')}
+                </button>
+              </div>
+
               {#if dataMsg}
                 <p class="mt-3 text-xs {dataMsg.kind === 'ok' ? 'text-primary' : 'text-danger'}">{dataMsg.text}</p>
               {/if}
             </div>
 
-            <!-- Hidden file input; triggered by pickImportFile. Accept JSON only. -->
-            <input
-              bind:this={fileInput}
-              type="file"
-              accept="application/json,.json"
-              class="hidden"
-              onchange={onFileChosen}
-            />
+            <!-- Hidden file inputs: one for JSON, one for HTML. Accept filters differ. -->
+            <input bind:this={jsonFileInput} type="file" accept="application/json,.json" class="hidden" onchange={onJsonChosen} />
+            <input bind:this={htmlFileInput} type="file" accept="text/html,.html,.htm" class="hidden" onchange={onHtmlChosen} />
           </section>
         {/if}
       </div>

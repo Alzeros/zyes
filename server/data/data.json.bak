@@ -1,27 +1,87 @@
 {
   "categories": [
     {
-      "id": "cat-import",
-      "name": "导入的分类",
-      "icon": "lucide:star",
+      "id": "uDT_hKXmSY",
+      "name": "work",
+      "icon": "",
       "sortOrder": 0,
-      "displayMode": "compact",
-      "createdAt": "2026-07-13T00:00:00.000Z"
+      "displayMode": "detail",
+      "createdAt": "2026-07-13T09:08:08.866Z"
+    },
+    {
+      "id": "t5MDzerITk",
+      "name": "fun",
+      "icon": "",
+      "sortOrder": 1,
+      "displayMode": "detail",
+      "createdAt": "2026-07-13T09:08:08.866Z"
     }
   ],
   "bookmarks": [
     {
-      "id": "bm-import",
-      "categoryId": "cat-import",
-      "title": "IMPORTED-书签",
-      "url": "https://imported.test",
-      "description": "测试导入",
+      "id": "ghJYtgGEGz",
+      "categoryId": "uDT_hKXmSY",
+      "title": "Gmail",
+      "url": "https://gmail.com",
+      "description": "",
       "icon": null,
       "openTarget": "new",
       "displayMode": "compact",
       "sortOrder": 0,
-      "createdAt": "2026-07-13T00:00:00.000Z",
-      "updatedAt": "2026-07-13T00:00:00.000Z"
+      "createdAt": "2026-07-13T09:08:08.866Z",
+      "updatedAt": "2026-07-13T09:08:08.866Z"
+    },
+    {
+      "id": "I5fdnA_RBO",
+      "categoryId": "uDT_hKXmSY",
+      "title": "Google Docs",
+      "url": "https://docs.google.com",
+      "description": "",
+      "icon": null,
+      "openTarget": "new",
+      "displayMode": "compact",
+      "sortOrder": 1,
+      "createdAt": "2026-07-13T09:08:08.866Z",
+      "updatedAt": "2026-07-13T09:08:08.866Z"
+    },
+    {
+      "id": "L2JU-k6jlD",
+      "categoryId": "uDT_hKXmSY",
+      "title": "Notion",
+      "url": "https://notion.so",
+      "description": "",
+      "icon": null,
+      "openTarget": "new",
+      "displayMode": "compact",
+      "sortOrder": 2,
+      "createdAt": "2026-07-13T09:08:08.866Z",
+      "updatedAt": "2026-07-13T09:08:08.866Z"
+    },
+    {
+      "id": "SCW-hcARO6",
+      "categoryId": "t5MDzerITk",
+      "title": "YouTube",
+      "url": "https://youtube.com",
+      "description": "",
+      "icon": null,
+      "openTarget": "new",
+      "displayMode": "compact",
+      "sortOrder": 0,
+      "createdAt": "2026-07-13T09:08:08.866Z",
+      "updatedAt": "2026-07-13T09:08:08.866Z"
+    },
+    {
+      "id": "e33brCYbNk",
+      "categoryId": "",
+      "title": "root-bm",
+      "url": "https://root-bm.com",
+      "description": "",
+      "icon": null,
+      "openTarget": "new",
+      "displayMode": "compact",
+      "sortOrder": 0,
+      "createdAt": "2026-07-13T09:08:08.866Z",
+      "updatedAt": "2026-07-13T09:08:08.866Z"
     }
   ],
   "searchEngines": [
@@ -55,8 +115,8 @@
     }
   ],
   "settings": {
-    "allViewMode": "compact",
-    "cardSize": "lg",
-    "siteName": "导入测试站点"
+    "allViewMode": "detail",
+    "cardSize": "xs",
+    "siteName": "MyNav"
   }
 }

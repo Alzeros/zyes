@@ -16,6 +16,8 @@
     onsave,
     onexport,
     onimport,
+    onexportHtml,
+    onimportHtml,
   }: {
     searchEngines: SearchEngine[];
     lang: string;
@@ -26,6 +28,8 @@
     onsave: (patch: { cardSize?: CardSize; siteName?: string }) => Promise<boolean>;
     onexport: () => Promise<void>;
     onimport: (file: File) => Promise<void>;
+    onexportHtml: () => Promise<void>;
+    onimportHtml: (file: File, mode: 'replace' | 'merge') => Promise<void>;
   } = $props();
 
   let darkMode = $state(localStorage.getItem('zyes_dark') === 'true');
@@ -187,6 +191,8 @@
     {onsave}
     {onexport}
     {onimport}
+    {onexportHtml}
+    {onimportHtml}
     onclose={() => (settingsOpen = false)}
   />
 {/if}

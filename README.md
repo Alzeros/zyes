@@ -33,9 +33,8 @@ npm run build && npm start
 点击按钮后：
 1. Cloudflare 自动创建仓库并部署 Worker（注意：**非 fork，无法 sync 更新**）。
 2. 表单填两个 Text 变量（`ZYES_PASSWORD` = 你的登录密码，`JWT_SECRET` = 随机串）。
-3. 部署时自动 provision 一个 D1 数据库 `zyes-db`（无需手动创建、无需绑绑定）。
-4. 部署完成后访问一次 `/api/init` → 自动建表+播种。
-5. 打开 Worker 域名，用你设的密码登录。
+3. 部署时自动 provision 一个 D1 数据库 `zyes-db`（无需手动创建、无需手绑定）。
+4. 打开 Worker 域名，首次请求时 Worker **自动建表 + 播种**（schema 自愈，见下文），用你设的密码登录。
 
 > **此路径不能 Sync 更新。** 需要跟踪本仓库后续更新请走下面 Fork 路径。
 
@@ -48,18 +47,21 @@ npm run build && npm start
 #    添加两个 Text 变量：JWT_SECRET（openssl rand -hex 32 生成）+ ZYES_PASSWORD（你的登录密码）
 # 3. push 到你的 fork → Cloudflare 自动部署
 #    首次 deploy 时 wrangler 会自动 provision D1 数据库 zyes-db 并绑定，无需手动创建
-# 4. 第一次访问 /api/init → 自动建表+播种
-# 5. 打开 Worker 域名，用 ZYES_PASSWORD 登录
+# 4. 打开 Worker 域名，首次请求自动建表+播种，用 ZYES_PASSWORD 登录
 ```
 
 > ✅ Fork 保留 GitHub fork 关系，主仓库更新后点 **Sync fork** 拉取更新，CF 自动 rebuild。
 > ✅ D1 绑定写在 `wrangler.toml` 里（省略 `database_id`），由 wrangler 4.x 自动 provision，**deploy 不会清掉绑定或变量**（`deploy` 脚本带 `--keep-vars`）。
 
-### 初始化数据库 — 访问 `/api/init`
+### Schema 自动迁移（无需手动跑 `/api/init`）
 
-绑定 D1 后**只需一次**：浏览器打开 `你的Worker域名/api/init`，Worker 自动创建所有表、播种 4 个默认搜索引擎、写默认设置。所有 SQL 都带 `IF NOT EXISTS`/`ON CONFLICT`，重复调用幂等。
+`wrangler deploy` 只部署代码，**不会执行 D1 迁移**——这会让「新代码 + 旧表结构」不同步，写入失败。为此 Worker 在**每次冷启动的第一个请求**自动运行 `ensureSchema`：按 `meta.schema_version` 版本号把 D1 补齐到代码期望的状态，补完才放行到业务路由。
 
-GET `/api/init` 可查看是否已完成初始化。
+- fork 者点 Deploy 按钮 / Sync 更新后重新部署 → 首次请求自动建表、补列，**零配置、零 secret、零 CI**。
+- `migrations/*.sql` 仍保留给想用 `wrangler d1 migrations apply` 的高级用户，但不再是部署依赖。
+- `/api/init` 端点保留为手动「立即迁移 + 查看结果」的诊断入口（公开，无需登录）：`POST /api/init` 强制跑一遍，`GET /api/init` 查当前版本。
+
+以后改 schema：在 `worker/src/migrations.ts` 的 `MIGRATIONS` 数组**末尾追加**一项 `{ v, run }` 并把 `TARGET_SCHEMA_VERSION` bump——只追加不修改（老库可能正停在那个版本）。
 
 ### 迁移已有 Node 数据（可选）
 
@@ -89,6 +91,34 @@ npm run cf-typecheck           # 仅类型检查 worker/
 ### 前端 API 地址
 
 `src/lib/api.ts` 读取 `import.meta.env.VITE_API_BASE`，默认空（同域）。Workers 形态下前端与 Worker 同域，无需配置；如把前端单独上 Cloudflare Pages、后端 Worker 用独立域名，则 `VITE_API_BASE=https://api.your-domain` 构建即可。
+
+---
+
+## 数据导入 / 导出
+
+设置面板（齿轮 → 数据）支持三种数据操作，**两套后端行为一致**：
+
+| 操作 | 格式 | 用途 |
+|---|---|---|
+| **导出 JSON** | zyes 自有快照 | 无损备份，含分类/书签/设置，可完整还原 |
+| **导入 JSON** | 同上 | 覆盖恢复（导入前自动备份当前数据到 `.bak` / `meta` 表） |
+| **导出 HTML** | NETSCAPE-Bookmark-file-1 | 浏览器通用格式，可导入回 Chrome/Firefox/Edge/Safari |
+| **导入 HTML** | NETSCAPE-Bookmark-file-1 | 从浏览器书签迁入，支持**覆盖**或**追加**两种模式 |
+
+### NETSCAPE 书签互通
+
+导出 HTML 遵循浏览器通用的 NETSCAPE-Bookmark-file-1 标准：
+
+- **从浏览器迁入**：浏览器「导出书签」得到 HTML → zyes「从浏览器书签导入」。顶层文件夹 → 分类；子文件夹里的书签**扁平化**进最近的顶层父分类（zyes 无嵌套分类）；根目录书签 → 未分类。导入时丢弃 base64 icon，由 zyes 的图标代理自动重新获取。
+- **迁回浏览器**：zyes「导出 HTML 书签」→ 浏览器「导入书签」选该文件。不被锁定。
+- **导入模式**：HTML 导入时可选「覆盖」（清空当前数据后写入，导入前自动备份）或「追加」（保留现有数据、分类按名复用、书签追加，可能产生重复 URL）。
+
+JSON 是 zyes 的无损备份格式（含设置、保留原始 id），HTML 是浏览器互通格式（仅书签和分类，不含设置）。两者都覆盖前自动备份，恢复见下文。
+
+### 备份与恢复
+
+- **Node**：导入前自动把 `data.json` 复制成 `data.json.bak`（最近一次）。恢复：`cp data.json.bak data.json` 后重启。
+- **Worker**：导入前自动把当前快照存入 D1 `meta` 表（键 `backup_<时间戳>`，保留最近 5 份）。恢复：`wrangler d1 execute zyes-d1 --remote --command "SELECT value FROM meta WHERE key='backup_XXX'"` 取出 JSON 后手动导入。
 
 ---
 

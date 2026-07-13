@@ -9,10 +9,9 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "outDir": "dist/server",
-    "rootDir": "server",
     "declaration": false,
     "sourceMap": true
   },
-  "include": ["server/**/*.ts"],
+  "include": ["server/**/*.ts", "src/lib/netscape.ts"],
   "exclude": ["node_modules"]
 }

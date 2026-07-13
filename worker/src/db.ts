@@ -1,6 +1,7 @@
 import type { Bookmark, Category, SearchEngine, ViewSettings } from '../../src/lib/types';
 import type { Env } from './types';
 import { nanoid } from 'nanoid';
+import { parseNetscape, type ParsedBookmarkFile } from '../../src/lib/netscape';
 
 // ── Row shapes as returned by D1 (snake_case columns) ───────────────────────
 interface BookmarkRow {
@@ -417,6 +418,165 @@ export class Db {
 
     const settings = await this.getSettingsData();
     return { ok: true, settings };
+  }
+
+  // ── HTML import (NETSCAPE-Bookmark-file-1) ───────────────────────────────
+  // Mirrors server/services/store.service.ts importHtmlData. Parsing is shared
+  // via src/lib/netscape.ts. mode='replace' wipes+writes (atomic D1 batch);
+  // mode='merge' keeps existing data, reuses categories by name, appends
+  // bookmarks with fresh ids + continuing sortOrder. Both stash a backup first.
+  async importHtmlData(
+    html: string,
+    mode: 'replace' | 'merge'
+  ): Promise<{ ok: true; settings: ViewSettings } | { ok: false; error: string }> {
+    let parsed: ParsedBookmarkFile;
+    try {
+      parsed = parseNetscape(html);
+    } catch (e) {
+      return { ok: false, error: `解析 HTML 失败: ${String(e)}` };
+    }
+
+    const totalBookmarks = parsed.unfiled.length + parsed.categories.reduce((n, c) => n + c.bookmarks.length, 0);
+    if (totalBookmarks === 0) {
+      return { ok: false, error: '文件中未找到任何书签(可能不是有效的 NETSCAPE 书签文件)' };
+    }
+
+    // Pre-import backup (same stash as importData: snapshot → meta, prune to 5).
+    await this.stashBackup();
+
+    const now = () => new Date().toISOString();
+    const toBookmark = (b: { title: string; url: string; addDate?: number }, categoryId: string, sortOrder: number): Bookmark => ({
+      id: nanoid(10),
+      categoryId,
+      title: b.title || b.url,
+      url: b.url,
+      description: '',
+      icon: null,
+      openTarget: 'new',
+      displayMode: 'compact',
+      sortOrder,
+      createdAt: b.addDate ? new Date(b.addDate * 1000).toISOString() : now(),
+      updatedAt: b.addDate ? new Date(b.addDate * 1000).toISOString() : now(),
+    });
+
+    if (mode === 'replace') {
+      // Atomic wipe + insert in one batch.
+      const stmts: D1PreparedStatement[] = [
+        this.db.prepare('DELETE FROM bookmarks'),
+        this.db.prepare('DELETE FROM categories'),
+      ];
+      const categoryIds: string[] = [];
+      parsed.categories.forEach((c, ci) => {
+        const catId = nanoid(10);
+        categoryIds.push(catId);
+        stmts.push(
+          this.db
+            .prepare('INSERT INTO categories (id, name, icon, sort_order, display_mode, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+            .bind(catId, c.name, '', ci, 'detail', now())
+        );
+      });
+      let bi = 0;
+      parsed.categories.forEach((c, ci) => {
+        c.bookmarks.forEach((b, i) => {
+          const bm = toBookmark(b, categoryIds[ci], i);
+          stmts.push(
+            this.db
+              .prepare('INSERT INTO bookmarks (id, category_id, title, url, description, icon, open_target, display_mode, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+              .bind(bm.id, bm.categoryId, bm.title, bm.url, bm.description, bm.icon, bm.openTarget, bm.displayMode, bm.sortOrder, bm.createdAt, bm.updatedAt)
+          );
+          bi++;
+        });
+      });
+      let ui = 0;
+      parsed.unfiled.forEach((b) => {
+        const bm = toBookmark(b, '', ui);
+        stmts.push(
+          this.db
+            .prepare('INSERT INTO bookmarks (id, category_id, title, url, description, icon, open_target, display_mode, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+            .bind(bm.id, bm.categoryId, bm.title, bm.url, bm.description, bm.icon, bm.openTarget, bm.displayMode, bm.sortOrder, bm.createdAt, bm.updatedAt)
+        );
+        ui++;
+      });
+      await this.db.batch(stmts);
+      const settings = await this.getSettingsData();
+      return { ok: true, settings };
+    }
+
+    // merge: reuse existing categories by name, create missing, append.
+    const existingCats = await this.allCategories();
+    const existingByName = new Map(existingCats.map((c) => [c.name, c]));
+    // Max sortOrder per category for continuing numbering.
+    const existingBms = await this.allBookmarks();
+    const maxSortByCat = new Map<string, number>();
+    for (const b of existingBms) {
+      const cur = maxSortByCat.get(b.categoryId) ?? -1;
+      if (b.sortOrder > cur) maxSortByCat.set(b.categoryId, b.sortOrder);
+    }
+    const nextSort = (catId: string): number => {
+      const cur = maxSortByCat.get(catId) ?? -1;
+      const next = cur + 1;
+      maxSortByCat.set(catId, next);
+      return next;
+    };
+
+    const stmts: D1PreparedStatement[] = [];
+    let catSortBase = existingCats.length;
+    parsed.categories.forEach((c, ci) => {
+      let cat = existingByName.get(c.name);
+      if (!cat) {
+        cat = {
+          id: nanoid(10), name: c.name, icon: '',
+          sortOrder: catSortBase + ci, displayMode: 'detail', createdAt: now(),
+        };
+        stmts.push(
+          this.db
+            .prepare('INSERT INTO categories (id, name, icon, sort_order, display_mode, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+            .bind(cat.id, cat.name, cat.icon, cat.sortOrder, cat.displayMode, cat.createdAt)
+        );
+        existingByName.set(c.name, cat);
+      }
+      c.bookmarks.forEach((b) => {
+        const bm = toBookmark(b, cat!.id, nextSort(cat!.id));
+        stmts.push(
+          this.db
+            .prepare('INSERT INTO bookmarks (id, category_id, title, url, description, icon, open_target, display_mode, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+            .bind(bm.id, bm.categoryId, bm.title, bm.url, bm.description, bm.icon, bm.openTarget, bm.displayMode, bm.sortOrder, bm.createdAt, bm.updatedAt)
+        );
+      });
+    });
+    parsed.unfiled.forEach((b) => {
+      const bm = toBookmark(b, '', nextSort(''));
+      stmts.push(
+        this.db
+          .prepare('INSERT INTO bookmarks (id, category_id, title, url, description, icon, open_target, display_mode, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+          .bind(bm.id, bm.categoryId, bm.title, bm.url, bm.description, bm.icon, bm.openTarget, bm.displayMode, bm.sortOrder, bm.createdAt, bm.updatedAt)
+      );
+    });
+    if (stmts.length) await this.db.batch(stmts);
+
+    const settings = await this.getSettingsData();
+    return { ok: true, settings };
+  }
+
+  // Stash the current full snapshot to meta as backup_<timestamp>, pruning to
+  // the 5 most recent. Shared by importData + importHtmlData.
+  private async stashBackup(): Promise<void> {
+    try {
+      const backup = await this.buildExport();
+      const ts = backup.exportedAt.replace(/[-:.]/g, '').slice(0, 15);
+      await this.db.batch([
+        this.db
+          .prepare(`INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
+          .bind(`backup_${ts}`, JSON.stringify(backup)),
+        this.db.prepare(
+          `DELETE FROM meta WHERE key LIKE 'backup_%' AND key NOT IN (
+             SELECT key FROM meta WHERE key LIKE 'backup_%' ORDER BY key DESC LIMIT 5
+           )`
+        ),
+      ]);
+    } catch (e) {
+      console.error('import backup stash failed (non-fatal):', String(e));
+    }
   }
 }
 

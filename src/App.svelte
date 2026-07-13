@@ -269,6 +269,38 @@
     viewSettings = { ...viewSettings, ...result.settings };
   }
 
+  // Export HTML (NETSCAPE bookmarks): same auth-header fetch + download as JSON,
+  // just a different endpoint + content type.
+  async function handleExportHtml(): Promise<void> {
+    const token = getToken();
+    const res = await fetch('/api/data/export-html', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`Export HTML failed: ${res.status}`);
+    const cd = res.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename="?([^"]+)"?/);
+    const filename = match?.[1] || `zyes-bookmarks.html`;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // Import HTML (NETSCAPE bookmarks). mode = 'replace' (wipe+overwrite) or
+  // 'merge' (append). The caller already confirmed; we just POST the raw HTML
+  // text + mode and refresh on success.
+  async function handleImportHtml(file: File, mode: 'replace' | 'merge'): Promise<void> {
+    const html = await file.text();
+    const result = await api.post<{ settings: ViewSettings }>('/api/data/import-html', { html, mode });
+    await fetchData();
+    viewSettings = { ...viewSettings, ...result.settings };
+  }
+
   // Auto-fetch when becoming authenticated (runs once per login session)
   $effect(() => {
     if (authenticated && !didInitialFetch) {
@@ -292,6 +324,8 @@
       onsave={handleSaveSettings}
       onexport={handleExport}
       onimport={handleImport}
+      onexportHtml={handleExportHtml}
+      onimportHtml={handleImportHtml}
     />
     <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
       <CategorySidebar
