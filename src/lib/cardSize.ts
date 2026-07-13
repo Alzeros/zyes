@@ -33,55 +33,56 @@ export type SizeSpec = {
   detailTitle: string;    // detail card title font size
 };
 
-// Min card width (px) per size — the auto-fill floor. These MUST stay in sync
-// with the literal minmax values in SPECS below (Tailwind can't see runtime
-// values, so they're hardcoded per size). Bigger size → bigger floor → fewer
-// columns. Tuned so that even on a 375px phone the smallest card (xs, 48px)
-// leaves room for a visible icon above a 2-line 12px title. Detail cards span
-// 2 cols so their min effective width is 2*min + 1 gap.
-//   xs: 48px   sm: 64px   md: 84px   lg: 104px
-// (Whole ladder shifted one rung smaller per user request: new sm = old xs,
-//  new md = old sm, new lg = old md; old lg 140px dropped; new xs 48px added
-//  on top. compactTitle never goes below text-xs — 12px is the CJK
-//  readability floor, so the smallest tier tightens gap/pad/title not the
-//  compact title font.)
+// Per-tier spec values are now SPLIT BY VIEWPORT:
+//   * Mobile  (<768px, base/no-prefix): the shifted-down ladder — 48/64/84/104.
+//   * Desktop (≥768px, md: prefix):      the ORIGINAL ladder — 64/84/104/140.
+// So desktop renders exactly as before this feature; only mobile got one rung
+// smaller per the user's request. Every field (cols/gap/compactTitle/detailPad/
+// detailTitle) carries its own md: override where the two ladders differ; fields
+// that are identical across both (e.g. xs compactTitle = text-xs on both) have
+// no md: variant. compactTitle never goes below text-xs — 12px is the CJK
+// readability floor, so the smallest mobile tier tightens gap/pad/title, not the
+// compact title font.
+// Mobile floors (base):  xs 48px  sm 64px  md 84px  lg 104px
+// Desktop floors (md:):  xs 64px  sm 84px  md 104px lg 140px  (= original)
 
 const SPECS: Record<CardSize, SizeSpec> = {
   // Size ladder: each size's grid uses auto-fill + minmax(minW, 1fr), so column
-  // count adapts to container width while each card stays ≥ its floor (see
-  // MIN_W). No fixed per-breakpoint counts anymore — the floor IS the sizing
-  // contract. Gap and font/padding still step down with size.
+  // count adapts to container width while each card stays ≥ its floor. No fixed
+  // per-breakpoint counts anymore — the floor IS the sizing contract. Gap and
+  // font/padding still step down with size. The md: variant restores the
+  // original desktop value; base is the mobile (one-rung-smaller) value.
   xs: {
     // NOTE: the minmax value must be a LITERAL string, not `${MIN_W.xs}` —
     // Tailwind's JIT scans source for class names statically and can't see
     // runtime-interpolated values, so a template-built class would never get
     // generated and the grid would silently fall back to 1 column.
-    cols: 'grid-cols-[repeat(auto-fill,minmax(48px,1fr))]',
+    cols: 'grid-cols-[repeat(auto-fill,minmax(48px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(64px,1fr))]',
     gap: 'gap-1',
     compactTitle: 'text-xs leading-tight',
-    detailPad: 'p-1',
+    detailPad: 'p-1 md:p-1.5',
     detailTitle: 'text-[10px]',
   },
   sm: {
-    cols: 'grid-cols-[repeat(auto-fill,minmax(64px,1fr))]',
+    cols: 'grid-cols-[repeat(auto-fill,minmax(64px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(84px,1fr))]',
     gap: 'gap-1',
     compactTitle: 'text-xs leading-tight',
-    detailPad: 'p-1.5',
+    detailPad: 'p-1.5 md:p-2',
     detailTitle: 'text-[10px]',
   },
   md: {
-    cols: 'grid-cols-[repeat(auto-fill,minmax(84px,1fr))]',
-    gap: 'gap-1',
+    cols: 'grid-cols-[repeat(auto-fill,minmax(84px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(104px,1fr))]',
+    gap: 'gap-1 md:gap-2',
     compactTitle: 'text-xs leading-tight',
-    detailPad: 'p-2',
-    detailTitle: 'text-[10px]',
+    detailPad: 'p-2 md:p-2.5',
+    detailTitle: 'text-[10px] md:text-xs',
   },
   lg: {
-    cols: 'grid-cols-[repeat(auto-fill,minmax(104px,1fr))]',
-    gap: 'gap-2',
-    compactTitle: 'text-xs leading-tight',
-    detailPad: 'p-2.5',
-    detailTitle: 'text-xs',
+    cols: 'grid-cols-[repeat(auto-fill,minmax(104px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(140px,1fr))]',
+    gap: 'gap-2 md:gap-3',
+    compactTitle: 'text-xs md:text-[13px] leading-tight',
+    detailPad: 'p-2.5 md:p-3',
+    detailTitle: 'text-xs md:text-sm',
   },
 };
 
