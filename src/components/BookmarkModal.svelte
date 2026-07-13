@@ -60,6 +60,9 @@
         description: description.trim(),
         icon: icon.trim() || null,
         openTarget,
+        // Preserve the existing card's display mode on edit; new cards default
+        // to compact (per the per-card-default decision).
+        displayMode: bookmark?.displayMode === 'detail' ? 'detail' : 'compact',
         sortOrder: bookmark?.sortOrder ?? 0,
       });
     } catch (err) {

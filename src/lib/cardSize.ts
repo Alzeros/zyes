@@ -1,67 +1,76 @@
 import type { CardSize } from './types';
 
-// Per-size mapping for both display modes. `cols` is the responsive grid-cols
-// class string; `gap` the grid gap; `card` carries per-card visual tweaks
-// (padding for detail cards; title font size for compact cards). IconView's
-// own slot size is left alone — it scales with the card box.
+// Per-size spec. The grid now uses ONE column count (the compact one) for the
+// whole group; cards opt into compact (span 1, square) or detail (span 2,
+// 2:1 box) individually — see BookmarkCard.svelte for the col-span classes.
 //
 // Sizing ladder design notes:
-//   * Each size step must read as visibly different. The compact `cols`/`gap`
-//     and detail `cols`/`gap`/`min-height` are spread out so xs (very small)
-//     packs many small cards and lg shows few large ones — no two adjacent
-//     sizes collapse to the same density.
-//   * Compact card title font has a readability floor. xs is the smallest card
-//     so titles get the least space, but the title font is held to never drop
-//     below `text-xs` (12px). A sub-12px title is unreadable on the square
-//     compact cards especially for CJK; the two-line clamp already bounds it.
+//   * Each size step reads as visibly different: xs packs the most cards with
+//     the tightest gap; lg shows the fewest. No two adjacent sizes collapse to
+//     the same density.
+//   * Compact card title font has a readability floor of `text-xs` (12px). xs is
+//     the smallest tile so titles get the least space, but sub-12px is unreadable
+//     for CJK; the two-line clamp already bounds it.
+//   * Detail cards are laid out as a 2:1 box (width:height) — width = 2 compact
+//     cells + 1 gap, height ≈ 1 compact cell. `aspect-[2/1]` is a close-enough
+//     lock (a 6px gap/2 height variance shows only on all-detail rows, which are
+//     rare since compact is the default). detailPad/detailTitle are tuned for
+//     this short, wide box.
 export type SizeSpec = {
   cols: string;
   gap: string;
   compactTitle: string;   // compact card title font size
-  detailPad: string;     // detail card padding
-  detailMinH: string;    // detail card min height
-  detailTitle: string;   // detail card title font size
+  detailPad: string;      // detail card padding
+  detailTitle: string;    // detail card title font size
 };
 
-const COMPACT: Record<CardSize, Omit<SizeSpec, 'detailPad' | 'detailMinH' | 'detailTitle'>> = {
+const SPECS: Record<CardSize, SizeSpec> = {
   // xs: the most cards per row, tightest gap — visibly the smallest tile.
-  // grid-cols-13/14 exceed Tailwind's default 1–12 scale, so use the arbitrary
-  // value form `grid-cols-[repeat(N,minmax(0,1fr))]` for the densest breakpoints.
-  xs: { cols: 'grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-[repeat(14,minmax(0,1fr))]', gap: 'gap-1.5', compactTitle: 'text-xs leading-tight' },
-  sm: { cols: 'grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9  xl:grid-cols-11', gap: 'gap-2',   compactTitle: 'text-xs leading-tight' },
-  md: { cols: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7  xl:grid-cols-9',  gap: 'gap-3',   compactTitle: 'text-[13px] leading-tight' },
-  lg: { cols: 'grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6  xl:grid-cols-7',  gap: 'gap-4',   compactTitle: 'text-sm leading-tight' },
+  // grid-cols-16 exceeds Tailwind's default 1–12 scale, so the densest
+  // breakpoint uses the arbitrary value form grid-cols-[repeat(N,minmax(0,1fr))].
+  xs: {
+    cols: 'grid-cols-5 sm:grid-cols-6 md:grid-cols-9 lg:grid-cols-11 xl:grid-cols-[repeat(16,minmax(0,1fr))]',
+    gap: 'gap-1',
+    compactTitle: 'text-xs leading-tight',
+    detailPad: 'p-2',
+    detailTitle: 'text-[10px]',
+  },
+  sm: {
+    cols: 'grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9  xl:grid-cols-11',
+    gap: 'gap-2',
+    compactTitle: 'text-xs leading-tight',
+    detailPad: 'p-2.5',
+    detailTitle: 'text-xs',
+  },
+  md: {
+    cols: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7  xl:grid-cols-9',
+    gap: 'gap-3',
+    compactTitle: 'text-[13px] leading-tight',
+    detailPad: 'p-3',
+    detailTitle: 'text-sm',
+  },
+  lg: {
+    cols: 'grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6  xl:grid-cols-7',
+    gap: 'gap-4',
+    compactTitle: 'text-sm leading-tight',
+    detailPad: 'p-4',
+    detailTitle: 'text-base',
+  },
 };
 
-const DETAIL: Record<CardSize, Pick<SizeSpec, 'cols' | 'gap' | 'detailPad' | 'detailMinH' | 'detailTitle'>> = {
-  xs: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6', gap: 'gap-3',   detailPad: 'p-3',   detailMinH: 'min-h-[104px]', detailTitle: 'text-xs' },
-  sm: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5', gap: 'gap-3',   detailPad: 'p-3.5', detailMinH: 'min-h-[118px]', detailTitle: 'text-xs' },
-  md: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4', gap: 'gap-4',   detailPad: 'p-4',   detailMinH: 'min-h-[140px]', detailTitle: 'text-sm' },
-  lg: { cols: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',                gap: 'gap-5',   detailPad: 'p-5',   detailMinH: 'min-h-[160px]', detailTitle: 'text-base' },
-};
-
-// Look up a size spec, defaulting to 'md' for any unknown/undefined size and
-// 'compact' for an unknown mode. The card stack cascades cardSize through a
-// few props; a transient undefined (e.g. before the parent's derived resolves)
-// would otherwise become `COMPACT[undefined]` → undefined → a template crash
-// ("spec is not defined"). This guard keeps rendering safe at every tick.
+// Look up a size spec, defaulting to 'md' for any unknown/undefined size. The
+// card stack cascades cardSize through a few props; a transient undefined (e.g.
+// before the parent's derived resolves) would otherwise become `SPECS[undefined]`
+// → undefined → a template crash ("spec is not defined"). This guard keeps
+// rendering safe at every tick. Mode is no longer a parameter — each card
+// carries its own displayMode and the spec is size-only now.
 function isCardSize(v: unknown): v is CardSize {
   return v === 'xs' || v === 'sm' || v === 'md' || v === 'lg';
 }
 
-export function sizeSpec(size: CardSize | undefined | null, mode: 'compact' | 'detail' | undefined | null): SizeSpec {
+export function sizeSpec(size: CardSize | undefined | null): SizeSpec {
   const s: CardSize = isCardSize(size) ? size : 'md';
-  const m = mode === 'detail' ? 'detail' : 'compact';
-  const c = COMPACT[s];
-  const d = DETAIL[s];
-  return {
-    cols: m === 'compact' ? c.cols : d.cols,
-    gap: m === 'compact' ? c.gap : d.gap,
-    compactTitle: c.compactTitle,
-    detailPad: d.detailPad,
-    detailMinH: d.detailMinH,
-    detailTitle: d.detailTitle,
-  };
+  return SPECS[s];
 }
 
 export const CARD_SIZE_LABELS: Record<CardSize, { zh: string; en: string }> = {

@@ -14,7 +14,6 @@
     lang,
     bookmarks,
     categories,
-    displayMode,
     cardSize = 'md',
     canDrag = true,
     title,
@@ -29,7 +28,6 @@
     lang: string;
     bookmarks: Bookmark[];
     categories: Category[];
-    displayMode: 'compact' | 'detail';
     cardSize?: CardSize;
     canDrag?: boolean;
     title: string;
@@ -50,16 +48,25 @@
   let deletingBookmark = $state<Bookmark | null>(null);
   let contextMenu = $state<{ bookmark: Bookmark; x: number; y: number } | null>(null);
 
-  let spec = $derived(sizeSpec(cardSize, displayMode));
-  let cols = $derived(spec.cols);
-  let gridClass = $derived(`grid ${cols} ${spec.gap}`);
+  // The grid uses ONE column count (the compact one) for the whole group.
+  // Cards opt into compact (span 1) or detail (span 2) individually via their
+  // own displayMode — see BookmarkCard's col-span class. Spec is size-only now.
+  let spec = $derived(sizeSpec(cardSize));
+  let gridClass = $derived(`grid ${spec.cols} ${spec.gap}`);
 
-  const contextItems: ContextMenuItem[] = [
-    { type: 'item', key: 'open', label: t('grid.open') },
-    { type: 'separator' },
-    { type: 'item', key: 'edit', label: t('grid.edit') },
-    { type: 'item', key: 'delete', label: t('grid.delete'), danger: true },
-  ];
+  // Right-click menu. The "switch display mode" item's label depends on the
+  // target bookmark's current mode (toggle to the other one), so it's built per
+  // open rather than once.
+  function contextItemsFor(bm: Bookmark): ContextMenuItem[] {
+    const other = bm.displayMode === 'detail' ? 'compact' : 'detail';
+    return [
+      { type: 'item', key: 'open', label: t('grid.open') },
+      { type: 'separator' },
+      { type: 'item', key: 'edit', label: t('grid.edit') },
+      { type: 'item', key: `displayMode:${other}`, label: t(`grid.view${other === 'detail' ? 'Detail' : 'Compact'}`) },
+      { type: 'item', key: 'delete', label: t('grid.delete'), danger: true },
+    ];
+  }
 
   // Hide the collapsible (uncategorized) group when it has no cards.
   let visible = $derived(!collapsible || bookmarks.length > 0);
@@ -87,7 +94,6 @@
   });
   $effect(() => {
     void bookmarks;
-    void displayMode;
     items = [...bookmarks];
   });
 
@@ -103,6 +109,11 @@
     if (key === 'open') window.open(target.url, target.openTarget === 'self' ? '_self' : '_blank');
     else if (key === 'edit') editingBookmark = target;
     else if (key === 'delete') deletingBookmark = target;
+    else if (key.startsWith('displayMode:')) {
+      // Per-card display-mode toggle, persisted via the bookmark update flow.
+      const mode = key.slice('displayMode:'.length) as 'compact' | 'detail';
+      void onupdate(target.id, { displayMode: mode });
+    }
   }
 
   function handleDndConsider(e: CustomEvent<{ items: Bookmark[] }>) {
@@ -132,7 +143,7 @@
       {title}
     </h2>
 
-    {#key displayMode}{#key cardSize}
+    {#key cardSize}
       <div
         use:dndzone={dndConfig}
         onconsider={handleDndConsider}
@@ -143,7 +154,6 @@
           <BookmarkCard
             {bookmark}
             {lang}
-            {displayMode}
             {cardSize}
             onedit={() => (editingBookmark = bookmark)}
             ondelete={() => (deletingBookmark = bookmark)}
@@ -153,15 +163,15 @@
 
         <button
           onclick={() => (showAddModal = true)}
-          class="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 cursor-pointer {displayMode === 'compact' ? 'aspect-square p-2' : `${spec.detailPad} ${spec.detailMinH} gap-2`}"
+          class="col-span-1 flex flex-col items-center justify-center aspect-square p-2 rounded-xl border-2 border-dashed border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 cursor-pointer"
         >
           <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
-          <span class="text-sm font-medium {displayMode === 'compact' ? 'line-clamp-2 break-all' : ''}">{t('grid.addCard')}</span>
+          <span class="text-sm font-medium line-clamp-2 break-all">{t('grid.addCard')}</span>
         </button>
       </div>
-    {/key}{/key}
+    {/key}
   </div>
 {/if}
 
@@ -208,7 +218,7 @@
   <ContextMenu
     x={contextMenu.x}
     y={contextMenu.y}
-    items={contextItems}
+    items={contextItemsFor(contextMenu.bookmark)}
     onselect={handleContextSelect}
     onclose={() => (contextMenu = null)}
   />

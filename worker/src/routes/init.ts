@@ -29,6 +29,7 @@ export function initRoutes(): Hono<{ Bindings: Env }> {
         description  TEXT NOT NULL DEFAULT '',
         icon         TEXT,
         open_target  TEXT NOT NULL DEFAULT 'new' CHECK (open_target IN ('new', 'self')),
+        display_mode TEXT NOT NULL DEFAULT 'compact' CHECK (display_mode IN ('compact', 'detail')),
         sort_order   INTEGER NOT NULL DEFAULT 0,
         created_at   TEXT NOT NULL,
         updated_at   TEXT NOT NULL
@@ -76,6 +77,24 @@ export function initRoutes(): Hono<{ Bindings: Env }> {
 
     try {
       const results: { ok: boolean; sql: string; error?: string }[] = [];
+
+      // Backfill display_mode for existing deployments whose bookmarks table was
+      // created before this column existed (CREATE TABLE IF NOT EXISTS won't add
+      // a column to an existing table). Probe pragma_table_info first; ALTER only
+      // if missing. New deployments get it from CREATE TABLE above and skip this.
+      try {
+        const col = await c.env.DB.prepare(
+          `SELECT name FROM pragma_table_info('bookmarks') WHERE name = 'display_mode'`
+        ).first<{ name: string }>();
+        if (!col) {
+          await c.env.DB.exec(
+            `ALTER TABLE bookmarks ADD COLUMN display_mode TEXT NOT NULL DEFAULT 'compact' CHECK (display_mode IN ('compact', 'detail'))`
+          );
+          results.push({ ok: true, sql: 'ALTER TABLE bookmarks ADD display_mode...' });
+        }
+      } catch (e) {
+        results.push({ ok: false, sql: 'display_mode backfill check', error: String(e) });
+      }
 
       for (const s of sql) {
         try {

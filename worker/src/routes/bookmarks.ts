@@ -26,6 +26,7 @@ export function bookmarkRoutes(): Hono<{ Bindings: Env }> {
       description?: string;
       icon?: string | null;
       openTarget?: 'new' | 'self';
+      displayMode?: 'compact' | 'detail';
     }>();
     try {
       new URL(body.url);
@@ -43,6 +44,7 @@ export function bookmarkRoutes(): Hono<{ Bindings: Env }> {
         description: body.description?.trim() || '',
         icon: body.icon || null,
         openTarget: body.openTarget === 'self' ? 'self' : 'new',
+        displayMode: body.displayMode === 'detail' ? 'detail' : 'compact',
         sortOrder,
         createdAt: now,
         updatedAt: now,
@@ -82,6 +84,10 @@ export function bookmarkRoutes(): Hono<{ Bindings: Env }> {
       } catch {
         return c.json({ ok: false, error: 'Invalid URL', code: 'INVALID_URL' }, 400);
       }
+    }
+    // Reject unknown displayMode enum values rather than silently defaulting.
+    if (patch.displayMode !== undefined && patch.displayMode !== 'compact' && patch.displayMode !== 'detail') {
+      return c.json({ ok: false, error: 'Invalid displayMode', code: 'INVALID_MODE' }, 400);
     }
     const updated = await dbOf(c.env).updateBookmark(id, patch);
     if (!updated) return c.json({ ok: false, error: 'Bookmark not found', code: 'NOT_FOUND' }, 404);

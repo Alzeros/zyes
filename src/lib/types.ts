@@ -6,6 +6,7 @@ export interface Bookmark {
   description: string;
   icon: string | null;
   openTarget: 'new' | 'self';
+  displayMode: 'compact' | 'detail';
   sortOrder: number;
   createdAt: string;
   updatedAt: string;

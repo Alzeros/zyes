@@ -8,7 +8,6 @@
   let {
     bookmark,
     lang,
-    displayMode = 'detail',
     cardSize = 'md',
     interactive = true,
     onedit,
@@ -17,7 +16,6 @@
   }: {
     bookmark: Bookmark;
     lang: string;
-    displayMode?: 'compact' | 'detail';
     cardSize?: CardSize;
     interactive?: boolean;   // false for non-interactive previews (no nav, no ctx menu)
     onedit: () => void;
@@ -25,12 +23,22 @@
     oncontext: (e: MouseEvent) => void;
   } = $props();
 
-  let spec = $derived(sizeSpec(cardSize, displayMode));
+  // displayMode is now a per-bookmark attribute, not a group/global setting.
+  // Default to 'compact' for any unknown/legacy value (older bookmarks without
+  // the field render as compact, matching the migrate() backfill).
+  let displayMode = $derived(bookmark.displayMode === 'detail' ? 'detail' : 'compact');
+
+  let spec = $derived(sizeSpec(cardSize));
   let iconSource = $derived(parseIcon(bookmark.icon));
   // When the bookmark has no custom icon, route favicon load through the
   // backend icon proxy (server-side fetch + cache). Bound here so the token
   // query param is re-read reactively if it changes.
   let proxyUrl = $derived(iconSource.kind === 'none' ? getIconProxyUrl(bookmark.url) : '');
+
+  // Col-span drives the grid layout: compact = 1 cell (square), detail = 2
+  // cells (a 2:1 wide box whose height tracks the compact cell height). This
+  // lets compact and detail cards coexist in one grid row.
+  let colSpan = $derived(displayMode === 'detail' ? 'col-span-2' : 'col-span-1');
 
   function openBookmark() {
     window.open(bookmark.url, bookmark.openTarget === 'self' ? '_self' : '_blank');
@@ -57,12 +65,11 @@
     role={interactive ? 'button' : undefined}
     tabindex={interactive ? 0 : undefined}
     title={bookmark.url}
-    class="group relative flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-center select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
+    class="group relative {colSpan} flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-center select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
   >
     <!-- Square logo fills the area above the title bar -->
     <div class="flex-1 flex items-center justify-center p-2 min-h-0">
       <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill />
-
     </div>
     <!-- Title pinned to the bottom -->
     <div class="px-1.5 pb-2 pt-1 shrink-0">
@@ -72,15 +79,18 @@
     </div>
   </div>
 {:else}
+  <!-- Detail card: spans 2 columns. aspect-[2/1] locks the 2:1 box so the
+       height tracks the compact cell height (≈, see cardSize.ts notes).
+       overflow-hidden + line-clamp keep content from growing the row. -->
   <div
     onclick={interactive ? openBookmark : undefined}
     onkeydown={interactive ? handleKeydown : undefined}
     oncontextmenu={interactive ? handleContext : undefined}
     role={interactive ? 'button' : undefined}
     tabindex={interactive ? 0 : undefined}
-    class="group relative flex flex-col {spec.detailPad} {spec.detailMinH} bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark transition-all duration-200 ease-out text-left select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
+    class="group relative {colSpan} {spec.detailPad} aspect-[2/1] bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-left select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
   >
-    <div class="flex items-start gap-3 mb-3">
+    <div class="flex items-start gap-3 mb-1">
       <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} size="sm" bg />
       <div class="flex-1 min-w-0">
         <h3 class="font-semibold text-text dark:text-text-dark truncate {spec.detailTitle}">{bookmark.title}</h3>
@@ -91,7 +101,7 @@
     </div>
 
     {#if bookmark.description}
-      <p class="text-xs text-text-secondary dark:text-text-secondary-dark line-clamp-2 flex-1">
+      <p class="text-xs text-text-secondary dark:text-text-secondary-dark line-clamp-1">
         {bookmark.description}
       </p>
     {/if}

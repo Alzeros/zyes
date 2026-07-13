@@ -8,7 +8,6 @@
     bookmarks,
     categories,
     activeCategoryId,
-    displayMode,
     cardSize,
     editMode = false,
     hasPendingChanges = false,
@@ -18,14 +17,12 @@
     onadd,
     onupdate,
     ondelete,
-    onsetDisplayMode,
     onreconcile,
   }: {
     lang: string;
     bookmarks: Bookmark[];
     categories: Category[];
     activeCategoryId: string;
-    displayMode: 'compact' | 'detail';
     cardSize: CardSize;
     editMode?: boolean;
     hasPendingChanges?: boolean;
@@ -35,7 +32,6 @@
     onadd: (bookmark: Omit<Bookmark, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     onupdate: (id: string, patch: Partial<Bookmark>) => Promise<void>;
     ondelete: (id: string) => Promise<void>;
-    onsetDisplayMode: (mode: 'compact' | 'detail') => void;
     onreconcile: (groupId: string, ids: string[]) => Promise<void> | void;
   } = $props();
 
@@ -84,10 +80,10 @@
   );
 </script>
 
-<!-- Toolbar: compact/detail switch (hidden while editing) + edit mode controls -->
+<!-- Toolbar: edit mode toggle. Per-card display mode (compact/detail) is set via
+     each card's right-click menu — there is no global switch anymore. -->
 <div class="flex items-center justify-end mb-4 gap-2">
   {#if editMode}
-    <!-- Editing: show Apply / Cancel -->
     <button
       type="button"
       onclick={() => onexitEdit()}
@@ -104,23 +100,6 @@
       {t('grid.editApply')}
     </button>
   {:else}
-    <!-- Not editing: compact/detail switcher -->
-    <div class="inline-flex items-center gap-1 p-1 rounded-full bg-bg dark:bg-bg-dark border border-border dark:border-border-dark">
-      <button
-        onclick={() => onsetDisplayMode('compact')}
-        class="px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer {displayMode === 'compact' ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
-        title={t('grid.viewCompact')}
-      >
-        {t('grid.viewCompact')}
-      </button>
-      <button
-        onclick={() => onsetDisplayMode('detail')}
-        class="px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 cursor-pointer {displayMode === 'detail' ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
-        title={t('grid.viewDetail')}
-      >
-        {t('grid.viewDetail')}
-      </button>
-    </div>
     <button
       type="button"
       onclick={() => onenterEdit()}
@@ -148,7 +127,6 @@
       {lang}
       bookmarks={g.items}
       {categories}
-      {displayMode}
       {cardSize}
       canDrag={editMode}
       title={g.title}

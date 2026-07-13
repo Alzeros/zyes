@@ -24,6 +24,7 @@ interface SrcBookmark {
   description?: string;
   icon?: string | null;
   openTarget?: 'new' | 'self';
+  displayMode?: 'compact' | 'detail';
   sortOrder?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -87,10 +88,12 @@ function main(): void {
   // Bookmarks
   for (const b of data.bookmarks ?? []) {
     lines.push(
-      `INSERT OR IGNORE INTO bookmarks (id, category_id, title, url, description, icon, open_target, sort_order, created_at, updated_at) VALUES (` +
+      `INSERT OR IGNORE INTO bookmarks (id, category_id, title, url, description, icon, open_target, display_mode, sort_order, created_at, updated_at) VALUES (` +
         `${sqlStr(b.id)}, ${sqlStr(b.categoryId ?? '')}, ${sqlStr(b.title)}, ${sqlStr(b.url)}, ` +
         `${sqlStr(b.description ?? '')}, ${sqlStr(b.icon ?? null)}, ` +
-        `${sqlStr(b.openTarget === 'self' ? 'self' : 'new')}, ${b.sortOrder ?? 0}, ` +
+        `${sqlStr(b.openTarget === 'self' ? 'self' : 'new')}, ` +
+        `${sqlStr(b.displayMode === 'detail' ? 'detail' : 'compact')}, ` +
+        `${b.sortOrder ?? 0}, ` +
         `${sqlStr(b.createdAt ?? new Date().toISOString())}, ${sqlStr(b.updatedAt ?? new Date().toISOString())});`
     );
   }

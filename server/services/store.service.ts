@@ -63,6 +63,11 @@ function migrateData(data: AppData): AppData {
     if (b.openTarget !== 'new' && b.openTarget !== 'self') {
       b.openTarget = 'new';
     }
+    // Backfill per-card display mode (added in the per-card-display-mode change).
+    // Old bookmarks written before this field existed default to compact.
+    if (b.displayMode !== 'compact' && b.displayMode !== 'detail') {
+      b.displayMode = 'compact';
+    }
   }
   if (data.settings?.allViewMode !== 'compact' && data.settings?.allViewMode !== 'detail') {
     data.settings = { allViewMode: 'detail' };

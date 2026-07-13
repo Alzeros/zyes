@@ -10,6 +10,7 @@ interface BookmarkRow {
   description: string;
   icon: string | null;
   open_target: 'new' | 'self';
+  display_mode: 'compact' | 'detail';
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -43,6 +44,7 @@ const mapBookmark = (r: BookmarkRow): Bookmark => ({
   description: r.description,
   icon: r.icon,
   openTarget: r.open_target,
+  displayMode: r.display_mode === 'detail' ? 'detail' : 'compact',
   sortOrder: r.sort_order,
   createdAt: r.created_at,
   updatedAt: r.updated_at,
@@ -101,9 +103,9 @@ export class Db {
   async insertBookmark(b: Omit<Bookmark, 'id'>, id: string): Promise<Bookmark> {
     await this.db
       .prepare(
-        'INSERT INTO bookmarks (id, category_id, title, url, description, icon, open_target, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO bookmarks (id, category_id, title, url, description, icon, open_target, display_mode, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
       )
-      .bind(id, b.categoryId, b.title, b.url, b.description, b.icon, b.openTarget, b.sortOrder, b.createdAt, b.updatedAt)
+      .bind(id, b.categoryId, b.title, b.url, b.description, b.icon, b.openTarget, b.displayMode, b.sortOrder, b.createdAt, b.updatedAt)
       .run();
     return { ...b, id };
   }
@@ -121,6 +123,7 @@ export class Db {
     if (patch.description !== undefined) set('description', patch.description);
     if (patch.icon !== undefined) set('icon', patch.icon);
     if (patch.openTarget !== undefined) set('open_target', patch.openTarget);
+    if (patch.displayMode !== undefined) set('display_mode', patch.displayMode);
     if (patch.sortOrder !== undefined) set('sort_order', patch.sortOrder);
     set('updated_at', new Date().toISOString());
     if (cols.length <= 1) return this.bookmark(id); // only updated_at changed

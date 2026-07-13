@@ -87,35 +87,18 @@
       : bookmarks.filter((b) => b.categoryId === activeCategoryId)
   );
 
-  // The currently-selected category object (null for "all"), drives the view mode.
+  // The currently-selected category object (null for "all").
   let activeCategory = $derived(
     activeCategoryId === 'all'
       ? null
       : categories.find((c) => c.id === activeCategoryId) ?? null
   );
-  let displayMode = $derived(activeCategory?.displayMode ?? viewSettings.allViewMode);
   let cardSize = $derived(viewSettings.cardSize);
   let siteName = $derived(viewSettings.siteName);
 
-  async function handleSetDisplayMode(mode: 'compact' | 'detail') {
-    if (activeCategory) {
-      if (activeCategory.displayMode === mode) return;
-      try {
-        const updated = await api.put<Category>(`/api/categories/${activeCategory.id}`, { displayMode: mode });
-        categories = categories.map((c) => (c.id === activeCategory.id ? updated : c));
-      } catch (err) {
-        console.error('Failed to update view mode:', err);
-      }
-    } else {
-      if (viewSettings.allViewMode === mode) return;
-      try {
-        const updated = await api.put<ViewSettings>('/api/settings/view', { allViewMode: mode });
-        viewSettings = { ...viewSettings, ...updated };
-      } catch (err) {
-        console.error('Failed to update view mode:', err);
-      }
-    }
-  }
+  // Per-card display mode (compact/detail) is set via each bookmark's
+  // right-click menu — handled by handleBookmarkUpdate (PUT /api/bookmarks/:id).
+  // There is no global/per-category view-mode switch anymore.
 
   // Unified "apply" from the settings panel: a single save of all edited fields.
   // cardSize/siteName go through one PUT so only one network round-trip happens
@@ -283,7 +266,6 @@
             bookmarks={filteredBookmarks}
             {categories}
             {activeCategoryId}
-            {displayMode}
             {cardSize}
             editMode={cardEditMode}
             hasPendingChanges
@@ -293,7 +275,6 @@
             onadd={handleBookmarkAdd}
             onupdate={handleBookmarkUpdate}
             ondelete={handleBookmarkDelete}
-            onsetDisplayMode={handleSetDisplayMode}
             onreconcile={stageReorder}
           />
         {/if}

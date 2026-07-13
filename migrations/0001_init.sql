@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS bookmarks (
   description  TEXT NOT NULL DEFAULT '',
   icon         TEXT,                         -- nullable (NULL == auto favicon)
   open_target  TEXT NOT NULL DEFAULT 'new' CHECK (open_target IN ('new', 'self')),
+  display_mode TEXT NOT NULL DEFAULT 'compact' CHECK (display_mode IN ('compact', 'detail')),
   sort_order   INTEGER NOT NULL DEFAULT 0,
   created_at   TEXT NOT NULL,
   updated_at   TEXT NOT NULL

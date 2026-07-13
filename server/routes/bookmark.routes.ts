@@ -15,13 +15,14 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
 
   // POST /api/bookmarks
   fastify.post('/', async (request) => {
-    const { categoryId, title, url, description, icon, openTarget } = request.body as {
+    const { categoryId, title, url, description, icon, openTarget, displayMode } = request.body as {
       categoryId: string;
       title: string;
       url: string;
       description?: string;
       icon?: string | null;
       openTarget?: 'new' | 'self';
+      displayMode?: 'compact' | 'detail';
     };
 
     // Validate URL
@@ -40,13 +41,14 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
       description: description?.trim() || '',
       icon: icon || null,
       openTarget: openTarget === 'self' ? 'self' : 'new',
+      displayMode: displayMode === 'detail' ? 'detail' : 'compact',
       sortOrder,
     });
     return { ok: true, data: bookmark };
   });
 
   // PUT /api/bookmarks/:id
-  fastify.put('/:id', async (request) => {
+  fastify.put('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const patch = request.body as {
       categoryId?: string;
@@ -55,6 +57,7 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
       description?: string;
       icon?: string | null;
       openTarget?: 'new' | 'self';
+      displayMode?: 'compact' | 'detail';
       sortOrder?: number;
     };
 
@@ -63,13 +66,19 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
       try {
         new URL(patch.url);
       } catch {
-        return { ok: false, error: 'Invalid URL', code: 'INVALID_URL' };
+        return reply.status(400).send({ ok: false, error: 'Invalid URL', code: 'INVALID_URL' });
       }
+    }
+
+    // Coerce displayMode to a valid value; reject unknown enum values rather
+    // than silently defaulting, so a bad client doesn't flip a card unexpectedly.
+    if (patch.displayMode !== undefined && patch.displayMode !== 'compact' && patch.displayMode !== 'detail') {
+      return reply.status(400).send({ ok: false, error: 'Invalid displayMode', code: 'INVALID_MODE' });
     }
 
     const bookmark = store.updateBookmark(id, patch);
     if (!bookmark) {
-      return { ok: false, error: 'Bookmark not found', code: 'NOT_FOUND' };
+      return reply.status(404).send({ ok: false, error: 'Bookmark not found', code: 'NOT_FOUND' });
     }
     return { ok: true, data: bookmark };
   });
