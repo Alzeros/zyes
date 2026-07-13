@@ -7,9 +7,16 @@ const BASE = (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = getToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  // Only attach a body (and the JSON content-type) when there IS a body.
+  // Fastify rejects a request that declares Content-Type: application/json but
+  // sends an empty body (FST_ERR_CTP_EMPTY_JSON_BODY → 400), which would break
+  // every bodyless DELETE / GET. So GET/DELETE with no body send no body and no
+  // content-type at all.
+  const hasBody = body !== undefined;
+  const headers: Record<string, string> = {};
+  if (hasBody) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -17,7 +24,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: hasBody ? JSON.stringify(body) : undefined,
   });
 
   if (res.status === 401) {

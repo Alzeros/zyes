@@ -33,17 +33,13 @@ export type SizeSpec = {
   detailTitle: string;    // detail card title font size
 };
 
-// Min card width (px) per size. auto-fill uses this as the floor: column count
-// = floor(containerWidth / min). Bigger size → bigger floor → fewer columns.
-// Tuned so that even on a 375px phone the smallest card (xs, 64px) leaves room
-// for a visible icon above a 2-line 12px title. Detail cards span 2 cols so
-// their min effective width is 2*min + 1 gap — comfortably readable.
-const MIN_W: Record<CardSize, string> = {
-  xs: '64px',
-  sm: '84px',
-  md: '104px',
-  lg: '140px',
-};
+// Min card width (px) per size — the auto-fill floor. These MUST stay in sync
+// with the literal minmax values in SPECS below (Tailwind can't see runtime
+// values, so they're hardcoded per size). Bigger size → bigger floor → fewer
+// columns. Tuned so that even on a 375px phone the smallest card (xs, 64px)
+// leaves room for a visible icon above a 2-line 12px title. Detail cards span
+// 2 cols so their min effective width is 2*min + 1 gap.
+//   xs: 64px   sm: 84px   md: 104px   lg: 140px
 
 const SPECS: Record<CardSize, SizeSpec> = {
   // Size ladder: each size's grid uses auto-fill + minmax(minW, 1fr), so column
@@ -51,28 +47,32 @@ const SPECS: Record<CardSize, SizeSpec> = {
   // MIN_W). No fixed per-breakpoint counts anymore — the floor IS the sizing
   // contract. Gap and font/padding still step down with size.
   xs: {
-    cols: `grid-cols-[repeat(auto-fill,minmax(${MIN_W.xs},1fr))]`,
+    // NOTE: the minmax value must be a LITERAL string, not `${MIN_W.xs}` —
+    // Tailwind's JIT scans source for class names statically and can't see
+    // runtime-interpolated values, so a template-built class would never get
+    // generated and the grid would silently fall back to 1 column.
+    cols: 'grid-cols-[repeat(auto-fill,minmax(64px,1fr))]',
     gap: 'gap-1',
     compactTitle: 'text-xs leading-tight',
     detailPad: 'p-1.5',
     detailTitle: 'text-[10px]',
   },
   sm: {
-    cols: `grid-cols-[repeat(auto-fill,minmax(${MIN_W.sm},1fr))]`,
+    cols: 'grid-cols-[repeat(auto-fill,minmax(84px,1fr))]',
     gap: 'gap-1',
     compactTitle: 'text-xs leading-tight',
     detailPad: 'p-2',
     detailTitle: 'text-[10px]',
   },
   md: {
-    cols: `grid-cols-[repeat(auto-fill,minmax(${MIN_W.md},1fr))]`,
+    cols: 'grid-cols-[repeat(auto-fill,minmax(104px,1fr))]',
     gap: 'gap-2',
     compactTitle: 'text-xs leading-tight',
     detailPad: 'p-2.5',
     detailTitle: 'text-xs',
   },
   lg: {
-    cols: `grid-cols-[repeat(auto-fill,minmax(${MIN_W.lg},1fr))]`,
+    cols: 'grid-cols-[repeat(auto-fill,minmax(140px,1fr))]',
     gap: 'gap-3',
     compactTitle: 'text-[13px] leading-tight',
     detailPad: 'p-3',
