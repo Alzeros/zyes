@@ -1,9 +1,9 @@
-import { readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { getDataDir } from '../config.js';
 import writeFileAtomic from 'write-file-atomic';
 import { nanoid } from 'nanoid';
-import type { AppData, Bookmark, Category, SearchEngine, ViewSettings } from '../types.js';
+import type { AppData, Bookmark, Category, ExportData, SearchEngine, ViewSettings } from '../types.js';
 
 export const DEFAULT_SEARCH_ENGINES: SearchEngine[] = [
   { id: 'google', name: 'Google', url: 'https://www.google.com/search?q={query}', icon: 'google', isActive: true },
@@ -252,4 +252,109 @@ export function updateSettings(patch: { allViewMode?: 'compact' | 'detail'; card
   if (typeof patch.siteName === 'string') s.siteName = patch.siteName.slice(0, 64).trim() || 'zyes';
   saveData(data);
   return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName };
+}
+
+// ── Export / import (portable JSON snapshot) ──────────────────────────────
+
+// Build the portable snapshot. Strips nothing from bookmarks/categories — the
+// ids are carried so an import preserves categoryId references. searchEngines
+// are intentionally omitted (fixed default set, no value in carrying them).
+export function buildExport(): ExportData {
+  const data = getData();
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    categories: data.categories,
+    bookmarks: data.bookmarks,
+    settings: getSettings(),
+  };
+}
+
+// Validate + normalize an untrusted import payload. Rejects malformed shapes
+// early (before touching the store) so a bad file can't half-overwrite data.
+// - version must be 1 (future versions route through a migration switch here).
+// - categories/bookmarks must be arrays; each row is coerced to a safe shape.
+// - settings is coerced to a complete ViewSettings via updateSettings defaults.
+function parseImport(raw: unknown): { categories: Category[]; bookmarks: Bookmark[]; settings: ViewSettings } | { error: string } {
+  if (!raw || typeof raw !== 'object') return { error: 'Import file is not a JSON object' };
+  const obj = raw as Record<string, unknown>;
+  if (obj.version !== 1) return { error: `Unsupported export version: ${String(obj.version)}` };
+  if (!Array.isArray(obj.categories)) return { error: 'categories is missing or not an array' };
+  if (!Array.isArray(obj.bookmarks)) return { error: 'bookmarks is missing or not an array' };
+
+  const categories: Category[] = obj.categories.map((c, i) => {
+    const r = c as Record<string, unknown>;
+    return {
+      id: typeof r.id === 'string' ? r.id : nanoid(10),
+      name: typeof r.name === 'string' ? r.name : `分类 ${i + 1}`,
+      icon: typeof r.icon === 'string' ? r.icon : '',
+      sortOrder: typeof r.sortOrder === 'number' ? r.sortOrder : i,
+      displayMode: r.displayMode === 'compact' || r.displayMode === 'detail' ? r.displayMode : 'detail',
+      createdAt: typeof r.createdAt === 'string' ? r.createdAt : new Date().toISOString(),
+    };
+  });
+
+  const bookmarks: Bookmark[] = obj.bookmarks.map((b, i) => {
+    const r = b as Record<string, unknown>;
+    const now = new Date().toISOString();
+    return {
+      id: typeof r.id === 'string' ? r.id : nanoid(10),
+      categoryId: typeof r.categoryId === 'string' ? r.categoryId : '',
+      title: typeof r.title === 'string' ? r.title : `书签 ${i + 1}`,
+      url: typeof r.url === 'string' ? r.url : '',
+      description: typeof r.description === 'string' ? r.description : '',
+      icon: r.icon === null || typeof r.icon === 'string' ? r.icon : null,
+      openTarget: r.openTarget === 'self' ? 'self' : 'new',
+      displayMode: r.displayMode === 'compact' || r.displayMode === 'detail' ? r.displayMode : 'compact',
+      sortOrder: typeof r.sortOrder === 'number' ? r.sortOrder : i,
+      createdAt: typeof r.createdAt === 'string' ? r.createdAt : now,
+      updatedAt: typeof r.updatedAt === 'string' ? r.updatedAt : now,
+    };
+  });
+
+  // Coerce settings to a complete object; missing/invalid fields fall back to
+  // defaults (mirrors updateSettings). We persist via updateSettings below.
+  const sIn = (obj.settings ?? {}) as Record<string, unknown>;
+  const settings: ViewSettings = {
+    allViewMode: sIn.allViewMode === 'compact' || sIn.allViewMode === 'detail' ? sIn.allViewMode : 'detail',
+    cardSize: sIn.cardSize === 'xs' || sIn.cardSize === 'sm' || sIn.cardSize === 'md' || sIn.cardSize === 'lg' ? sIn.cardSize : 'md',
+    siteName: typeof sIn.siteName === 'string' ? sIn.siteName : 'zyes',
+  };
+
+  return { categories, bookmarks, settings };
+}
+
+// Overwrite the store with the imported snapshot. REPLACE strategy: existing
+// categories + bookmarks are wiped first. Before touching anything, the current
+// data.json is copied to data.json.bak as a manual-recovery safety net (the
+// caller confirmed this twice in the UI; the .bak is the last resort if the
+// import turns out wrong). searchEngines are preserved (import doesn't touch
+// them). Returns the freshly-imported settings so the client can refresh.
+export function importData(raw: unknown): { ok: true; settings: ViewSettings } | { ok: false; error: string } {
+  const parsed = parseImport(raw);
+  if ('error' in parsed) return { ok: false, error: parsed.error };
+
+  // Safety backup: copy current data.json → data.json.bak (overwrites prior
+  // .bak; we keep only the most recent pre-import state, which is the one you'd
+  // actually want to recover to).
+  const dataPath = getStorePath();
+  if (existsSync(dataPath)) {
+    try {
+      copyFileSync(dataPath, `${dataPath}.bak`);
+    } catch (e) {
+      // Backup failure shouldn't block the import — log and continue. The
+      // user already confirmed overwrite; a missing .bak just means no auto
+      // safety net (they can still re-export before future imports).
+      console.error('import backup copy failed (non-fatal):', String(e));
+    }
+  }
+
+  const data = getData();
+  data.categories = parsed.categories;
+  data.bookmarks = parsed.bookmarks;
+  saveData(data);
+
+  // Persist settings through updateSettings so defaults/validation apply.
+  const settings = updateSettings(parsed.settings);
+  return { ok: true, settings };
 }

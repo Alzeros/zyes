@@ -224,6 +224,51 @@
     location.reload();
   }
 
+  // ── Data export / import ────────────────────────────────────────────────
+  // Export: fetch the snapshot with the auth header (can't use api.get — it
+  // parses JSON; we need the raw blob to trigger a download + read the
+  // Content-Disposition filename). Build an object URL + synthetic <a> click.
+  async function handleExport(): Promise<void> {
+    const token = getToken();
+    const res = await fetch('/api/data/export', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`Export failed: ${res.status}`);
+    // Prefer the server's filename (zyes-export-YYYY-MM-DD.json), fall back.
+    const cd = res.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename="?([^"]+)"?/);
+    const filename = match?.[1] || `zyes-export.json`;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // Import: POST the parsed JSON. REPLACE strategy on the backend (existing
+  // data wiped, a backup stashed). On success, refetch everything so the UI
+  // reflects the imported state. The UI confirms twice before calling this.
+  async function handleImport(file: File): Promise<void> {
+    const text = await file.text();
+    let payload: unknown;
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      throw new Error('文件不是有效的 JSON');
+    }
+    const result = await api.post<{ settings: ViewSettings }>('/api/data/import', payload);
+    // Refresh all data from the server so categories/bookmarks/settings match
+    // the freshly-imported state (local state is fully replaced server-side).
+    await fetchData();
+    // result.settings is the imported settings; fetchData already pulled the
+    // canonical version, but apply immediately for snappy feedback.
+    viewSettings = { ...viewSettings, ...result.settings };
+  }
+
   // Auto-fetch when becoming authenticated (runs once per login session)
   $effect(() => {
     if (authenticated && !didInitialFetch) {
@@ -245,6 +290,8 @@
       onlogout={handleLogout}
       ontoggleLang={handleSwitchLang}
       onsave={handleSaveSettings}
+      onexport={handleExport}
+      onimport={handleImport}
     />
     <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
       <CategorySidebar

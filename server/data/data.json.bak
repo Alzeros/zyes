@@ -1,0 +1,62 @@
+{
+  "categories": [
+    {
+      "id": "cat-import",
+      "name": "导入的分类",
+      "icon": "lucide:star",
+      "sortOrder": 0,
+      "displayMode": "compact",
+      "createdAt": "2026-07-13T00:00:00.000Z"
+    }
+  ],
+  "bookmarks": [
+    {
+      "id": "bm-import",
+      "categoryId": "cat-import",
+      "title": "IMPORTED-书签",
+      "url": "https://imported.test",
+      "description": "测试导入",
+      "icon": null,
+      "openTarget": "new",
+      "displayMode": "compact",
+      "sortOrder": 0,
+      "createdAt": "2026-07-13T00:00:00.000Z",
+      "updatedAt": "2026-07-13T00:00:00.000Z"
+    }
+  ],
+  "searchEngines": [
+    {
+      "id": "google",
+      "name": "Google",
+      "url": "https://www.google.com/search?q={query}",
+      "icon": "google",
+      "isActive": true
+    },
+    {
+      "id": "bing",
+      "name": "Bing",
+      "url": "https://www.bing.com/search?q={query}",
+      "icon": "bing",
+      "isActive": true
+    },
+    {
+      "id": "duckduckgo",
+      "name": "DuckDuckGo",
+      "url": "https://duckduckgo.com/?q={query}",
+      "icon": "duckduckgo",
+      "isActive": true
+    },
+    {
+      "id": "github",
+      "name": "GitHub",
+      "url": "https://github.com/search?q={query}",
+      "icon": "github",
+      "isActive": true
+    }
+  ],
+  "settings": {
+    "allViewMode": "compact",
+    "cardSize": "lg",
+    "siteName": "导入测试站点"
+  }
+}

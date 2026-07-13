@@ -14,6 +14,8 @@
     onlogout,
     ontoggleLang,
     onsave,
+    onexport,
+    onimport,
   }: {
     searchEngines: SearchEngine[];
     lang: string;
@@ -22,6 +24,8 @@
     onlogout: () => void;
     ontoggleLang: () => void;
     onsave: (patch: { cardSize?: CardSize; siteName?: string }) => Promise<boolean>;
+    onexport: () => Promise<void>;
+    onimport: (file: File) => Promise<void>;
   } = $props();
 
   let darkMode = $state(localStorage.getItem('zyes_dark') === 'true');
@@ -181,6 +185,8 @@
     {cardSize}
     {siteName}
     {onsave}
+    {onexport}
+    {onimport}
     onclose={() => (settingsOpen = false)}
   />
 {/if}

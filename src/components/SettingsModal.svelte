@@ -8,19 +8,23 @@
     cardSize,
     siteName,
     onsave,
+    onexport,
+    onimport,
     onclose,
   }: {
     lang: string;
     cardSize: CardSize;
     siteName: string;
     onsave: (patch: { cardSize?: CardSize; siteName?: string }) => Promise<boolean>;
+    onexport: () => Promise<void>;
+    onimport: (file: File) => Promise<void>;
     onclose: () => void;
   } = $props();
 
   const SIZES: CardSize[] = ['xs', 'sm', 'md', 'lg'];
 
-  // Active settings group: 'cards' | 'site'
-  let activeGroup = $state<'cards' | 'site'>('cards');
+  // Active settings group: 'cards' | 'site' | 'data'
+  let activeGroup = $state<'cards' | 'site' | 'data'>('cards');
 
   // ── Drafts: the panel edits local copies and only commits on "Apply". Until
   // then the backend / parent state is untouched, so previewing a size can't
@@ -28,6 +32,12 @@
   let draftCardSize = $state<CardSize>(cardSize);
   let draftSiteName = $state<string>(siteName);
   let saving = $state(false);
+
+  // ── Data export / import state
+  let exporting = $state(false);
+  let importing = $state(false);
+  let dataMsg = $state<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  let fileInput = $state<HTMLInputElement | null>(null);
 
   // Re-seed drafts whenever the panel is (re)opened with fresh props.
   $effect(() => {
@@ -59,6 +69,48 @@
     onclose();
   }
 
+  // Export: delegate to App (auth header + download trigger). Surface any
+  // failure inline so the user sees it rather than a silent no-op.
+  async function handleExport() {
+    if (exporting) return;
+    exporting = true;
+    dataMsg = null;
+    try {
+      await onexport();
+    } catch (e) {
+      dataMsg = { kind: 'err', text: String(e) };
+    } finally {
+      exporting = false;
+    }
+  }
+
+  // Import: pick a file → confirm overwrite → delegate to App. The confirm is a
+  // native dialog (two-step: pick, then confirm) so the user can't accidentally
+  // wipe data. App does the actual overwrite + post-import refresh; the
+  // backend auto-backs-up first regardless.
+  function pickImportFile() {
+    dataMsg = null;
+    fileInput?.click();
+  }
+  async function onFileChosen(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    // Reset so selecting the same file twice still fires change.
+    input.value = '';
+    if (!file) return;
+    if (!confirm(t('data.importConfirm'))) return;
+    importing = true;
+    dataMsg = null;
+    try {
+      await onimport(file);
+      dataMsg = { kind: 'ok', text: t('data.importSuccess') };
+    } catch (e) {
+      dataMsg = { kind: 'err', text: `${t('data.importError')}: ${e instanceof Error ? e.message : String(e)}` };
+    } finally {
+      importing = false;
+    }
+  }
+
   $effect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') cancel();
@@ -74,6 +126,7 @@
   const groups = [
     { id: 'cards' as const, label: t('cardSize.nav.cards'), icon: 'M4 5h16M4 12h16M4 19h7' },
     { id: 'site' as const, label: t('cardSize.nav.site'), icon: 'M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18' },
+    { id: 'data' as const, label: t('data.nav'), icon: 'M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0114-3M20 14a8 8 0 01-14 3' },
   ];
 </script>
 
@@ -134,7 +187,7 @@
             </div>
             <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-3 leading-relaxed">{t('cardSize.dragMovedHint')}</p>
           </section>
-        {:else}
+        {:else if activeGroup === 'site'}
           <!-- ── Site title ────────────────────────────────────── -->
           <section>
             <h3 class="text-sm font-semibold text-text dark:text-text-dark mb-1">{t('cardSize.siteSection')}</h3>
@@ -151,6 +204,66 @@
                 class="w-full px-3 py-2 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-sm text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
               />
             </label>
+          </section>
+        {:else}
+          <!-- ── Data: export / import ─────────────────────────── -->
+          <section>
+            <h3 class="text-sm font-semibold text-text dark:text-text-dark mb-1">{t('data.section')}</h3>
+            <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-4">{t('data.importHint')}</p>
+
+            <!-- Export -->
+            <div class="rounded-xl border border-border dark:border-border-dark p-4 mb-3">
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-text dark:text-text-dark">{t('data.export')}</p>
+                  <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-0.5 leading-relaxed">{t('data.exportHint')}</p>
+                </div>
+                <button
+                  type="button"
+                  onclick={handleExport}
+                  disabled={exporting}
+                  class="shrink-0 px-4 py-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary-hover text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {#if exporting}
+                    <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  {/if}
+                  {t('data.export')}
+                </button>
+              </div>
+            </div>
+
+            <!-- Import -->
+            <div class="rounded-xl border border-border dark:border-border-dark p-4">
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-text dark:text-text-dark">{t('data.import')}</p>
+                  <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-0.5 leading-relaxed">{t('data.importHint')}</p>
+                </div>
+                <button
+                  type="button"
+                  onclick={pickImportFile}
+                  disabled={importing}
+                  class="shrink-0 px-4 py-2 rounded-xl text-sm font-medium bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark hover:border-primary/40 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {#if importing}
+                    <span class="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                  {/if}
+                  {importing ? t('data.importing') : t('data.importPick')}
+                </button>
+              </div>
+              {#if dataMsg}
+                <p class="mt-3 text-xs {dataMsg.kind === 'ok' ? 'text-primary' : 'text-danger'}">{dataMsg.text}</p>
+              {/if}
+            </div>
+
+            <!-- Hidden file input; triggered by pickImportFile. Accept JSON only. -->
+            <input
+              bind:this={fileInput}
+              type="file"
+              accept="application/json,.json"
+              class="hidden"
+              onchange={onFileChosen}
+            />
           </section>
         {/if}
       </div>

@@ -1,5 +1,6 @@
 import type { Bookmark, Category, SearchEngine, ViewSettings } from '../../src/lib/types';
 import type { Env } from './types';
+import { nanoid } from 'nanoid';
 
 // ── Row shapes as returned by D1 (snake_case columns) ───────────────────────
 interface BookmarkRow {
@@ -77,6 +78,60 @@ export const mapSettings = (rows: SettingsRow[]): ViewSettings => {
     siteName: (site ?? '').trim() || 'zyes',
   };
 };
+
+// Validate + normalize an untrusted import payload (shared shape with the
+// Node backend's parseImport). Rejects malformed shapes BEFORE any DB write so
+// a bad file can't half-overwrite data. Coerces each row to a safe shape;
+// missing ids get fresh nanoids so categoryId refs (which may point at imported
+// category ids) stay intact.
+function parseImportPayload(
+  raw: unknown
+): { categories: Category[]; bookmarks: Bookmark[]; settings: ViewSettings } | { error: string } {
+  if (!raw || typeof raw !== 'object') return { error: 'Import file is not a JSON object' };
+  const obj = raw as Record<string, unknown>;
+  if (obj.version !== 1) return { error: `Unsupported export version: ${String(obj.version)}` };
+  if (!Array.isArray(obj.categories)) return { error: 'categories is missing or not an array' };
+  if (!Array.isArray(obj.bookmarks)) return { error: 'bookmarks is missing or not an array' };
+
+  const categories: Category[] = obj.categories.map((c, i) => {
+    const r = c as Record<string, unknown>;
+    return {
+      id: typeof r.id === 'string' ? r.id : nanoid(10),
+      name: typeof r.name === 'string' ? r.name : `Category ${i + 1}`,
+      icon: typeof r.icon === 'string' ? r.icon : '',
+      sortOrder: typeof r.sortOrder === 'number' ? r.sortOrder : i,
+      displayMode: r.displayMode === 'compact' || r.displayMode === 'detail' ? r.displayMode : 'detail',
+      createdAt: typeof r.createdAt === 'string' ? r.createdAt : new Date().toISOString(),
+    };
+  });
+
+  const bookmarks: Bookmark[] = obj.bookmarks.map((b, i) => {
+    const r = b as Record<string, unknown>;
+    const now = new Date().toISOString();
+    return {
+      id: typeof r.id === 'string' ? r.id : nanoid(10),
+      categoryId: typeof r.categoryId === 'string' ? r.categoryId : '',
+      title: typeof r.title === 'string' ? r.title : `Bookmark ${i + 1}`,
+      url: typeof r.url === 'string' ? r.url : '',
+      description: typeof r.description === 'string' ? r.description : '',
+      icon: r.icon === null || typeof r.icon === 'string' ? r.icon : null,
+      openTarget: r.openTarget === 'self' ? 'self' : 'new',
+      displayMode: r.displayMode === 'compact' || r.displayMode === 'detail' ? r.displayMode : 'compact',
+      sortOrder: typeof r.sortOrder === 'number' ? r.sortOrder : i,
+      createdAt: typeof r.createdAt === 'string' ? r.createdAt : now,
+      updatedAt: typeof r.updatedAt === 'string' ? r.updatedAt : now,
+    };
+  });
+
+  const sIn = (obj.settings ?? {}) as Record<string, unknown>;
+  const settings: ViewSettings = {
+    allViewMode: sIn.allViewMode === 'compact' || sIn.allViewMode === 'detail' ? sIn.allViewMode : 'detail',
+    cardSize: sIn.cardSize === 'xs' || sIn.cardSize === 'sm' || sIn.cardSize === 'md' || sIn.cardSize === 'lg' ? sIn.cardSize : 'md',
+    siteName: typeof sIn.siteName === 'string' ? sIn.siteName : 'zyes',
+  };
+
+  return { categories, bookmarks, settings };
+}
 
 // ── Tiny query helpers around env.DB ─────────────────────────────────────────
 export class Db {
@@ -256,6 +311,112 @@ export class Db {
       .bind(categoryId)
       .first<{ next: number }>();
     return row?.next ?? 0;
+  }
+
+  // ── Export / import (portable JSON snapshot) ─────────────────────────────
+  // Mirrors server/services/store.service.ts buildExport/importData. The
+  // snapshot carries categories + bookmarks + settings (no searchEngines —
+  // fixed default set). Import is REPLACE: wipe + rewrite in one D1 batch so
+  // it's atomic. A pre-import backup is stashed in `meta` as
+  // `backup_<timestamp>` (JSON of the full snapshot), capped to the 5 most
+  // recent so meta doesn't grow unbounded across many imports.
+
+  async buildExport(): Promise<{
+    version: 1;
+    exportedAt: string;
+    categories: Category[];
+    bookmarks: Bookmark[];
+    settings: ViewSettings;
+  }> {
+    const [categories, bookmarks, settings] = await Promise.all([
+      this.allCategories(),
+      this.allBookmarks(),
+      this.getSettingsData(),
+    ]);
+    return {
+      version: 1,
+      // Note: Date is unavailable in some Worker contexts for the *module*
+      // lifecycle, but fine inside a request handler (this runs per-request).
+      exportedAt: new Date().toISOString(),
+      categories,
+      bookmarks,
+      settings,
+    };
+  }
+
+  // Overwrite the DB with the imported snapshot. REPLACE strategy: existing
+  // categories + bookmarks are DELETEd, then the imported rows INSERTed, all in
+  // one D1 batch (atomic). searchEngines untouched. Before any mutation, the
+  // current snapshot is stashed to meta for manual recovery. settings keys are
+  // upserted. Returns the freshly-imported settings.
+  async importData(raw: unknown): Promise<{ ok: true; settings: ViewSettings } | { ok: false; error: string }> {
+    const parsed = parseImportPayload(raw);
+    if ('error' in parsed) return { ok: false, error: parsed.error };
+
+    // Pre-import backup: stash the current full snapshot to meta under a
+    // timestamped key. Capped to 5 most recent (oldest pruned) so repeated
+    // imports don't bloat meta. Recovery is manual via wrangler d1 execute.
+    try {
+      const backup = await this.buildExport();
+      const ts = backup.exportedAt.replace(/[-:.]/g, '').slice(0, 15); // YYYYMMDDHHMMSS
+      const batch: D1PreparedStatement[] = [
+        this.db
+          .prepare(`INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
+          .bind(`backup_${ts}`, JSON.stringify(backup)),
+      ];
+      // Prune old backups: keep the 5 newest backup_* keys.
+      batch.push(
+        this.db.prepare(
+          `DELETE FROM meta WHERE key LIKE 'backup_%' AND key NOT IN (
+             SELECT key FROM meta WHERE key LIKE 'backup_%' ORDER BY key DESC LIMIT 5
+           )`
+        )
+      );
+      await this.db.batch(batch);
+    } catch (e) {
+      // Backup failure is non-fatal — log and proceed (user confirmed overwrite).
+      console.error('import backup stash failed (non-fatal):', String(e));
+    }
+
+    // Atomic replace: wipe + insert in one batch. D1 batch is transactional.
+    const stmts: D1PreparedStatement[] = [
+      this.db.prepare('DELETE FROM bookmarks'),
+      this.db.prepare('DELETE FROM categories'),
+    ];
+    for (const c of parsed.categories) {
+      stmts.push(
+        this.db
+          .prepare('INSERT INTO categories (id, name, icon, sort_order, display_mode, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+          .bind(c.id, c.name, c.icon, c.sortOrder, c.displayMode, c.createdAt)
+      );
+    }
+    for (const b of parsed.bookmarks) {
+      stmts.push(
+        this.db
+          .prepare(
+            'INSERT INTO bookmarks (id, category_id, title, url, description, icon, open_target, display_mode, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+          )
+          .bind(b.id, b.categoryId, b.title, b.url, b.description, b.icon, b.openTarget, b.displayMode, b.sortOrder, b.createdAt, b.updatedAt)
+      );
+    }
+    await this.db.batch(stmts);
+
+    // Settings: upsert the 3 keys (idempotent, replaces existing).
+    const sBatch: D1PreparedStatement[] = [
+      this.db
+        .prepare(`INSERT INTO settings (key, value) VALUES ('all_view_mode', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
+        .bind(parsed.settings.allViewMode),
+      this.db
+        .prepare(`INSERT INTO settings (key, value) VALUES ('card_size', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
+        .bind(parsed.settings.cardSize),
+      this.db
+        .prepare(`INSERT INTO settings (key, value) VALUES ('site_name', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
+        .bind(parsed.settings.siteName),
+    ];
+    await this.db.batch(sBatch);
+
+    const settings = await this.getSettingsData();
+    return { ok: true, settings };
   }
 }
 

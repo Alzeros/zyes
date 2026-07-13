@@ -66,3 +66,20 @@ export interface ApiError {
   error: string;
   code: string;
 }
+
+// ── Data export / import format ────────────────────────────────────────────
+// A portable snapshot of the user's bookmarks, categories, and settings. Used
+// by GET /api/data/export (download) and POST /api/data/import (overwrite).
+// searchEngines are NOT included — they're a fixed default set seeded on init,
+// so carrying them across instances is noise. Import preserves original ids so
+// bookmark.categoryId references stay intact.
+//
+// `version` lets future format changes migrate old exports. Bump only when the
+// shape changes, and add an import migration path in the same change.
+export interface ExportData {
+  version: 1;
+  exportedAt: string;          // ISO timestamp of the export
+  categories: Category[];
+  bookmarks: Bookmark[];
+  settings: ViewSettings;
+}

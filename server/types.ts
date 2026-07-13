@@ -53,3 +53,14 @@ export interface AppConfig {
   port: number;
   host: string;
 }
+
+// Portable snapshot for export/import. Mirrors frontend ExportData in
+// src/lib/types.ts. searchEngines omitted (fixed default set). Import preserves
+// original ids so bookmark.categoryId refs stay intact.
+export interface ExportData {
+  version: 1;
+  exportedAt: string;
+  categories: Category[];
+  bookmarks: Bookmark[];
+  settings: ViewSettings;
+}
