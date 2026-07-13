@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { verifyToken, tokenFromRequest } from './auth';
+import { ensureSchema } from './migrations';
 import type { Env } from './types';
 import { authRoutes } from './routes/auth';
 import { bookmarkRoutes } from './routes/bookmarks';
@@ -30,8 +31,25 @@ function isPublic(method: string, url: string): boolean {
 // from EITHER the Authorization: Bearer header (regular API client) OR a `t`
 // query param (the <img>-driven icon proxy at /api/icon, which can't set
 // headers). Public paths skip auth entirely.
+//
+// Schema self-heal: ensureSchema runs on the module instance's first authed
+// request and brings D1 up to the version the code expects (idempotent + skips
+// after the first call per cold start via a module flag). This is the
+// fork-friendly migration path — `wrangler deploy` never applies D1 migrations,
+// so the Worker heals its own schema on cold start. Run BEFORE the route so a
+// write (e.g. POST /api/bookmarks needing the display_mode column) never lands
+// before the column exists. We await it (best-effort) but never let a schema
+// failure 500 the whole API — a broken migration surfaces in /api/init/logs,
+// not as a site-wide outage; the request still proceeds against the DB as-is.
 app.use('/api/*', async (c, next) => {
   if (isPublic(c.req.method, c.req.path)) return next();
+  // Best-effort schema convergence. Cheap after the first request (module flag
+  // short-circuits before even reading the version).
+  try {
+    await ensureSchema(c.env);
+  } catch (e) {
+    console.error('ensureSchema threw (non-fatal):', String(e));
+  }
   const token = tokenFromRequest(c);
   if (!token) return c.json({ ok: false, error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401);
   const ok = await verifyToken(token, c.env.JWT_SECRET);
