@@ -53,6 +53,12 @@
   // own displayMode — see BookmarkCard's col-span class. Spec is size-only now.
   let spec = $derived(sizeSpec(cardSize));
   let gridClass = $derived(`grid ${spec.cols} ${spec.gap}`);
+  // The dashed "add card" button mirrors a compact card's layout (icon area +
+  // title bar) so it renders at the exact same outer size at every cardSize.
+  // Its `+` glyph scales per size to stay proportional to the compact icon.
+  let addIconCls = $derived(
+    ({ xs: 'w-4 h-4', sm: 'w-5 h-5', md: 'w-6 h-6', lg: 'w-8 h-8' } as const)[cardSize] ?? 'w-6 h-6'
+  );
 
   // Right-click menu: open / edit / delete. Per-card display mode is set in
   // the edit bookmark modal (not a quick-toggle here) — per the user's call to
@@ -154,12 +160,16 @@
 
         <button
           onclick={() => (showAddModal = true)}
-          class="col-span-1 flex flex-col items-center justify-center aspect-square p-2 rounded-xl border-2 border-dashed border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 cursor-pointer"
+          class="col-span-1 flex flex-col aspect-square rounded-xl border-2 border-dashed border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 cursor-pointer"
         >
-          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          <span class="text-sm font-medium line-clamp-2 break-all">{t('grid.addCard')}</span>
+          <div class="flex-1 flex items-center justify-center min-h-0 p-1">
+            <svg class="{addIconCls}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </div>
+          <div class="px-1.5 pb-1.5 pt-0.5 shrink-0 overflow-hidden">
+            <span class="font-medium line-clamp-2 break-all leading-tight {spec.compactTitle}">{t('grid.addCard')}</span>
+          </div>
         </button>
       </div>
     {/key}
