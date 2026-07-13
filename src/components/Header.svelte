@@ -5,12 +5,15 @@
   import SettingsModal from './SettingsModal.svelte';
   import { t } from '../lib/i18n';
   import type { CardSize } from '../lib/types';
+  import Icon from '@iconify/svelte';
+  import { parseIcon } from '../lib/utils';
 
   let {
     searchEngines,
     lang,
     cardSize,
     siteName,
+    siteLogo,
     onlogout,
     ontoggleLang,
     onsave,
@@ -23,14 +26,20 @@
     lang: string;
     cardSize: CardSize;
     siteName: string;
+    siteLogo: string;
     onlogout: () => void;
     ontoggleLang: () => void;
-    onsave: (patch: { cardSize?: CardSize; siteName?: string }) => Promise<boolean>;
+    onsave: (patch: { cardSize?: CardSize; siteName?: string; siteLogo?: string }) => Promise<boolean>;
     onexport: () => Promise<void>;
     onimport: (file: File) => Promise<void>;
     onexportHtml: () => Promise<void>;
     onimportHtml: (file: File, mode: 'replace' | 'merge') => Promise<void>;
   } = $props();
+
+  // Custom logo source. kind === 'none' = render the built-in Z wordmark;
+  // otherwise render the iconify glyph or the image URL, replacing the whole
+  // Z + "yes" group (the user picked a logo, so the wordmark goes away).
+  let logoSrc = $derived(parseIcon(siteLogo));
 
   let darkMode = $state(localStorage.getItem('zyes_dark') === 'true');
   let menuOpen = $state(false);
@@ -67,25 +76,34 @@
 </script>
 
 <header class="sticky top-0 z-30 bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border dark:border-border-dark">
-  <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 lg:px-6">
+  <div class="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 lg:px-6">
     <a href="/" class="flex items-center gap-1 shrink-0 group/logo justify-self-start">
-      <!-- Mark: Design #1 – sharp miter Z, tight crop -->
-      <span class="inline-grid place-items-center" style="width:22px;height:28px">
-        <!-- viewBox tightly crops just the Z: x 6..23, y 5..27 -->
-        <svg width="22" height="28" viewBox="6 5 17 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <!-- Light mode: dark slate Z -->
-          <g class="zyes-light">
-            <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
-            <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.2" />
-          </g>
-          <!-- Dark mode: white Z -->
-          <g class="zyes-dark">
-            <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
-            <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.3" />
-          </g>
-        </svg>
-      </span>
-      <span class="zyes-word text-2xl font-bold tracking-tight">yes</span>
+      {#if logoSrc.kind === 'none'}
+        <!-- Default brand: sharp miter Z + "yes" wordmark -->
+        <!-- Mark: Design #1 – sharp miter Z, tight crop -->
+        <span class="inline-grid place-items-center" style="width:22px;height:28px">
+          <!-- viewBox tightly crops just the Z: x 6..23, y 5..27 -->
+          <svg width="22" height="28" viewBox="6 5 17 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <!-- Light mode: dark slate Z -->
+            <g class="zyes-light">
+              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
+              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.2" />
+            </g>
+            <!-- Dark mode: white Z -->
+            <g class="zyes-dark">
+              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
+              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.3" />
+            </g>
+          </svg>
+        </span>
+        <span class="zyes-word text-2xl font-bold tracking-tight">yes</span>
+      {:else if logoSrc.kind === 'iconify'}
+        <!-- Custom iconify logo. Sized to match the Z's visual height (~28px). -->
+        <Icon icon={logoSrc.name} width={28} height={28} class="shrink-0" inline />
+      {:else}
+        <!-- Custom image logo. object-contain keeps aspect; fixed box ~28px high. -->
+        <img src={logoSrc.url} alt="" class="shrink-0 object-contain h-7 w-auto max-w-none" style="max-height:28px" />
+      {/if}
     </a>
 
     <!-- Desktop search bar: centered on the page midline via CSS grid
@@ -180,7 +198,7 @@
 </header>
 
 {#if aboutOpen}
-  <AboutModal {lang} onclose={() => (aboutOpen = false)} />
+  <AboutModal {lang} {siteLogo} onclose={() => (aboutOpen = false)} />
 {/if}
 
 {#if settingsOpen}
@@ -188,6 +206,7 @@
     {lang}
     {cardSize}
     {siteName}
+    {siteLogo}
     {onsave}
     {onexport}
     {onimport}

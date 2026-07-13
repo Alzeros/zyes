@@ -35,7 +35,7 @@ export interface Migration {
 
 // The schema version the CURRENT code expects. Bump this when appending a
 // migration. Stored in meta.schema_version after a successful run.
-export const TARGET_SCHEMA_VERSION = 3;
+export const TARGET_SCHEMA_VERSION = 4;
 
 // D1 EXEC gotcha: `db.exec(sql)` only accepts statements delimited by newlines
 // and chokes on multi-line single statements (it splits on \n and tries each
@@ -182,6 +182,25 @@ export const MIGRATIONS: Migration[] = [
         results.push({ ok: false, error: String(e) });
       }
 
+      const failed = results.filter((r) => !r.ok);
+      return {
+        ok: failed.length === 0,
+        error: failed.length ? failed.map((r) => r.error).join('; ') : undefined,
+      };
+    },
+  },
+  {
+    v: 4,
+    desc: 'site_logo settings key (custom site logo for Header/LoginScreen/About)',
+    run: async (db) => {
+      const results: { ok: boolean; error?: string }[] = [];
+      // Idempotent seed. Empty value = use the built-in Z wordmark. Existing
+      // DBs that predate this key get it created here; fresh DBs got it from
+      // the v1 seed already (harmless duplicate-guard via ON CONFLICT).
+      const settingsStmts = [
+        `INSERT INTO settings (key, value) VALUES ('site_logo', '') ON CONFLICT(key) DO NOTHING`,
+      ];
+      for (const s of settingsStmts) results.push(await safeExec(db, s));
       const failed = results.filter((r) => !r.ok);
       return {
         ok: failed.length === 0,

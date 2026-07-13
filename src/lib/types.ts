@@ -35,6 +35,11 @@ export interface ViewSettings {
   allViewMode: 'compact' | 'detail';
   cardSize: CardSize;
   siteName: string;
+  // Custom site logo: an iconify name (e.g. "mdi:github") or an image URL.
+  // Empty string = render the built-in Z SVG + "yes" wordmark everywhere it
+  // appears (Header / LoginScreen / AboutModal). Stored server-side so it
+  // syncs across devices, same as siteName.
+  siteLogo: string;
 }
 
 export interface AppData {

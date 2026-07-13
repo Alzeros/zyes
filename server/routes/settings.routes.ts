@@ -2,19 +2,20 @@ import type { FastifyInstance } from 'fastify';
 import * as store from '../services/store.service.js';
 
 export async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
-  // GET /api/settings/view — global view settings (allViewMode + cardSize + siteName)
+  // GET /api/settings/view — global view settings (allViewMode + cardSize + siteName + siteLogo)
   fastify.get('/view', async () => {
     const settings = store.getSettings();
     return { ok: true, data: settings };
   });
 
-  // PUT /api/settings/view — update any subset of { allViewMode, cardSize, siteName }.
+  // PUT /api/settings/view — update any subset of { allViewMode, cardSize, siteName, siteLogo }.
   // Each field is validated; an invalid value rejects the whole request.
   fastify.put('/view', async (request, reply) => {
     const body = request.body as {
       allViewMode?: string;
       cardSize?: string;
       siteName?: unknown;
+      siteLogo?: unknown;
     };
 
     if (body.allViewMode !== undefined && body.allViewMode !== 'compact' && body.allViewMode !== 'detail') {
@@ -30,11 +31,19 @@ export async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
       }
       siteName = body.siteName;
     }
+    let siteLogo: string | undefined;
+    if (body.siteLogo !== undefined) {
+      if (typeof body.siteLogo !== 'string') {
+        return reply.status(400).send({ ok: false, error: 'Invalid siteLogo', code: 'INVALID_MODE' });
+      }
+      siteLogo = body.siteLogo;
+    }
 
     const settings = store.updateSettings({
       allViewMode: body.allViewMode as 'compact' | 'detail' | undefined,
       cardSize: body.cardSize as 'xs' | 'sm' | 'md' | 'lg' | undefined,
       siteName,
+      siteLogo,
     });
     return { ok: true, data: settings };
   });

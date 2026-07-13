@@ -3,11 +3,14 @@
   import { CARD_SIZE_LABELS } from '../lib/cardSize';
   import { parseNetscape } from '../lib/netscape';
   import type { CardSize } from '../lib/types';
+  import Icon from '@iconify/svelte';
+  import { parseIcon } from '../lib/utils';
 
   let {
     lang,
     cardSize,
     siteName,
+    siteLogo,
     onsave,
     onexport,
     onimport,
@@ -18,7 +21,8 @@
     lang: string;
     cardSize: CardSize;
     siteName: string;
-    onsave: (patch: { cardSize?: CardSize; siteName?: string }) => Promise<boolean>;
+    siteLogo: string;
+    onsave: (patch: { cardSize?: CardSize; siteName?: string; siteLogo?: string }) => Promise<boolean>;
     onexport: () => Promise<void>;
     onimport: (file: File) => Promise<void>;
     onexportHtml: () => Promise<void>;
@@ -36,6 +40,7 @@
   // trigger a network round-trip or hang the page.
   let draftCardSize = $state<CardSize>(cardSize);
   let draftSiteName = $state<string>(siteName);
+  let draftSiteLogo = $state<string>(siteLogo);
   let saving = $state(false);
 
   // ── Data export / import state
@@ -58,13 +63,18 @@
   $effect(() => {
     draftCardSize = cardSize;
     draftSiteName = siteName;
+    draftSiteLogo = siteLogo;
   });
 
   // Has the user touched anything vs. the last persisted values?
   let dirty = $derived(
     draftCardSize !== cardSize ||
-    draftSiteName !== siteName
+    draftSiteName !== siteName ||
+    draftSiteLogo !== siteLogo
   );
+
+  // Live preview of the drafted logo (iconify name / image URL / empty = default Z).
+  let logoPreview = $derived(parseIcon(draftSiteLogo));
 
   async function apply() {
     if (!dirty || saving) return;
@@ -72,6 +82,7 @@
     const ok = await onsave({
       cardSize: draftCardSize,
       siteName: draftSiteName,
+      siteLogo: draftSiteLogo,
     });
     saving = false;
     if (ok) onclose();
@@ -81,6 +92,7 @@
     // Discard drafts by reseeding from the (unchanged) persisted props.
     draftCardSize = cardSize;
     draftSiteName = siteName;
+    draftSiteLogo = siteLogo;
     onclose();
   }
 
@@ -277,10 +289,50 @@
             <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-3 leading-relaxed">{t('cardSize.dragMovedHint')}</p>
           </section>
         {:else if activeGroup === 'site'}
-          <!-- ── Site title ────────────────────────────────────── -->
+          <!-- ── Site title + logo ─────────────────────────────── -->
           <section>
             <h3 class="text-sm font-semibold text-text dark:text-text-dark mb-1">{t('cardSize.siteSection')}</h3>
             <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-4">{t('cardSize.siteHint')}</p>
+
+            <!-- Logo input + live preview. Empty = built-in Z wordmark; an
+                 iconify name (e.g. "mdi:github") or an image URL replaces the
+                 whole brand mark on Header / LoginScreen / About. -->
+            <label class="block mb-4">
+              <span class="block text-xs font-medium mb-1.5 text-text-secondary dark:text-text-secondary-dark">{t('cardSize.siteLogoLabel')}</span>
+              <div class="flex items-center gap-3">
+                <div class="shrink-0 w-10 h-10 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark flex items-center justify-center overflow-hidden">
+                  {#if logoPreview.kind === 'iconify'}
+                    <Icon icon={logoPreview.name} width={26} height={26} class="shrink-0" inline />
+                  {:else if logoPreview.kind === 'image'}
+                    <img src={logoPreview.url} alt="" class="shrink-0 object-contain w-full h-full" style="padding:6%" />
+                  {:else}
+                    <!-- Default Z mark mini-preview -->
+                    <svg width="18" height="23" viewBox="6 5 17 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <g class="zyes-light"><path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" /></g>
+                      <g class="zyes-dark"><path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" /></g>
+                    </svg>
+                  {/if}
+                </div>
+                <input
+                  type="text"
+                  value={draftSiteLogo}
+                  maxlength="256"
+                  placeholder={t('cardSize.siteLogoPlaceholder')}
+                  oninput={(e) => (draftSiteLogo = e.currentTarget.value)}
+                  class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-sm text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                />
+              </div>
+              <p class="mt-1.5 text-xs text-text-secondary dark:text-text-secondary-dark leading-relaxed">
+                {t('cardSize.siteLogoHint')}
+                <a
+                  href="https://icon-sets.iconify.design/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-primary hover:underline"
+                  onclick={(e) => e.stopPropagation()}
+                >icon-sets.iconify.design</a>
+              </p>
+            </label>
 
             <label class="block">
               <span class="block text-xs font-medium mb-1.5 text-text-secondary dark:text-text-secondary-dark">{t('cardSize.siteSection')}</span>

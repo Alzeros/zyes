@@ -17,7 +17,11 @@ const app = new Hono<{ Bindings: Env }>();
 app.use('*', cors({ origin: '*', credentials: true }));
 
 const PUBLIC_PATHS = new Set(['/api/auth/login', '/api/init']);
-const PUBLIC_GET = ['/api/search/engines'];
+// GET-only public reads: no token required. These return only non-sensitive
+// display state, so exposing them pre-auth is safe (and lets the login screen
+// render the custom site logo before the user has authenticated). PUT on the
+// same paths stays gated — write still requires a valid token.
+const PUBLIC_GET = ['/api/search/engines', '/api/settings/view'];
 
 function isPublic(method: string, url: string): boolean {
   // strip query string

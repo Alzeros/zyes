@@ -37,6 +37,10 @@ export interface ViewSettings {
   // object, but aren't persisted (Worker-only feature).
   cardSize?: 'xs' | 'sm' | 'md' | 'lg';
   siteName?: string;
+  // Custom site logo: iconify name or image URL. Empty = built-in Z wordmark.
+  // Mirror of the Worker's siteLogo; persisted to data.settings so local Node
+  // dev preview survives restarts (same pattern as cardSize/siteName above).
+  siteLogo?: string;
 }
 
 export interface AppData {

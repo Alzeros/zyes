@@ -1,12 +1,30 @@
 <script lang="ts">
   import { api } from '../lib/api';
   import { t, toggleLang } from '../lib/i18n';
+  import Icon from '@iconify/svelte';
+  import { parseIcon } from '../lib/utils';
 
   let { lang, onlogin }: { lang: string; onlogin: (event: CustomEvent<string>) => void } = $props();
 
   let password = $state('');
   let error = $state('');
   let submitting = $state(false);
+
+  // Custom site logo for the pre-auth screen. GET /api/settings/view is
+  // unauthenticated (the settings route mounts it without an auth middleware),
+  // so we can pull siteLogo before login and show the user's branded logo on
+  // the login page itself. Empty = render the built-in Z wordmark (default).
+  let siteLogo = $state('');
+  let logoSrc = $derived(parseIcon(siteLogo));
+  $effect(() => {
+    // Fire-and-forget: a failed fetch just leaves siteLogo '' → default Z.
+    api
+      .get<{ siteLogo?: string }>('/api/settings/view')
+      .then((s) => {
+        if (s && typeof s.siteLogo === 'string') siteLogo = s.siteLogo;
+      })
+      .catch(() => {});
+  });
 
   function switchLang() {
     toggleLang();
@@ -44,21 +62,27 @@
   <div class="w-full max-w-sm">
     <div class="flex flex-col items-center justify-center mb-8">
       <div class="flex items-center gap-1 mb-2">
-        <span class="zyes-mark inline-grid place-items-center" style="width:28px;height:36px">
-          <svg width="28" height="36" viewBox="6 5 17 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <!-- Light mode: dark slate Z -->
-            <g class="zyes-light">
-              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
-              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.2" />
-            </g>
-            <!-- Dark mode: white Z -->
-            <g class="zyes-dark">
-              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
-              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.3" />
-            </g>
-          </svg>
-        </span>
-        <span class="zyes-word text-4xl font-bold tracking-tight">yes</span>
+        {#if logoSrc.kind === 'none'}
+          <span class="zyes-mark inline-grid place-items-center" style="width:28px;height:36px">
+            <svg width="28" height="36" viewBox="6 5 17 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <!-- Light mode: dark slate Z -->
+              <g class="zyes-light">
+                <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
+                <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.2" />
+              </g>
+              <!-- Dark mode: white Z -->
+              <g class="zyes-dark">
+                <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
+                <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.3" />
+              </g>
+            </svg>
+          </span>
+          <span class="zyes-word text-4xl font-bold tracking-tight">yes</span>
+        {:else if logoSrc.kind === 'iconify'}
+          <Icon icon={logoSrc.name} width={36} height={36} class="shrink-0" inline />
+        {:else}
+          <img src={logoSrc.url} alt="" class="shrink-0 object-contain w-auto" style="max-height:36px" />
+        {/if}
       </div>
       <p class="text-text-secondary dark:text-text-secondary-dark text-sm">{t('login.subtitle')}</p>
     </div>

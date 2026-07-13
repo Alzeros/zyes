@@ -15,7 +15,7 @@
   let bookmarks = $state<Bookmark[]>([]);
   let searchEngines = $state<SearchEngine[]>([]);
   let activeCategoryId = $state<string>('all');
-  let viewSettings = $state<ViewSettings>({ allViewMode: 'detail', cardSize: 'md', siteName: 'zyes' });
+  let viewSettings = $state<ViewSettings>({ allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '' });
   let didInitialFetch = $state(false);
 
   // Keep the browser tab title in sync with the persisted site name. Falls back
@@ -98,6 +98,7 @@
   );
   let cardSize = $derived(viewSettings.cardSize);
   let siteName = $derived(viewSettings.siteName);
+  let siteLogo = $derived(viewSettings.siteLogo);
 
   // Per-card display mode (compact/detail) is set via each bookmark's
   // right-click menu — handled by handleBookmarkUpdate (PUT /api/bookmarks/:id).
@@ -110,12 +111,14 @@
   interface SettingsPatch {
     cardSize?: ViewSettings['cardSize'];
     siteName?: string;
+    siteLogo?: string;
   }
   async function handleSaveSettings(patch: SettingsPatch): Promise<boolean> {
     try {
       const apiBody: Record<string, string> = {};
       if (patch.cardSize !== undefined && patch.cardSize !== viewSettings.cardSize) apiBody.cardSize = patch.cardSize;
       if (patch.siteName !== undefined && patch.siteName !== viewSettings.siteName) apiBody.siteName = patch.siteName.slice(0, 64).trim();
+      if (patch.siteLogo !== undefined && patch.siteLogo !== viewSettings.siteLogo) apiBody.siteLogo = patch.siteLogo.slice(0, 256).trim();
       if (Object.keys(apiBody).length > 0) {
         const updated = await api.put<ViewSettings>('/api/settings/view', apiBody);
         viewSettings = { ...viewSettings, ...updated };
@@ -168,7 +171,7 @@
     bookmarks = [];
     searchEngines = [];
     activeCategoryId = 'all';
-    viewSettings = { allViewMode: 'detail', cardSize: 'md', siteName: 'zyes' };
+    viewSettings = { allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '' };
     didInitialFetch = false;
   }
 
@@ -319,6 +322,7 @@
       {lang}
       {cardSize}
       {siteName}
+      {siteLogo}
       onlogout={handleLogout}
       ontoggleLang={handleSwitchLang}
       onsave={handleSaveSettings}

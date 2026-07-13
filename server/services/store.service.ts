@@ -238,21 +238,24 @@ export function getSettings(): ViewSettings {
   if (s.allViewMode !== 'compact' && s.allViewMode !== 'detail') s.allViewMode = 'detail';
   if (s.cardSize !== 'xs' && s.cardSize !== 'sm' && s.cardSize !== 'md' && s.cardSize !== 'lg') s.cardSize = 'md';
   if (typeof s.siteName !== 'string') s.siteName = 'zyes';
+  if (typeof s.siteLogo !== 'string') s.siteLogo = '';
   saveData(data);
-  return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName };
+  return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName, siteLogo: s.siteLogo };
 }
 
-export function updateSettings(patch: { allViewMode?: 'compact' | 'detail'; cardSize?: 'xs' | 'sm' | 'md' | 'lg'; siteName?: string }): ViewSettings {
+export function updateSettings(patch: { allViewMode?: 'compact' | 'detail'; cardSize?: 'xs' | 'sm' | 'md' | 'lg'; siteName?: string; siteLogo?: string }): ViewSettings {
   const data = getData();
   const s = data.settings ?? (data.settings = { allViewMode: 'detail' } as any);
   if (s.allViewMode !== 'compact' && s.allViewMode !== 'detail') s.allViewMode = 'detail';
   if (s.cardSize !== 'xs' && s.cardSize !== 'sm' && s.cardSize !== 'md' && s.cardSize !== 'lg') s.cardSize = 'md';
   if (typeof s.siteName !== 'string') s.siteName = 'zyes';
+  if (typeof s.siteLogo !== 'string') s.siteLogo = '';
   if (patch.allViewMode === 'compact' || patch.allViewMode === 'detail') s.allViewMode = patch.allViewMode;
   if (patch.cardSize === 'xs' || patch.cardSize === 'sm' || patch.cardSize === 'md' || patch.cardSize === 'lg') s.cardSize = patch.cardSize;
   if (typeof patch.siteName === 'string') s.siteName = patch.siteName.slice(0, 64).trim() || 'zyes';
+  if (typeof patch.siteLogo === 'string') s.siteLogo = patch.siteLogo.slice(0, 256).trim();
   saveData(data);
-  return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName };
+  return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName, siteLogo: s.siteLogo };
 }
 
 // ── Export / import (portable JSON snapshot) ──────────────────────────────
@@ -320,6 +323,7 @@ function parseImport(raw: unknown): { categories: Category[]; bookmarks: Bookmar
     allViewMode: sIn.allViewMode === 'compact' || sIn.allViewMode === 'detail' ? sIn.allViewMode : 'detail',
     cardSize: sIn.cardSize === 'xs' || sIn.cardSize === 'sm' || sIn.cardSize === 'md' || sIn.cardSize === 'lg' ? sIn.cardSize : 'md',
     siteName: typeof sIn.siteName === 'string' ? sIn.siteName : 'zyes',
+    siteLogo: typeof sIn.siteLogo === 'string' ? sIn.siteLogo : '',
   };
 
   return { categories, bookmarks, settings };

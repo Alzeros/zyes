@@ -73,10 +73,14 @@ export const mapSettings = (rows: SettingsRow[]): ViewSettings => {
   const all = rows.find((r) => r.key === 'all_view_mode')?.value;
   const card = rows.find((r) => r.key === 'card_size')?.value;
   const site = rows.find((r) => r.key === 'site_name')?.value;
+  const logo = rows.find((r) => r.key === 'site_logo')?.value;
   return {
     allViewMode: all === 'compact' || all === 'detail' ? all : 'detail',
     cardSize: card === 'xs' || card === 'sm' || card === 'lg' ? (card as ViewSettings['cardSize']) : 'md',
     siteName: (site ?? '').trim() || 'zyes',
+    // Empty/missing = use the built-in Z wordmark. No fallback value here
+    // (unlike siteName which defaults to 'zyes'): empty IS the "use default" signal.
+    siteLogo: (logo ?? '').trim(),
   };
 };
 
@@ -129,6 +133,7 @@ function parseImportPayload(
     allViewMode: sIn.allViewMode === 'compact' || sIn.allViewMode === 'detail' ? sIn.allViewMode : 'detail',
     cardSize: sIn.cardSize === 'xs' || sIn.cardSize === 'sm' || sIn.cardSize === 'md' || sIn.cardSize === 'lg' ? sIn.cardSize : 'md',
     siteName: typeof sIn.siteName === 'string' ? sIn.siteName : 'zyes',
+    siteLogo: typeof sIn.siteLogo === 'string' ? sIn.siteLogo : '',
   };
 
   return { categories, bookmarks, settings };
@@ -305,6 +310,10 @@ export class Db {
     await this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind('site_name', name).run();
   }
 
+  async setSiteLogo(logo: string): Promise<void> {
+    await this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind('site_logo', logo).run();
+  }
+
   // Next sort index for a new item appended to a group.
   async nextSortOrder(categoryId: string): Promise<number> {
     const row = await this.db
@@ -402,7 +411,7 @@ export class Db {
     }
     await this.db.batch(stmts);
 
-    // Settings: upsert the 3 keys (idempotent, replaces existing).
+    // Settings: upsert the 4 keys (idempotent, replaces existing).
     const sBatch: D1PreparedStatement[] = [
       this.db
         .prepare(`INSERT INTO settings (key, value) VALUES ('all_view_mode', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
@@ -413,6 +422,9 @@ export class Db {
       this.db
         .prepare(`INSERT INTO settings (key, value) VALUES ('site_name', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
         .bind(parsed.settings.siteName),
+      this.db
+        .prepare(`INSERT INTO settings (key, value) VALUES ('site_logo', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
+        .bind(parsed.settings.siteLogo),
     ];
     await this.db.batch(sBatch);
 
