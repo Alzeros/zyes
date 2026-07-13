@@ -32,6 +32,11 @@ export interface SearchEngine {
 
 export interface ViewSettings {
   allViewMode: 'compact' | 'detail';
+  // Optional on the Node backend: it only persists allViewMode. cardSize/siteName
+  // are returned with defaults by getSettings() so the frontend gets a complete
+  // object, but aren't persisted (Worker-only feature).
+  cardSize?: 'xs' | 'sm' | 'md' | 'lg';
+  siteName?: string;
 }
 
 export interface AppData {

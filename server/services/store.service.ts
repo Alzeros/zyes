@@ -227,19 +227,29 @@ export function updateSearchEngine(id: string, patch: Partial<SearchEngine>): Se
   return data.searchEngines[idx];
 }
 
-// View settings (global, e.g. the "All" category view mode)
+// View settings (global). Persisted to data.settings as a key/value blob so
+// cardSize/siteName survive across restarts (previously only allViewMode was
+// saved, which made the settings panel's card-size change silently no-op on
+// the Node backend). getSettings returns a complete object with defaults.
 export function getSettings(): ViewSettings {
   const data = getData();
-  if (!data.settings || data.settings.allViewMode !== 'compact' && data.settings.allViewMode !== 'detail') {
-    data.settings = { allViewMode: 'detail' };
-    saveData(data);
-  }
-  return data.settings;
+  const s = data.settings ?? (data.settings = { allViewMode: 'detail' } as any);
+  if (s.allViewMode !== 'compact' && s.allViewMode !== 'detail') s.allViewMode = 'detail';
+  if (s.cardSize !== 'xs' && s.cardSize !== 'sm' && s.cardSize !== 'md' && s.cardSize !== 'lg') s.cardSize = 'md';
+  if (typeof s.siteName !== 'string') s.siteName = 'zyes';
+  saveData(data);
+  return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName };
 }
 
-export function updateAllViewMode(mode: 'compact' | 'detail'): ViewSettings {
+export function updateSettings(patch: { allViewMode?: 'compact' | 'detail'; cardSize?: 'xs' | 'sm' | 'md' | 'lg'; siteName?: string }): ViewSettings {
   const data = getData();
-  data.settings = { allViewMode: mode };
+  const s = data.settings ?? (data.settings = { allViewMode: 'detail' } as any);
+  if (s.allViewMode !== 'compact' && s.allViewMode !== 'detail') s.allViewMode = 'detail';
+  if (s.cardSize !== 'xs' && s.cardSize !== 'sm' && s.cardSize !== 'md' && s.cardSize !== 'lg') s.cardSize = 'md';
+  if (typeof s.siteName !== 'string') s.siteName = 'zyes';
+  if (patch.allViewMode === 'compact' || patch.allViewMode === 'detail') s.allViewMode = patch.allViewMode;
+  if (patch.cardSize === 'xs' || patch.cardSize === 'sm' || patch.cardSize === 'md' || patch.cardSize === 'lg') s.cardSize = patch.cardSize;
+  if (typeof patch.siteName === 'string') s.siteName = patch.siteName.slice(0, 64).trim() || 'zyes';
   saveData(data);
-  return data.settings;
+  return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName };
 }

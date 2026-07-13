@@ -31,6 +31,10 @@
   let description = $state(bookmark?.description || '');
   let icon = $state(bookmark?.icon || '');
   let openTarget = $state<'new' | 'self'>(bookmark?.openTarget === 'self' ? 'self' : 'new');
+  // Per-card display mode. New cards default to compact; editing preserves the
+  // existing value. Only committed on "update" (unlike the old right-click toggle
+  // which flipped immediately).
+  let displayMode = $state<'compact' | 'detail'>(bookmark?.displayMode === 'detail' ? 'detail' : 'compact');
   let saving = $state(false);
   let urlError = $state('');
   let pickerOpen = $state(false);
@@ -60,9 +64,8 @@
         description: description.trim(),
         icon: icon.trim() || null,
         openTarget,
-        // Preserve the existing card's display mode on edit; new cards default
-        // to compact (per the per-card-default decision).
-        displayMode: bookmark?.displayMode === 'detail' ? 'detail' : 'compact',
+        // Commit the edited display mode on update; new cards default compact.
+        displayMode,
         sortOrder: bookmark?.sortOrder ?? 0,
       });
     } catch (err) {
@@ -174,6 +177,26 @@
             class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer {openTarget === 'self' ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
           >
             {t('modal.openSelf')}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <span class="block text-sm font-medium mb-1 text-text dark:text-text-dark">{t('modal.displayMode')}</span>
+        <div class="inline-flex items-center gap-1 p-1 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark">
+          <button
+            type="button"
+            onclick={() => (displayMode = 'compact')}
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer {displayMode === 'compact' ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
+          >
+            {t('grid.viewCompact')}
+          </button>
+          <button
+            type="button"
+            onclick={() => (displayMode = 'detail')}
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer {displayMode === 'detail' ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
+          >
+            {t('grid.viewDetail')}
           </button>
         </div>
       </div>

@@ -11,6 +11,7 @@
     size = 'md',
     bg = false,
     fill = false,
+    class: klass = '',
   }: {
     source: IconSource;
     fallbackUrls?: string[];     // auto-favicon sources tried in order on error
@@ -20,6 +21,7 @@
     size?: 'sm' | 'md' | 'lg';
     bg?: boolean;                // render a rounded surface background tile
     fill?: boolean;              // fill the parent instead of using a fixed slot size
+    class?: string;              // extra classes for the outer box (e.g. aspect-square)
   } = $props();
 
   // pixel sizes per slot (ignored when fill is true)
@@ -54,25 +56,39 @@
     allFailed = false;
   });
 
+  // Fill mode stretches the image to cover the box (so the outer rounded +
+  // overflow-hidden actually clips the image corners — centring here would
+  // leave the image smaller than the box and the radius would clip empty
+  // space, showing a square-edged image). Non-fill mode centres the fixed-size
+  // icon inside its slot.
   const boxClass = $derived(fill ? 'w-full h-full' : slot);
+  // When the caller passes an explicit shape class (e.g. 'h-full aspect-square'
+  // to make a square box inside a wide icon area), prefer it over the default
+  // fill box so aspect-square can size the box to its height.
+  const outerClass = $derived(klass || boxClass);
+  const alignClass = $derived(fill ? 'flex' : 'flex items-center justify-center');
 </script>
 
-<div class="flex items-center justify-center shrink-0 overflow-hidden rounded-lg {boxClass} {bg ? 'bg-bg dark:bg-bg-dark' : ''}">
+<div class="{alignClass} shrink-0 overflow-hidden rounded-xl {outerClass} {bg ? 'bg-bg dark:bg-bg-dark' : ''}">
   {#if source.kind === 'iconify'}
     <Icon
       icon={source.name}
       width={fill ? '100%' : iconFwd}
       height={fill ? '100%' : iconFwd}
-      style={fill ? 'padding: 6%' : ''}
+      style={fill ? 'padding: 2%' : ''}
     />
   {:else if source.kind === 'image'}
-    <img src={source.url} alt="" class="object-contain w-full h-full" style={fill ? 'padding: 6%' : ''} />
+    <!-- Fill mode: let the image fill the whole box (no padding) so favicons
+         use all the available space above the title bar; object-contain keeps
+         the source's aspect ratio. The outer rounded-lg + overflow-hidden clips
+         the image to the card's corner radius. -->
+    <img src={source.url} alt="" class="object-contain w-full h-full" style={fill ? '' : 'padding: 2%'} />
   {:else if !allFailed && tryList[sourceIdx]}
     <img
       src={tryList[sourceIdx]}
       alt=""
       class="object-contain"
-      style={fill ? 'width:100%;height:100%;padding:6%' : `width:${faviconFwd}px;height:${faviconFwd}px`}
+      style={fill ? 'width:100%;height:100%' : `width:${faviconFwd}px;height:${faviconFwd}px`}
       onerror={() => {
         if (sourceIdx < tryList.length - 1) {
           sourceIdx += 1;

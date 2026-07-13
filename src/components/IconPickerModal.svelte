@@ -29,10 +29,6 @@
   type Candidate = { url: string; label: string; loaded: boolean; failed: boolean };
   let candidates = $state<Candidate[]>([]);
 
-  // Default 1-char text-icon suggestion (title's first char uppercased); the
-  // user can overwrite this in the text-icon input.
-  let textIcon = $state(title.trim().charAt(0).toUpperCase() || 'N');
-
   const FAVICON_SOURCE_LABELS = ['icon.horse', 'Google', 'DuckDuckGo'];
 
   function fetchCandidates() {
@@ -52,10 +48,6 @@
 
   function chooseImage(url: string) {
     icon = url;
-  }
-  function chooseText() {
-    const t = textIcon.trim().slice(0, 2);
-    icon = t;
   }
   function clearIcon() {
     icon = '';
@@ -151,25 +143,10 @@
       </div>
     {/if}
 
-    <!-- Text icon -->
-    <div class="mb-5">
-      <span class="block text-xs font-medium mb-2 text-text-secondary dark:text-text-secondary-dark">{t('modal.textIcon')}</span>
-      <div class="flex items-center gap-2">
-        <input
-          type="text"
-          bind:value={textIcon}
-          maxlength={2}
-          class="w-16 px-2 py-2 text-center text-base font-bold rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
-        />
-        <button
-          type="button"
-          onclick={chooseText}
-          class="px-3 py-2 rounded-xl text-sm font-medium bg-primary/10 hover:bg-primary/20 text-primary transition-colors cursor-pointer"
-        >
-          {t('modal.useTextIcon')}
-        </button>
-      </div>
-    </div>
+    <!-- Text icon removed: when no icon is set, the card already falls back to
+         the title's first character as the placeholder (IconView 'none' branch).
+         There's no separate "text icon" option anymore — just leave the icon
+         field empty (or pick an iconify name / image / fetched favicon above). -->
 
     <div class="flex justify-end gap-2 pt-2">
       <button

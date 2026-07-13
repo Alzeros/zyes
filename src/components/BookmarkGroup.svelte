@@ -54,19 +54,15 @@
   let spec = $derived(sizeSpec(cardSize));
   let gridClass = $derived(`grid ${spec.cols} ${spec.gap}`);
 
-  // Right-click menu. The "switch display mode" item's label depends on the
-  // target bookmark's current mode (toggle to the other one), so it's built per
-  // open rather than once.
-  function contextItemsFor(bm: Bookmark): ContextMenuItem[] {
-    const other = bm.displayMode === 'detail' ? 'compact' : 'detail';
-    return [
-      { type: 'item', key: 'open', label: t('grid.open') },
-      { type: 'separator' },
-      { type: 'item', key: 'edit', label: t('grid.edit') },
-      { type: 'item', key: `displayMode:${other}`, label: t(`grid.view${other === 'detail' ? 'Detail' : 'Compact'}`) },
-      { type: 'item', key: 'delete', label: t('grid.delete'), danger: true },
-    ];
-  }
+  // Right-click menu: open / edit / delete. Per-card display mode is set in
+  // the edit bookmark modal (not a quick-toggle here) — per the user's call to
+  // treat it as a card attribute edited via the form, committed on "update".
+  const contextItems: ContextMenuItem[] = [
+    { type: 'item', key: 'open', label: t('grid.open') },
+    { type: 'separator' },
+    { type: 'item', key: 'edit', label: t('grid.edit') },
+    { type: 'item', key: 'delete', label: t('grid.delete'), danger: true },
+  ];
 
   // Hide the collapsible (uncategorized) group when it has no cards.
   let visible = $derived(!collapsible || bookmarks.length > 0);
@@ -109,11 +105,6 @@
     if (key === 'open') window.open(target.url, target.openTarget === 'self' ? '_self' : '_blank');
     else if (key === 'edit') editingBookmark = target;
     else if (key === 'delete') deletingBookmark = target;
-    else if (key.startsWith('displayMode:')) {
-      // Per-card display-mode toggle, persisted via the bookmark update flow.
-      const mode = key.slice('displayMode:'.length) as 'compact' | 'detail';
-      void onupdate(target.id, { displayMode: mode });
-    }
   }
 
   function handleDndConsider(e: CustomEvent<{ items: Bookmark[] }>) {
@@ -218,7 +209,7 @@
   <ContextMenu
     x={contextMenu.x}
     y={contextMenu.y}
-    items={contextItemsFor(contextMenu.bookmark)}
+    items={contextItems}
     onselect={handleContextSelect}
     onclose={() => (contextMenu = null)}
   />

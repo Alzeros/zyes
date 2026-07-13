@@ -67,13 +67,20 @@
     title={bookmark.url}
     class="group relative {colSpan} flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-center select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
   >
-    <!-- Square logo fills the area above the title bar -->
-    <div class="flex-1 flex items-center justify-center p-2 min-h-0">
-      <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill />
+    <!-- Icon area. The card is square but the title bar takes vertical space,
+         so this area is a wide rectangle. Favicons are square; with object-contain
+         on a wide box they'd centre and leave gaps, and the rounded clip would
+         fall on the gaps (square-edged image showing). So we constrain the
+         IconView to a SQUARE box (h-full + aspect-square) sized to the area's
+         height, centred — the favicon fills the square and the radius clips it. -->
+    <div class="flex-1 flex items-center justify-center min-h-0 p-1">
+      <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill class="h-full aspect-square" />
     </div>
-    <!-- Title pinned to the bottom -->
-    <div class="px-1.5 pb-2 pt-1 shrink-0">
-      <h3 class="font-medium text-text dark:text-text-dark line-clamp-2 break-all {spec.compactTitle}">
+    <!-- Title pinned to the bottom. min-h guarantees room for two clamped lines
+         so tall titles aren't clipped by the card's overflow-hidden when the
+         icon area is large; overflow-hidden + line-clamp-2 bounds the text. -->
+    <div class="px-1.5 pb-1.5 pt-0.5 shrink-0 overflow-hidden">
+      <h3 class="font-medium text-text dark:text-text-dark line-clamp-2 break-all leading-tight {spec.compactTitle}">
         {bookmark.title}
       </h3>
     </div>

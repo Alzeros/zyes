@@ -25,36 +25,43 @@ export type SizeSpec = {
 };
 
 const SPECS: Record<CardSize, SizeSpec> = {
-  // xs: the most cards per row, tightest gap — visibly the smallest tile.
-  // grid-cols-16 exceeds Tailwind's default 1–12 scale, so the densest
-  // breakpoint uses the arbitrary value form grid-cols-[repeat(N,minmax(0,1fr))].
+  // Size ladder (xl breakpoint column counts shown as the headline density):
+  //   xs (极小): 20 cols — denser than the old xs (16), scaled down ~equally.
+  //   sm (小):   16 cols — was the old xs.
+  //   md (中):   12 cols — midway between sm(16) and lg(9).
+  //   lg (大):    9 cols — was the old md.
+  // Gap and font/padding step down with size. grid-cols > 12 use the arbitrary
+  // value form grid-cols-[repeat(N,minmax(0,1fr))] (Tailwind's default caps at 12).
   xs: {
+    cols: 'grid-cols-6 sm:grid-cols-8 md:grid-cols-12 lg:grid-cols-14 xl:grid-cols-[repeat(20,minmax(0,1fr))]',
+    gap: 'gap-1',
+    compactTitle: 'text-xs leading-tight',
+    detailPad: 'p-1.5',
+    detailTitle: 'text-[10px]',
+  },
+  sm: {
+    // was the old xs
     cols: 'grid-cols-5 sm:grid-cols-6 md:grid-cols-9 lg:grid-cols-11 xl:grid-cols-[repeat(16,minmax(0,1fr))]',
     gap: 'gap-1',
     compactTitle: 'text-xs leading-tight',
     detailPad: 'p-2',
     detailTitle: 'text-[10px]',
   },
-  sm: {
-    cols: 'grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9  xl:grid-cols-11',
+  md: {
+    // midway between sm(16) and lg(9) → 12
+    cols: 'grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 xl:grid-cols-12',
     gap: 'gap-2',
     compactTitle: 'text-xs leading-tight',
     detailPad: 'p-2.5',
     detailTitle: 'text-xs',
   },
-  md: {
-    cols: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7  xl:grid-cols-9',
+  lg: {
+    // was the old md
+    cols: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-9',
     gap: 'gap-3',
     compactTitle: 'text-[13px] leading-tight',
     detailPad: 'p-3',
     detailTitle: 'text-sm',
-  },
-  lg: {
-    cols: 'grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6  xl:grid-cols-7',
-    gap: 'gap-4',
-    compactTitle: 'text-sm leading-tight',
-    detailPad: 'p-4',
-    detailTitle: 'text-base',
   },
 };
 

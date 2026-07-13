@@ -19,9 +19,12 @@
   let didInitialFetch = $state(false);
 
   // Keep the browser tab title in sync with the persisted site name. Falls back
-  // to 'zyes' whenever the settings value is blank.
+  // to 'zyes' whenever the settings value is blank. (The Node backend doesn't
+  // persist siteName, so GET /api/settings/view can return it missing/undefined;
+  // guard against that rather than crashing the whole app.)
   $effect(() => {
-    document.title = viewSettings.siteName.trim() || 'zyes';
+    const name = viewSettings?.siteName;
+    document.title = (typeof name === 'string' ? name.trim() : '') || 'zyes';
   });
 
   // Card edit mode: an explicit toggle next to the compact/detail switch.
@@ -233,7 +236,7 @@
 {#if !authenticated}
   <LoginScreen {lang} onlogin={handleLogin} />
 {:else}
-  <div class="min-h-screen flex flex-col bg-bg dark:bg-bg-dark">
+  <div class="h-screen flex flex-col bg-bg dark:bg-bg-dark">
     <Header
       {searchEngines}
       {lang}

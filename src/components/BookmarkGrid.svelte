@@ -42,6 +42,11 @@
   // Groups for the "All" view: each known category (in its sortOrder), then uncategorized.
   // `icon` carries the raw category icon (emoji / iconify name / image URL); the header
   // renders it via CategoryIcon so iconify glyphs work, not just literal emojis.
+  // Each group's items are sorted by sortOrder so the displayed order tracks the
+  // saved one — without this, a local patch to sortOrder (e.g. after applying an
+  // edit-mode reorder) wouldn't re-sort the already-rendered array, and detail
+  // cards could appear out of their dragged position.
+  const bySort = (a: Bookmark, b: Bookmark) => a.sortOrder - b.sortOrder;
   let groups = $derived<{ title: string; icon: string; categoryId: string; items: Bookmark[]; collapsible: boolean }[]>(
     isAll
       ? [
@@ -51,14 +56,14 @@
               title: c.name,
               icon: c.icon,
               categoryId: c.id,
-              items: bookmarks.filter((b) => b.categoryId === c.id),
+              items: bookmarks.filter((b) => b.categoryId === c.id).sort(bySort),
               collapsible: false,
             })),
           {
             title: t('grid.uncategorized'),
             icon: 'openmoji:card-index-dividers',
             categoryId: '',
-            items: bookmarks.filter((b) => b.categoryId === ''),
+            items: bookmarks.filter((b) => b.categoryId === '').sort(bySort),
             collapsible: true, // hidden when empty
           },
         ]
@@ -73,7 +78,7 @@
               return c ? c.icon : 'openmoji:card-index-dividers';
             })(),
             categoryId: activeCategoryId,
-            items: bookmarks, // App already filtered for a single category
+            items: [...bookmarks].sort(bySort), // App already filtered for a single category
             collapsible: false,
           },
         ]
