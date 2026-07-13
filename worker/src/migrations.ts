@@ -37,9 +37,14 @@ export interface Migration {
 // migration. Stored in meta.schema_version after a successful run.
 export const TARGET_SCHEMA_VERSION = 3;
 
+// D1 EXEC gotcha: `db.exec(sql)` only accepts statements delimited by newlines
+// and chokes on multi-line single statements (it splits on \n and tries each
+// "line" as its own statement → "incomplete input" on `CREATE TABLE ... (\n`).
+// `prepare().run()` compiles the whole string as one statement and handles
+// multi-line DDL correctly, so we use that for every migration statement.
 const safeExec = async (db: D1Database, sql: string): Promise<{ ok: boolean; error?: string }> => {
   try {
-    await db.exec(sql);
+    await db.prepare(sql).run();
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String(e) };
