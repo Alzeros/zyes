@@ -1,6 +1,6 @@
 {
   "name": "zyes",
-  "version": "1.0.0",
+  "version": "0.0.2",
   "description": "A lightweight, cross-device bookmark navigation and aggregated search portal",
   "type": "module",
   "scripts": {
