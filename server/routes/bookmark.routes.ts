@@ -14,7 +14,7 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   // POST /api/bookmarks
-  fastify.post('/', async (request) => {
+  fastify.post('/', async (request, reply) => {
     const { categoryId, title, url, description, icon, openTarget, displayMode } = request.body as {
       categoryId: string;
       title: string;
@@ -29,9 +29,9 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
     try {
       const parsedUrl = new URL(url);
       if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:')
-        return { ok: false, error: 'Only http(s) URLs allowed', code: 'INVALID_URL' };
+        return reply.status(400).send({ ok: false, error: 'Only http(s) URLs allowed', code: 'INVALID_URL' });
     } catch {
-      return { ok: false, error: 'Invalid URL', code: 'INVALID_URL' };
+        return reply.status(400).send({ ok: false, error: 'Invalid URL', code: 'INVALID_URL' });
     }
 
     const data = store.getData();
@@ -88,20 +88,20 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   // DELETE /api/bookmarks/:id
-  fastify.delete('/:id', async (request) => {
+  fastify.delete('/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const deleted = store.deleteBookmark(id);
     if (!deleted) {
-      return { ok: false, error: 'Bookmark not found', code: 'NOT_FOUND' };
+      return reply.status(404).send({ ok: false, error: 'Bookmark not found', code: 'NOT_FOUND' });
     }
     return { ok: true, data: { deleted: true } };
   });
 
   // PUT /api/bookmarks/reorder — bulk update sortOrder across many bookmarks.
-  fastify.put('/reorder', async (request) => {
+  fastify.put('/reorder', async (request, reply) => {
     const body = request.body as { items?: { id: string; sortOrder: number }[] };
     if (!body?.items || !Array.isArray(body.items)) {
-      return { ok: false, error: 'Invalid payload', code: 'INVALID_PAYLOAD' };
+      return reply.status(400).send({ ok: false, error: 'Invalid payload', code: 'INVALID_PAYLOAD' });
     }
     store.reorderBookmarks(body.items);
     return { ok: true, data: { reordered: true } };
@@ -109,12 +109,12 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
 
   // PUT /api/bookmarks/reassign — bulk set categoryId + sortOrder across many
   // bookmarks. Used for cross-category drag: each entry pins a card to a group.
-  fastify.put('/reassign', async (request) => {
+  fastify.put('/reassign', async (request, reply) => {
     const body = request.body as {
       items?: { id: string; categoryId: string; sortOrder: number }[];
     };
     if (!body?.items || !Array.isArray(body.items)) {
-      return { ok: false, error: 'Invalid payload', code: 'INVALID_PAYLOAD' };
+      return reply.status(400).send({ ok: false, error: 'Invalid payload', code: 'INVALID_PAYLOAD' });
     }
     store.reassignBookmarks(body.items);
     return { ok: true, data: { reassigned: body.items.length } };

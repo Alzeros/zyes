@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+﻿import type { FastifyInstance } from 'fastify';
 import * as store from '../services/store.service.js';
 
 export async function searchRoutes(fastify: FastifyInstance): Promise<void> {
@@ -9,12 +9,12 @@ export async function searchRoutes(fastify: FastifyInstance): Promise<void> {
   });
 
   // PUT /api/search/engines/:id
-  fastify.put('/engines/:id', async (request) => {
+  fastify.put('/engines/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const patch = request.body as { isActive?: boolean };
     const engine = store.updateSearchEngine(id, patch);
     if (!engine) {
-      return { ok: false, error: 'Search engine not found', code: 'NOT_FOUND' };
+      return reply.status(404).send({ ok: false, error: 'Search engine not found', code: 'NOT_FOUND' });
     }
     return { ok: true, data: engine };
   });
