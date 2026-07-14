@@ -232,6 +232,13 @@ export function updateSearchEngine(id: string, patch: Partial<SearchEngine>): Se
 // cardSize/siteName survive across restarts (previously only allViewMode was
 // saved, which made the settings panel's card-size change silently no-op on
 // the Node backend). getSettings returns a complete object with defaults.
+//
+// Read-only: does NOT call saveData. The correction of missing/invalid
+// fields happens in memory (cache is mutated in place) so all subsequent
+// reads see the fixed values; the next write operation (any CRUD) will
+// naturally persist them. This avoids a synchronous disk write on every
+// GET /api/settings/view call — which is public (unauthenticated) for the
+// login screen to fetch siteLogo.
 export function getSettings(): ViewSettings {
   const data = getData();
   const s = data.settings ?? (data.settings = { allViewMode: 'detail' } as any);
@@ -239,7 +246,6 @@ export function getSettings(): ViewSettings {
   if (s.cardSize !== 'xs' && s.cardSize !== 'sm' && s.cardSize !== 'md' && s.cardSize !== 'lg') s.cardSize = 'md';
   if (typeof s.siteName !== 'string') s.siteName = 'zyes';
   if (typeof s.siteLogo !== 'string') s.siteLogo = '';
-  saveData(data);
   return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName, siteLogo: s.siteLogo };
 }
 
