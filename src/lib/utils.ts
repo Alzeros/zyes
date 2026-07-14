@@ -1,27 +1,16 @@
-// Favicon auto-fetch is now routed through the backend icon proxy:
-//   GET /api/icon?url=<bookmark url>[&t=<jwt>]
+﻿// Favicon auto-fetch is routed through the backend icon proxy at
+//   GET /api/icon?url=<bookmark url>
 // The backend fetches the favicon sources (icon.horse → Google → DuckDuckGo)
 // server-side, caches the bytes (Workers: Cache API / 30d; Node: in-memory Map),
 // and streams them back. Moving fetch off the client has two wins: the favicon
 // is fetched once per edge node instead of per-device-per-pageload, and the
 // user's IP is no longer exposed to the favicon providers.
 //
-// `t` carries the JWT because <img> requests can't set Authorization headers.
-// Left blank for the public (unauth) path; the auth-gated backend reads it from
-// the query string in the same hook that reads the Bearer header.
-import { getToken } from './auth';
+// The client-side icon fetch + blob URL caching lives in iconCache.svelte.ts.
+// It uses fetch() with an Authorization header (NOT a ?t= query param) so the
+// JWT never appears in a URL. Components call ensureIcon() + getIconBlobUrl()
+// from that module instead of building /api/icon URLs directly here.
 
-export function getIconProxyUrl(url: string): string {
-  try {
-    new URL(url);
-  } catch {
-    return '';
-  }
-  const t = getToken();
-  const q = new URLSearchParams({ url });
-  if (t) q.set('t', t);
-  return `/api/icon?${q.toString()}`;
-}
 
 // Legacy multi-source favicon list, still used as a final client-side fallback
 // if the proxy itself errors (e.g. token expired / network blip). Kept so the

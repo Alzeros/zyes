@@ -1,5 +1,6 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { isAuthenticated, getToken, setToken, removeToken } from './lib/auth';
+  import { revokeAll } from './lib/iconCache.svelte';
   import { api } from './lib/api';
   import { getLang, toggleLang } from './lib/i18n';
   import type { Bookmark, Category, SearchEngine, ViewSettings } from './lib/types';
@@ -165,6 +166,7 @@
   }
 
   function handleLogout() {
+    revokeAll();
     removeToken();
     authenticated = false;
     categories = [];

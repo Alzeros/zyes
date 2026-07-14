@@ -1,6 +1,7 @@
-<script lang="ts">
+﻿<script lang="ts">
   import type { Bookmark, CardSize } from '../lib/types';
-  import { getFaviconUrls, getIconProxyUrl, truncateUrl, parseIcon } from '../lib/utils';
+  import { getFaviconUrls, truncateUrl, parseIcon } from '../lib/utils';
+  import { ensureIcon, getIconBlobUrl } from '../lib/iconCache.svelte';
   import { t } from '../lib/i18n';
   import IconView from './IconView.svelte';
   import { sizeSpec } from '../lib/cardSize';
@@ -31,9 +32,15 @@
   let spec = $derived(sizeSpec(cardSize));
   let iconSource = $derived(parseIcon(bookmark.icon));
   // When the bookmark has no custom icon, route favicon load through the
-  // backend icon proxy (server-side fetch + cache). Bound here so the token
-  // query param is re-read reactively if it changes.
-  let proxyUrl = $derived(iconSource.kind === 'none' ? getIconProxyUrl(bookmark.url) : '');
+  // backend icon proxy (server-side fetch + cache). The blob URL is populated
+  // asynchronously by ensureIcon() and reactively updates this derived.
+  let proxyUrl = $derived(iconSource.kind === 'none' ? getIconBlobUrl(bookmark.url) : '');
+  // Trigger the authed fetch (Bearer header, no token in URL) when the bookmark
+  // has no custom icon. getIconBlobUrl returns '' until the blob is ready; the
+  // reactive cache update re-evaluates proxyUrl and the <img> re-renders.
+  $effect(() => {
+    if (iconSource.kind === 'none') ensureIcon(bookmark.url);
+  });
 
   // Col-span drives the grid layout: compact = 1 cell (square), detail = 2
   // cells (a 2:1 wide box whose height tracks the compact cell height). This
