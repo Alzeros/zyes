@@ -1,4 +1,4 @@
-type Lang = 'zh' | 'en';
+﻿type Lang = 'zh' | 'en';
 
 const LANG_KEY = 'zyes_lang';
 
@@ -278,7 +278,7 @@ export function toggleLang(): Lang {
 }
 
 export function t(key: TranslationKey, params?: Record<string, string>): string {
-  let text = translations[_lang]?.[key] ?? translations.en[key] ?? key;
+  let text: string = translations[_lang]?.[key] ?? translations.en[key] ?? key;
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       text = text.replace(`{${k}}`, v);
