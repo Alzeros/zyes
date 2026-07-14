@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+﻿import { Hono } from 'hono';
 import { nanoid } from 'nanoid';
 import type { Bookmark } from '../../../src/lib/types';
 import type { Env } from '../types';
@@ -29,7 +29,9 @@ export function bookmarkRoutes(): Hono<{ Bindings: Env }> {
       displayMode?: 'compact' | 'detail';
     }>();
     try {
-      new URL(body.url);
+      const parsedUrl = new URL(body.url);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:')
+        return c.json({ ok: false, error: 'Only http(s) URLs allowed', code: 'INVALID_URL' }, 400);
     } catch {
       return c.json({ ok: false, error: 'Invalid URL', code: 'INVALID_URL' }, 400);
     }
@@ -80,7 +82,9 @@ export function bookmarkRoutes(): Hono<{ Bindings: Env }> {
     const patch = await c.req.json<Partial<Bookmark>>();
     if (patch.url) {
       try {
-        new URL(patch.url);
+        const parsedUrl = new URL(patch.url);
+        if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:')
+          return c.json({ ok: false, error: 'Only http(s) URLs allowed', code: 'INVALID_URL' }, 400);
       } catch {
         return c.json({ ok: false, error: 'Invalid URL', code: 'INVALID_URL' }, 400);
       }

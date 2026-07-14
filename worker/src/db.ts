@@ -1,4 +1,4 @@
-import type { Bookmark, Category, SearchEngine, ViewSettings } from '../../src/lib/types';
+﻿import type { Bookmark, Category, SearchEngine, ViewSettings } from '../../src/lib/types';
 import type { Env } from './types';
 import { nanoid } from 'nanoid';
 import { parseNetscape, type ParsedBookmarkFile } from '../../src/lib/netscape';
@@ -127,6 +127,11 @@ function parseImportPayload(
       updatedAt: typeof r.updatedAt === 'string' ? r.updatedAt : now,
     };
   });
+  // Filter out non-http(s) URLs (javascript:, data:, etc.) to prevent XSS.
+  const validBookmarks = bookmarks.filter((b) => {
+    try { const u = new URL(b.url); return u.protocol === 'http:' || u.protocol === 'https:'; }
+    catch { return false; }
+  });
 
   const sIn = (obj.settings ?? {}) as Record<string, unknown>;
   const settings: ViewSettings = {
@@ -136,7 +141,7 @@ function parseImportPayload(
     siteLogo: typeof sIn.siteLogo === 'string' ? sIn.siteLogo : '',
   };
 
-  return { categories, bookmarks, settings };
+  return { categories, bookmarks: validBookmarks, settings };
 }
 
 // ── Tiny query helpers around env.DB ─────────────────────────────────────────
@@ -447,6 +452,15 @@ export class Db {
     } catch (e) {
       return { ok: false, error: `解析 HTML 失败: ${String(e)}` };
     }
+    // Filter out non-http(s) URLs (javascript:, data:, etc.) to prevent XSS.
+    for (const c of parsed.categories) c.bookmarks = c.bookmarks.filter((b) => {
+      try { const u = new URL(b.url); return u.protocol === 'http:' || u.protocol === 'https:'; }
+      catch { return false; }
+    });
+    parsed.unfiled = parsed.unfiled.filter((b) => {
+      try { const u = new URL(b.url); return u.protocol === 'http:' || u.protocol === 'https:'; }
+      catch { return false; }
+    });
 
     const totalBookmarks = parsed.unfiled.length + parsed.categories.reduce((n, c) => n + c.bookmarks.length, 0);
     if (totalBookmarks === 0) {

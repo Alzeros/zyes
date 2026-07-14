@@ -1,4 +1,4 @@
-import { readFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
+﻿import { readFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { getDataDir } from '../config.js';
 import writeFileAtomic from 'write-file-atomic';
@@ -316,6 +316,12 @@ function parseImport(raw: unknown): { categories: Category[]; bookmarks: Bookmar
     };
   });
 
+  // Filter out non-http(s) URLs (javascript:, data:, etc.) to prevent XSS.
+  const validBookmarks = bookmarks.filter((b) => {
+    try { const u = new URL(b.url); return u.protocol === 'http:' || u.protocol === 'https:'; }
+    catch { return false; }
+  });
+
   // Coerce settings to a complete object; missing/invalid fields fall back to
   // defaults (mirrors updateSettings). We persist via updateSettings below.
   const sIn = (obj.settings ?? {}) as Record<string, unknown>;
@@ -326,7 +332,7 @@ function parseImport(raw: unknown): { categories: Category[]; bookmarks: Bookmar
     siteLogo: typeof sIn.siteLogo === 'string' ? sIn.siteLogo : '',
   };
 
-  return { categories, bookmarks, settings };
+  return { categories, bookmarks: validBookmarks, settings };
 }
 
 // Overwrite the store with the imported snapshot. REPLACE strategy: existing
@@ -382,6 +388,15 @@ export function importHtmlData(
   let parsed: ReturnType<typeof parseNetscape>;
   try {
     parsed = parseNetscape(html);
+  // Filter out non-http(s) URLs (javascript:, data:, etc.) to prevent XSS.
+  for (const c of parsed.categories) c.bookmarks = c.bookmarks.filter((b) => {
+    try { const u = new URL(b.url); return u.protocol === 'http:' || u.protocol === 'https:'; }
+    catch { return false; }
+  });
+  parsed.unfiled = parsed.unfiled.filter((b) => {
+    try { const u = new URL(b.url); return u.protocol === 'http:' || u.protocol === 'https:'; }
+    catch { return false; }
+  });
   } catch (e) {
     return { ok: false, error: `解析 HTML 失败: ${String(e)}` };
   }

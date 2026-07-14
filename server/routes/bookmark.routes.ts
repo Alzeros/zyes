@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+﻿import type { FastifyInstance } from 'fastify';
 import * as store from '../services/store.service.js';
 
 export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
@@ -27,7 +27,9 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
 
     // Validate URL
     try {
-      new URL(url);
+      const parsedUrl = new URL(url);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:')
+        return { ok: false, error: 'Only http(s) URLs allowed', code: 'INVALID_URL' };
     } catch {
       return { ok: false, error: 'Invalid URL', code: 'INVALID_URL' };
     }
@@ -64,7 +66,9 @@ export async function bookmarkRoutes(fastify: FastifyInstance): Promise<void> {
     // Validate URL if provided
     if (patch.url) {
       try {
-        new URL(patch.url);
+        const parsedUrl = new URL(patch.url);
+        if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:')
+          return reply.status(400).send({ ok: false, error: 'Only http(s) URLs allowed', code: 'INVALID_URL' });
       } catch {
         return reply.status(400).send({ ok: false, error: 'Invalid URL', code: 'INVALID_URL' });
       }

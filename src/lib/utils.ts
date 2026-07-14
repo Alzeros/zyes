@@ -37,8 +37,10 @@ export function getFaviconUrl(url: string): string {
 
 export function isValidUrl(str: string): boolean {
   try {
-    new URL(str);
-    return true;
+    const u = new URL(str);
+    // Reject non-http(s) protocols (javascript:, data:, etc.) to prevent
+    // XSS via window.open() when a bookmark is clicked.
+    return u.protocol === 'http:' || u.protocol === 'https:';
   } catch {
     return false;
   }
