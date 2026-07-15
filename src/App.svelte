@@ -121,22 +121,23 @@
       if (patch.siteName !== undefined && patch.siteName !== viewSettings.siteName) apiBody.siteName = patch.siteName.slice(0, 64).trim();
       if (patch.siteLogo !== undefined && patch.siteLogo !== viewSettings.siteLogo) apiBody.siteLogo = patch.siteLogo.slice(0, 256).trim();
       if (Object.keys(apiBody).length > 0) {
-        const updated = await api.put<ViewSettings>('/api/settings/view', apiBody);
+        const updated = await api.put<ViewSettings>("/api/settings/view", apiBody);
         viewSettings = { ...viewSettings, ...updated };
       }
-  async function handleSaveEngines(engines: { id: string; isActive: boolean }[], defaultEngine: string): Promise<boolean> {
-    try {
-      const updated = await api.put<SearchEngine[]>('/api/search/engines', { engines, defaultEngine });
-      searchEngines = updated;
       return true;
     } catch (err) {
-      console.error('Failed to save search engines:', err);
+      console.error("Failed to save settings:", err);
       return false;
     }
   }
+
+  async function handleSaveEngines(engines: { id: string; isActive: boolean }[], defaultEngine: string): Promise<boolean> {
+    try {
+      const updated = await api.put<SearchEngine[]>("/api/search/engines", { engines, defaultEngine });
+      searchEngines = updated;
       return true;
     } catch (err) {
-      console.error('Failed to save settings:', err);
+      console.error("Failed to save search engines:", err);
       return false;
     }
   }
