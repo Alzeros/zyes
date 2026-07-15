@@ -5,14 +5,14 @@
   import { getSearchEngineIcon } from '../lib/utils';
   import { t } from '../lib/i18n';
 
-  let { searchEngines, lang }: { searchEngines: SearchEngine[]; lang: string } = $props();
+  let { searchEngines, lang, defaultEngine }: { searchEngines: SearchEngine[]; lang: string; defaultEngine: string } = $props();
 
   const ENGINE_KEY = 'zyes_active_engine';
 
   let query = $state('');
   let showSwitcher = $state(false);
   let inputEl: HTMLInputElement;
-  let activeEngineId = $state(localStorage.getItem(ENGINE_KEY) || 'google');
+  let activeEngineId = $state(localStorage.getItem(ENGINE_KEY) || defaultEngine || 'google');
 
   let activeEngine = $derived(
     searchEngines.find((e) => e.id === activeEngineId && e.isActive) ||

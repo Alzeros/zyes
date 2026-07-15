@@ -16,7 +16,7 @@
   let bookmarks = $state<Bookmark[]>([]);
   let searchEngines = $state<SearchEngine[]>([]);
   let activeCategoryId = $state<string>('all');
-  let viewSettings = $state<ViewSettings>({ allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '' });
+  let viewSettings = $state<ViewSettings>({ allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '', defaultEngine: 'google' });
   let didInitialFetch = $state(false);
 
   // Keep the browser tab title in sync with the persisted site name. Falls back
@@ -124,6 +124,16 @@
         const updated = await api.put<ViewSettings>('/api/settings/view', apiBody);
         viewSettings = { ...viewSettings, ...updated };
       }
+  async function handleSaveEngines(engines: { id: string; isActive: boolean }[], defaultEngine: string): Promise<boolean> {
+    try {
+      const updated = await api.put<SearchEngine[]>('/api/search/engines', { engines, defaultEngine });
+      searchEngines = updated;
+      return true;
+    } catch (err) {
+      console.error('Failed to save search engines:', err);
+      return false;
+    }
+  }
       return true;
     } catch (err) {
       console.error('Failed to save settings:', err);
@@ -173,7 +183,7 @@
     bookmarks = [];
     searchEngines = [];
     activeCategoryId = 'all';
-    viewSettings = { allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '' };
+    viewSettings = { allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '', defaultEngine: 'google' };
     didInitialFetch = false;
   }
 
@@ -339,6 +349,7 @@
       {cardSize}
       {siteName}
       {siteLogo}
+      defaultEngine={viewSettings.defaultEngine}
       onlogout={handleLogout}
       ontoggleLang={handleSwitchLang}
       onsave={handleSaveSettings}
@@ -346,6 +357,7 @@
       onimport={handleImport}
       onexportHtml={handleExportHtml}
       onimportHtml={handleImportHtml}
+      onsaveEngines={handleSaveEngines}
     />
     <div class="flex flex-1 flex-col md:flex-row overflow-hidden">
       <CategorySidebar

@@ -1,4 +1,4 @@
-﻿// Favicon auto-fetch is routed through the backend icon proxy at
+// Favicon auto-fetch is routed through the backend icon proxy at
 //   GET /api/icon?url=<bookmark url>
 // The backend fetches the favicon sources (icon.horse → Google → DuckDuckGo)
 // server-side, caches the bytes (Workers: Cache API / 30d; Node: in-memory Map),
@@ -133,6 +133,9 @@ export const SEARCH_ENGINE_ICONS: Record<string, { icon: string; color: string }
   bing: { icon: 'mdi:microsoft-bing', color: '#008373' },
   duckduckgo: { icon: 'simple-icons:duckduckgo', color: '#DE5833' },
   github: { icon: 'simple-icons:github', color: '#181717' },
+  yahoo: { icon: 'simple-icons:yahoo', color: '#6001D2' },
+  yandex: { icon: 'simple-icons:yandex', color: '#FC3F1D' },
+  baidu: { icon: 'simple-icons:baidu', color: '#2932E1' },
 };
 
 export function getSearchEngineIcon(id: string): { icon: string; color: string } | null {

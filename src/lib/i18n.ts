@@ -1,4 +1,4 @@
-﻿type Lang = 'zh' | 'en';
+type Lang = 'zh' | 'en';
 
 const LANG_KEY = 'zyes_lang';
 
@@ -39,6 +39,13 @@ const translations = {
     'cardSize.nav.cards': '卡片',
     'cardSize.nav.site': '站点',
     'data.nav': '数据',
+    'search.nav': '搜索引擎',
+    'search.section': '搜索引擎设置',
+    'search.hint': '勾选要启用的搜索引擎，选择默认引擎。',
+    'search.enableEngine': '启用',
+    'search.defaultEngine': '默认引擎',
+    'search.defaultHint': '打开页面时默认使用的搜索引擎。',
+    'search.atLeastOne': '至少需要启用一个搜索引擎。',
     'data.section': '数据管理',
     'data.export': '导出数据',
     'data.exportHint': '下载包含全部书签、分类和设置的 JSON 备份文件。',
@@ -165,6 +172,13 @@ const translations = {
     'cardSize.nav.cards': 'Cards',
     'cardSize.nav.site': 'Site',
     'data.nav': 'Data',
+    'search.nav': 'Search',
+    'search.section': 'Search Engines',
+    'search.hint': 'Toggle which engines are enabled and pick the default.',
+    'search.enableEngine': 'Enabled',
+    'search.defaultEngine': 'Default Engine',
+    'search.defaultHint': 'The engine used by default when the page loads.',
+    'search.atLeastOne': 'At least one engine must be enabled.',
     'data.section': 'Data Management',
     'data.export': 'Export Data',
     'data.exportHint': 'Download a JSON backup of all bookmarks, categories, and settings.',

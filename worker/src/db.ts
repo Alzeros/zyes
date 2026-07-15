@@ -1,4 +1,4 @@
-﻿import type { Bookmark, Category, SearchEngine, ViewSettings } from '../../src/lib/types';
+import type { Bookmark, Category, SearchEngine, ViewSettings } from '../../src/lib/types';
 import type { Env } from './types';
 import { nanoid } from 'nanoid';
 import { parseNetscape, type ParsedBookmarkFile } from '../../src/lib/netscape';
@@ -74,6 +74,7 @@ export const mapSettings = (rows: SettingsRow[]): ViewSettings => {
   const card = rows.find((r) => r.key === 'card_size')?.value;
   const site = rows.find((r) => r.key === 'site_name')?.value;
   const logo = rows.find((r) => r.key === 'site_logo')?.value;
+  const defEngine = rows.find((r) => r.key === 'default_engine')?.value;
   return {
     allViewMode: all === 'compact' || all === 'detail' ? all : 'detail',
     cardSize: card === 'xs' || card === 'sm' || card === 'lg' ? (card as ViewSettings['cardSize']) : 'md',
@@ -81,6 +82,7 @@ export const mapSettings = (rows: SettingsRow[]): ViewSettings => {
     // Empty/missing = use the built-in Z wordmark. No fallback value here
     // (unlike siteName which defaults to 'zyes'): empty IS the "use default" signal.
     siteLogo: (logo ?? '').trim(),
+    defaultEngine: (defEngine ?? '').trim() || 'google',
   };
 };
 
@@ -139,6 +141,7 @@ function parseImportPayload(
     cardSize: sIn.cardSize === 'xs' || sIn.cardSize === 'sm' || sIn.cardSize === 'md' || sIn.cardSize === 'lg' ? sIn.cardSize : 'md',
     siteName: typeof sIn.siteName === 'string' ? sIn.siteName : 'zyes',
     siteLogo: typeof sIn.siteLogo === 'string' ? sIn.siteLogo : '',
+    defaultEngine: typeof sIn.defaultEngine === 'string' ? sIn.defaultEngine : 'google',
   };
 
   return { categories, bookmarks: validBookmarks, settings };
@@ -263,6 +266,33 @@ export class Db {
     vals.push(id);
     await this.db.prepare(`UPDATE search_engines SET ${cols.join(', ')} WHERE id = ?`).bind(...vals).run();
     return (await this.allEngines()).find((e) => e.id === id) ?? null;
+  }
+  // Bulk-apply engine active state + default engine in one call. Used by the
+  // Search settings panel: the user toggles multiple engines and picks a
+  // default, then clicks Apply. We persist everything in a D1 batch so the
+  // update is atomic. `engines` is the full desired state (id -> isActive).
+  // `defaultEngine` (optional) is written to the settings table.
+  async saveEnginesConfig(engines: { id: string; isActive: boolean }[], defaultEngine?: string): Promise<void> {
+    const batch: ReturnType<typeof this.db.prepare>[] = [];
+    for (const e of engines) {
+      batch.push(
+        this.db.prepare(`UPDATE search_engines SET is_active = ? WHERE id = ?`).bind(e.isActive ? 1 : 0, e.id)
+      );
+    }
+    if (defaultEngine !== undefined) {
+      batch.push(
+        this.db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`).bind('default_engine', defaultEngine)
+      );
+    }
+    if (batch.length) await this.db.batch(batch);
+  }
+
+  async getDefaultEngine(): Promise<string> {
+    const row = await this.db.prepare(`SELECT value FROM settings WHERE key = 'default_engine'`).first<{ value: string }>();
+    return row?.value ?? 'google';
+  }
+  async setDefaultEngine(id: string): Promise<void> {
+    await this.db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`).bind('default_engine', id).run();
   }
 
   // ── Bulk reorders / reassign (D1 batch for atomicity + throughput) ────────

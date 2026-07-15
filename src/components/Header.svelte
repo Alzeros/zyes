@@ -14,6 +14,7 @@
     cardSize,
     siteName,
     siteLogo,
+    defaultEngine,
     onlogout,
     ontoggleLang,
     onsave,
@@ -21,12 +22,14 @@
     onimport,
     onexportHtml,
     onimportHtml,
+    onsaveEngines,
   }: {
     searchEngines: SearchEngine[];
     lang: string;
     cardSize: CardSize;
     siteName: string;
     siteLogo: string;
+    defaultEngine: string;
     onlogout: () => void;
     ontoggleLang: () => void;
     onsave: (patch: { cardSize?: CardSize; siteName?: string; siteLogo?: string }) => Promise<boolean>;
@@ -34,6 +37,7 @@
     onimport: (file: File) => Promise<void>;
     onexportHtml: () => Promise<void>;
     onimportHtml: (file: File, mode: 'replace' | 'merge') => Promise<void>;
+    onsaveEngines: (engines: { id: string; isActive: boolean }[], defaultEngine: string) => Promise<boolean>;
   } = $props();
 
   // Custom logo source. kind === 'none' = render the built-in Z wordmark;
@@ -111,7 +115,7 @@
          auto-sized middle track sits exactly on the page center, regardless
          of how wide the logo vs the buttons are. -->
     <div class="hidden md:flex justify-self-center w-full max-w-xl">
-      <SearchBar {searchEngines} {lang} />
+      <SearchBar {searchEngines} {lang} {defaultEngine} />
     </div>
 
     <div class="flex items-center gap-1 shrink-0 justify-self-end md:ml-0 ml-auto">
@@ -193,7 +197,7 @@
 
   <!-- Mobile search bar: own row below the top bar -->
   <div class="md:hidden px-4 pb-3">
-    <SearchBar {searchEngines} {lang} />
+    <SearchBar {searchEngines} {lang} {defaultEngine} />
   </div>
 </header>
 
@@ -212,6 +216,8 @@
     {onimport}
     {onexportHtml}
     {onimportHtml}
+    {searchEngines}
+    {onsaveEngines}
     onclose={() => (settingsOpen = false)}
   />
 {/if}

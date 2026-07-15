@@ -12,7 +12,7 @@ export function settingsRoutes(): Hono<{ Bindings: Env }> {
   });
 
   app.put('/view', async (c) => {
-    const body = await c.req.json<{ allViewMode?: string; cardSize?: string; siteName?: unknown; siteLogo?: unknown }>();
+    const body = await c.req.json<{ allViewMode?: string; cardSize?: string; siteName?: unknown; siteLogo?: unknown; defaultEngine?: unknown }>();
 
     // Validate the optional fields. Any subset may be sent; a field that fails
     // validation rejects the whole request.
@@ -42,12 +42,25 @@ export function settingsRoutes(): Hono<{ Bindings: Env }> {
       }
       siteLogo = body.siteLogo.slice(0, 256).trim();
     }
+    // defaultEngine: which search engine is selected by default. Coerce to
+    // string, trim. Empty falls back to 'google' on read. No strict validation
+    // against the engine list here — the Search settings panel only offers
+    // known engine ids, and an unknown id just means SearchBar falls through
+    // to the first active engine.
+    let defaultEngine: string | undefined;
+    if (body?.defaultEngine !== undefined) {
+      if (typeof body.defaultEngine !== 'string') {
+        return c.json({ ok: false, error: 'Invalid defaultEngine', code: 'BAD_REQUEST' }, 400);
+      }
+      defaultEngine = body.defaultEngine.slice(0, 64).trim();
+    }
 
     const db = dbOf(c.env);
     if (body.allViewMode !== undefined) await db.setAllViewMode(body.allViewMode as 'compact' | 'detail');
     if (body.cardSize !== undefined) await db.setCardSize(body.cardSize as 'md' | 'xs' | 'sm' | 'lg');
     if (siteName !== undefined) await db.setSiteName(siteName);
     if (siteLogo !== undefined) await db.setSiteLogo(siteLogo);
+    if (defaultEngine !== undefined) await db.setDefaultEngine(defaultEngine);
 
     // Return the full merged settings so the client can update local state from one source.
     const settings = await db.getSettingsData();

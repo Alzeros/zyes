@@ -2,9 +2,9 @@
   import { t } from '../lib/i18n';
   import { CARD_SIZE_LABELS } from '../lib/cardSize';
   import { parseNetscape } from '../lib/netscape';
-  import type { CardSize } from '../lib/types';
+  import type { CardSize, SearchEngine } from '../lib/types';
   import Icon from '@iconify/svelte';
-  import { parseIcon } from '../lib/utils';
+  import { parseIcon, getSearchEngineIcon } from '../lib/utils';
 
   let {
     lang,
@@ -16,12 +16,15 @@
     onimport,
     onexportHtml,
     onimportHtml,
+    onsaveEngines,
     onclose,
   }: {
     lang: string;
     cardSize: CardSize;
     siteName: string;
     siteLogo: string;
+    searchEngines: SearchEngine[];
+    onsaveEngines: (engines: { id: string; isActive: boolean }[], defaultEngine: string) => Promise<boolean>;
     onsave: (patch: { cardSize?: CardSize; siteName?: string; siteLogo?: string }) => Promise<boolean>;
     onexport: () => Promise<void>;
     onimport: (file: File) => Promise<void>;
@@ -33,7 +36,7 @@
   const SIZES: CardSize[] = ['xs', 'sm', 'md', 'lg'];
 
   // Active settings group: 'cards' | 'site' | 'data'
-  let activeGroup = $state<'cards' | 'site' | 'data'>('cards');
+  let activeGroup = <'cards' | 'site' | 'search' | 'data'>('cards');
 
   // ── Drafts: the panel edits local copies and only commits on "Apply". Until
   // then the backend / parent state is untouched, so previewing a size can't
@@ -41,6 +44,11 @@
   let draftCardSize = $state<CardSize>(cardSize);
   let draftSiteName = $state<string>(siteName);
   let draftSiteLogo = $state<string>(siteLogo);
+  // Search engine drafts: a map of engine id -> isActive, plus the default
+  // engine id. Both are committed together via onsaveEngines on Apply.
+  let draftEngines = $state<Map<string, boolean>>(new Map());
+  let draftDefaultEngine = $state<string>('google');
+  let engineError = $state('');
   let saving = $state(false);
 
   // ── Data export / import state
@@ -64,13 +72,28 @@
     draftCardSize = cardSize;
     draftSiteName = siteName;
     draftSiteLogo = siteLogo;
+    // Seed engine drafts from the current persisted engine list.
+    draftEngines = new Map(searchEngines.map((e) => [e.id, e.isActive]));
+    // Default engine: prefer the first active engine if the stored default
+    // isn't in the list (defensive — shouldn't happen normally).
+    draftDefaultEngine = searchEngines.some((e) => e.id === draftDefaultEngine)
+      ? draftDefaultEngine
+      : searchEngines.find((e) => e.isActive)?.id ?? 'google';
+    engineError = '';
   });
 
   // Has the user touched anything vs. the last persisted values?
+  let engineDirty = $derived(
+    searchEngines.some((e) => (draftEngines.get(e.id) ?? false) !== e.isActive)
+  );
+  let defaultEngineDirty = $derived(
+    draftDefaultEngine !== (searchEngines.find((e) => e.id === draftDefaultEngine) ? draftDefaultEngine : '')
+  );
   let dirty = $derived(
     draftCardSize !== cardSize ||
     draftSiteName !== siteName ||
-    draftSiteLogo !== siteLogo
+    draftSiteLogo !== siteLogo ||
+    engineDirty
   );
 
   // Live preview of the drafted logo (iconify name / image URL / empty = default Z).
@@ -78,14 +101,39 @@
 
   async function apply() {
     if (!dirty || saving) return;
+    // Validate: at least one engine must remain enabled.
+    if (engineDirty) {
+      const enabledCount = [...draftEngines.values()].filter(Boolean).length;
+      if (enabledCount === 0) {
+        engineError = t('search.atLeastOne');
+        return;
+      }
+    }
     saving = true;
+    // Save card/site settings first, then engine config. Both must succeed.
     const ok = await onsave({
       cardSize: draftCardSize,
       siteName: draftSiteName,
       siteLogo: draftSiteLogo,
     });
+    if (!ok) {
+      saving = false;
+      return;
+    }
+    // Save engine config (active toggles + default engine) if changed.
+    if (engineDirty || defaultEngineDirty) {
+      const engines = searchEngines.map((e) => ({
+        id: e.id,
+        isActive: draftEngines.get(e.id) ?? false,
+      }));
+      const engOk = await onsaveEngines(engines, draftDefaultEngine);
+      if (!engOk) {
+        saving = false;
+        return;
+      }
+    }
     saving = false;
-    if (ok) onclose();
+    onclose();
   }
 
   function cancel() {
@@ -93,6 +141,8 @@
     draftCardSize = cardSize;
     draftSiteName = siteName;
     draftSiteLogo = siteLogo;
+    draftEngines = new Map(searchEngines.map((e) => [e.id, e.isActive]));
+    engineError = '';
     onclose();
   }
 
@@ -227,6 +277,7 @@
   const groups = [
     { id: 'cards' as const, label: t('cardSize.nav.cards'), icon: 'M4 5h16M4 12h16M4 19h7' },
     { id: 'site' as const, label: t('cardSize.nav.site'), icon: 'M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18' },
+    { id: 'search' as const, label: t('search.nav'), icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
     { id: 'data' as const, label: t('data.nav'), icon: 'M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0114-3M20 14a8 8 0 01-14 3' },
   ];
 </script>
@@ -345,6 +396,78 @@
                 class="w-full px-3 py-2 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-sm text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
               />
             </label>
+          </section>
+        {:else if activeGroup === 'search'}
+          <!-- ── Search engines: toggle + default selector ─────────── -->
+          <section>
+            <h3 class="text-sm font-semibold text-text dark:text-text-dark mb-1">{t('search.section')}</h3>
+            <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-4">{t('search.hint')}</p>
+
+            <!-- Engine list with toggle switches -->
+            <div class="space-y-2 mb-6">
+              {#each searchEngines as engine (engine.id)}
+                {@const isActive = draftEngines.get(engine.id) ?? false}
+                {@const brand = getSearchEngineIcon(engine.id)}
+                {@const isDefault = draftDefaultEngine === engine.id}
+                <div class="flex items-center gap-3 p-3 rounded-xl border transition-colors {isDefault ? 'border-primary/40 bg-primary/5' : 'border-border dark:border-border-dark'}">
+                  <!-- Brand icon -->
+                  <span
+                    class="w-7 h-7 rounded-full flex items-center justify-center text-white shrink-0"
+                    style="background-color: {brand?.color ?? '#6366f1'}"
+                  >
+                    {#if brand}
+                      <Icon icon={brand.icon} width="14" height="14" color="white" />
+                    {:else}
+                      <span class="text-xs font-bold">{engine.name.charAt(0)}</span>
+                    {/if}
+                  </span>
+
+                  <!-- Engine name -->
+                  <span class="flex-1 text-sm font-medium text-text dark:text-text-dark">{engine.name}</span>
+
+                  <!-- Default radio (only selectable if active) -->
+                  <button
+                    type="button"
+                    onclick={() => { if (isActive) draftDefaultEngine = engine.id; }}
+                    disabled={!isActive}
+                    class="text-xs font-medium px-2 py-1 rounded-lg transition-all cursor-pointer {isDefault
+                      ? 'bg-primary text-white'
+                      : isActive
+                        ? 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'
+                        : 'text-text-secondary/30 dark:text-text-secondary-dark/30 cursor-not-allowed'}"
+                    title={t('search.defaultEngine')}
+                  >
+                    {isDefault ? '★ ' : ''}{t('search.defaultEngine')}
+                  </button>
+
+                  <!-- Toggle switch -->
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isActive}
+                    onclick={() => {
+                      const next = new Map(draftEngines);
+                      next.set(engine.id, !isActive);
+                      draftEngines = next;
+                      // If disabling the current default, move default to the
+                      // first still-active engine.
+                      if (isActive && draftDefaultEngine === engine.id) {
+                        const fallback = searchEngines.find((e) => e.id !== engine.id && next.get(e.id))?.id ?? 'google';
+                        draftDefaultEngine = fallback;
+                      }
+                      engineError = '';
+                    }}
+                    class="relative w-10 h-6 rounded-full transition-colors shrink-0 {isActive ? 'bg-primary' : 'bg-border dark:bg-border-dark'}"
+                  >
+                    <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform {isActive ? 'translate-x-4' : ''}"></span>
+                  </button>
+                </div>
+              {/each}
+            </div>
+
+            {#if engineError}
+              <p class="text-sm text-danger mb-2">{engineError}</p>
+            {/if}
           </section>
         {:else}
           <!-- ── Data: export / import ─────────────────────────── -->

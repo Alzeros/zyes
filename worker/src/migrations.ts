@@ -35,7 +35,7 @@ export interface Migration {
 
 // The schema version the CURRENT code expects. Bump this when appending a
 // migration. Stored in meta.schema_version after a successful run.
-export const TARGET_SCHEMA_VERSION = 4;
+export const TARGET_SCHEMA_VERSION = 5;
 
 // D1 EXEC gotcha: `db.exec(sql)` only accepts statements delimited by newlines
 // and chokes on multi-line single statements (it splits on \n and tries each
@@ -201,6 +201,35 @@ export const MIGRATIONS: Migration[] = [
         `INSERT INTO settings (key, value) VALUES ('site_logo', '') ON CONFLICT(key) DO NOTHING`,
       ];
       for (const s of settingsStmts) results.push(await safeExec(db, s));
+      const failed = results.filter((r) => !r.ok);
+      return {
+        ok: failed.length === 0,
+        error: failed.length ? failed.map((r) => r.error).join('; ') : undefined,
+      };
+    },
+  },
+  {
+    v: 5,
+    desc: 'seed additional search engines (yahoo, yandex, baidu) + default_engine settings key',
+    run: async (db) => {
+      const results: { ok: boolean; error?: string }[] = [];
+      // Seed the three new engines as inactive by default. The user opts in
+      // via the Search settings panel. ON CONFLICT DO NOTHING so existing
+      // installs that already customised their engines keep their state.
+      // The original four (google/bing/ddg/github) stay as-is from v2.
+      const engineStmts = [
+        `INSERT INTO search_engines (id, name, url, icon, is_active) VALUES
+          ('yahoo',  'Yahoo',  'https://search.yahoo.com/search?p={query}',   'yahoo',  0),
+          ('yandex', 'Yandex', 'https://yandex.com/search/?text={query}',      'yandex', 0),
+          ('baidu',  'Baidu',  'https://www.baidu.com/s?wd={query}',            'baidu',  0)
+        ON CONFLICT(id) DO NOTHING`,
+      ];
+      for (const s of engineStmts) results.push(await safeExec(db, s));
+      // Default search engine. Defaults to google (same as pre-setting behavior).
+      // ON CONFLICT DO NOTHING preserves any existing value.
+      results.push(
+        await safeExec(db, `INSERT INTO settings (key, value) VALUES ('default_engine', 'google') ON CONFLICT(key) DO NOTHING`)
+      );
       const failed = results.filter((r) => !r.ok);
       return {
         ok: failed.length === 0,

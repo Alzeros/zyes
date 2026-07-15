@@ -40,6 +40,10 @@ export interface ViewSettings {
   // appears (Header / LoginScreen / AboutModal). Stored server-side so it
   // syncs across devices, same as siteName.
   siteLogo: string;
+  // The default search engine id (e.g. "google"). Stored server-side so it
+  // syncs across devices. SearchBar uses this as the initial engine when no
+  // local preference has been set.
+  defaultEngine: string;
 }
 
 export interface AppData {
