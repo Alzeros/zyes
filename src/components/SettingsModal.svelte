@@ -11,6 +11,7 @@
     cardSize,
     siteName,
     siteLogo,
+    searchEngines,
     onsave,
     onexport,
     onimport,
