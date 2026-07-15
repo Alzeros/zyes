@@ -12,6 +12,7 @@
     siteName,
     siteLogo,
     searchEngines,
+    defaultEngine,
     onsave,
     onexport,
     onimport,
@@ -25,6 +26,7 @@
     siteName: string;
     siteLogo: string;
     searchEngines: SearchEngine[];
+    defaultEngine: string;
     onsaveEngines: (engines: { id: string; isActive: boolean }[], defaultEngine: string) => Promise<boolean>;
     onsave: (patch: { cardSize?: CardSize; siteName?: string; siteLogo?: string }) => Promise<boolean>;
     onexport: () => Promise<void>;
@@ -37,7 +39,7 @@
   const SIZES: CardSize[] = ['xs', 'sm', 'md', 'lg'];
 
   // Active settings group: 'cards' | 'site' | 'data'
-  let activeGroup = <'cards' | 'site' | 'search' | 'data'>('cards');
+  let activeGroup = $state<'cards' | 'site' | 'search' | 'data'>('cards');
 
   // ── Drafts: the panel edits local copies and only commits on "Apply". Until
   // then the backend / parent state is untouched, so previewing a size can't
@@ -75,11 +77,8 @@
     draftSiteLogo = siteLogo;
     // Seed engine drafts from the current persisted engine list.
     draftEngines = new Map(searchEngines.map((e) => [e.id, e.isActive]));
-    // Default engine: prefer the first active engine if the stored default
-    // isn't in the list (defensive — shouldn't happen normally).
-    draftDefaultEngine = searchEngines.some((e) => e.id === draftDefaultEngine)
-      ? draftDefaultEngine
-      : searchEngines.find((e) => e.isActive)?.id ?? 'google';
+    // Seed default engine from the persisted prop.
+    draftDefaultEngine = defaultEngine || 'google';
     engineError = '';
   });
 
@@ -87,14 +86,13 @@
   let engineDirty = $derived(
     searchEngines.some((e) => (draftEngines.get(e.id) ?? false) !== e.isActive)
   );
-  let defaultEngineDirty = $derived(
-    draftDefaultEngine !== (searchEngines.find((e) => e.id === draftDefaultEngine) ? draftDefaultEngine : '')
-  );
+  let defaultEngineDirty = $derived(draftDefaultEngine !== defaultEngine);
   let dirty = $derived(
     draftCardSize !== cardSize ||
     draftSiteName !== siteName ||
     draftSiteLogo !== siteLogo ||
-    engineDirty
+    engineDirty ||
+    defaultEngineDirty
   );
 
   // Live preview of the drafted logo (iconify name / image URL / empty = default Z).

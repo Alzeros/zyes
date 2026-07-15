@@ -217,6 +217,7 @@
     {onexportHtml}
     {onimportHtml}
     {searchEngines}
+    {defaultEngine}
     {onsaveEngines}
     onclose={() => (settingsOpen = false)}
   />
