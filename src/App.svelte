@@ -1,5 +1,5 @@
-﻿<script lang="ts">
-  import { isAuthenticated, getToken, setToken, removeToken } from './lib/auth';
+<script lang="ts">
+  import { isAuthenticated, getToken, setToken, removeToken, maybeRefresh } from './lib/auth';
   import { revokeAll } from './lib/iconCache.svelte';
   import { api } from './lib/api';
   import { getLang, toggleLang } from './lib/i18n';
@@ -306,6 +306,20 @@
     viewSettings = { ...viewSettings, ...result.settings };
   }
 
+  // Proactive token renewal on tab re-focus: when the user switches away and
+  // comes back (e.g. after lunch), check whether the token is nearing expiry
+  // and renew it silently. Combined with the per-request check in api.ts, this
+  // means a session never dies while the tab is still around — only a tab left
+  // closed for the full 24h expiry needs a fresh login. maybeRefresh is a no-op
+  // when there is no token or the token is still healthy, so this is safe to
+  // fire on every visibility change.
+  $effect(() => {
+    function onVisible() {
+      if (document.visibilityState === 'visible') void maybeRefresh();
+    }
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  });
   // Auto-fetch when becoming authenticated (runs once per login session)
   $effect(() => {
     if (authenticated && !didInitialFetch) {
