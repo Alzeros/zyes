@@ -32,12 +32,40 @@
     onadd: (bookmark: Omit<Bookmark, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     onupdate: (id: string, patch: Partial<Bookmark>) => Promise<void>;
     ondelete: (id: string) => Promise<void>;
-    onreconcile: (groupId: string, ids: string[]) => Promise<void> | void;
+    onreconcile: (groupId: string, ids: string[]) => Promise<void>;
   } = $props();
 
   // The "All" view renders a group per category plus a trailing "Uncategorized" group.
   // A single selected category renders just one group.
   let isAll = $derived(activeCategoryId === 'all');
+
+  // ── Card entrance stagger control ─────────────────────────────────────────
+  // Cards fade/rise in on mount (see .card-enter in app.css). But
+  // BookmarkGroup wraps its grid in {#key cardSize}, so a card-size change
+  // REMOUNTS every card — with many bookmarks the staggered entrance replays
+  // as a multi-second wave, which reads as "Apply hung". So: the stagger only
+  // runs on genuine navigation (initial mount / category switch), NOT on
+  // card-size or edit-mode remounts.
+  //
+  // `prevKey` detects a real cardSize/editMode change (vs. unrelated effect
+  // re-runs). When it changes we flip animateOff for longer than the stagger
+  // cap (260ms in CSS + 300ms duration → 500ms buffer), so every remounted
+  // card renders with animation disabled; then it re-arms for the next
+  // genuine navigation (category switch / full reload).
+  let animateOff = $state(false);
+  let prevKey = '';
+  $effect(() => {
+    const key = `${cardSize}|${editMode}`;
+    if (prevKey === '') {
+      prevKey = key; // initial mount: keep the entrance stagger
+      return;
+    }
+    if (key === prevKey) return;
+    prevKey = key;
+    animateOff = true;
+    const timer = setTimeout(() => (animateOff = false), 500);
+    return () => clearTimeout(timer);
+  });
 
   // Groups for the "All" view: each known category (in its sortOrder), then uncategorized.
   // `icon` carries the raw category icon (emoji / iconify name / image URL); the header
@@ -134,6 +162,7 @@
       {categories}
       {cardSize}
       canDrag={editMode}
+      enterAnim={!animateOff}
       title={g.title}
       icon={g.icon}
       addCategoryId={g.categoryId}

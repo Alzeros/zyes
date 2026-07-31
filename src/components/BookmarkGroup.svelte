@@ -16,6 +16,7 @@
     categories,
     cardSize = 'md',
     canDrag = true,
+    enterAnim = true,
     title,
     icon,
     addCategoryId,        // categoryId to default the add-modal to ('' for uncategorized)
@@ -30,6 +31,11 @@
     categories: Category[];
     cardSize?: CardSize;
     canDrag?: boolean;
+    // Card entrance stagger. Passed down to each card; the parent grid turns
+    // it off while a card-size change remounts the grid (via {#key cardSize})
+    // so a settings Apply doesn't replay a slow N-card fade — without this,
+    // resizing cards with many bookmarks looks like a multi-second hang.
+    enterAnim?: boolean;
     title: string;
     icon?: string;                // raw category icon (emoji / iconify / image URL)
     addCategoryId: string;        // '' for uncategorized
@@ -153,7 +159,7 @@
             {lang}
             {cardSize}
             index={i}
-            enterAnim={!canDrag}
+            enterAnim={enterAnim && !canDrag}
             onedit={() => (editingBookmark = bookmark)}
             ondelete={() => (deletingBookmark = bookmark)}
             oncontext={(e) => handleContextMenu(e, bookmark)}
