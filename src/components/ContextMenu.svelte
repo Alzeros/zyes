@@ -58,8 +58,8 @@
 
 <div
   bind:this={menuEl}
-  style="left:{pos.left}px;top:{pos.top}px"
-  class="fixed z-[60] w-44 py-1.5 bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark shadow-xl"
+  style="left:{pos.left}px;top:{pos.top}px;transform-origin:top left"
+  class="fixed z-[60] w-44 py-1.5 bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark shadow-xl anim-pop-anchor-l"
 >
   {#each items as item}
     {#if item.type === 'separator'}

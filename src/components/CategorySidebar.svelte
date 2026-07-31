@@ -95,17 +95,17 @@
 </script>
 
 <!-- Desktop sidebar: fixed 260px column -->
-<aside class="hidden md:flex md:flex-col w-[260px] shrink-0 border-r border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-y-auto">
+<aside class="hidden md:flex md:flex-col w-[260px] shrink-0 border-r border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-y-auto thin-scroll">
   <nav class="cat-dnd-host flex-1 p-4 space-y-1">
     <button
       onclick={() => selectCategory('all')}
-      class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer {activeCategoryId === 'all' ? 'bg-primary/10 text-primary' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'}"
+      class="cat-row w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer {activeCategoryId === 'all' ? 'cat-on bg-primary/10 text-primary' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'}"
     >
       <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
       </svg>
       <span class="flex-1 text-left">{t('sidebar.all')}</span>
-      <span class="text-xs opacity-60">{counts.all || 0}</span>
+      <span class="text-[11px] tabular-nums px-1.5 py-0.5 rounded-full {activeCategoryId === 'all' ? 'bg-primary/15 text-primary' : 'bg-text/5 dark:bg-text-dark/10 text-text-secondary dark:text-text-secondary-dark'}">{counts.all || 0}</span>
     </button>
 
     <div
@@ -131,13 +131,13 @@
           <button
             onclick={() => selectCategory(cat.id)}
             oncontextmenu={(e) => handleContextMenu(e, cat)}
-            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer {activeCategoryId === cat.id ? 'bg-primary/10 text-primary' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'}"
+            class="cat-row w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer {activeCategoryId === cat.id ? 'cat-on bg-primary/10 text-primary' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'}"
           >
             <span class="shrink-0 flex items-center justify-center text-base text-current">
               <CategoryIcon icon={cat.icon} />
             </span>
             <span class="flex-1 text-left truncate">{cat.name}</span>
-            <span class="text-xs opacity-60">{counts[cat.id] || 0}</span>
+            <span class="text-[11px] tabular-nums px-1.5 py-0.5 rounded-full {activeCategoryId === cat.id ? 'bg-primary/15 text-primary' : 'bg-text/5 dark:bg-text-dark/10 text-text-secondary dark:text-text-secondary-dark'}">{counts[cat.id] || 0}</span>
           </button>
         </div>
       {/each}

@@ -60,7 +60,7 @@
 </script>
 
 <div class="relative w-full max-w-xl">
-  <div class="flex items-center bg-bg dark:bg-bg-dark border border-border dark:border-border-dark rounded-full px-4 py-2 focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-primary transition-all">
+  <div class="flex items-center bg-bg dark:bg-bg-dark border border-border dark:border-border-dark rounded-full px-4 py-2 focus-within:bg-surface dark:focus-within:bg-surface-dark focus-within:shadow-lg focus-within:shadow-black/5 focus-within:ring-2 focus-within:ring-primary/40 focus-within:border-primary transition-all duration-200">
     <button
       onclick={() => (showSwitcher = !showSwitcher)}
       class="mr-2 p-1 rounded-lg hover:bg-border/50 dark:hover:bg-border-dark/50 transition-colors cursor-pointer shrink-0 text-primary"

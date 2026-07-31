@@ -158,7 +158,7 @@
         </button>
 
         {#if menuOpen}
-          <div class="absolute right-0 mt-2 w-44 rounded-xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shadow-xl py-1 z-50 origin-top-right">
+          <div class="absolute right-0 mt-2 w-44 rounded-xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shadow-xl py-1 z-50 anim-pop-anchor">
             <button
               type="button"
               onclick={() => { settingsOpen = true; menuOpen = false; }}

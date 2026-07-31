@@ -281,10 +281,10 @@
   ];
 </script>
 
-<div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick={cancel} onkeydown={() => {}} role="button" tabindex="-1"></div>
+<div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm anim-fade" onclick={cancel} onkeydown={() => {}} role="button" tabindex="-1"></div>
 
-  <div class="relative w-full max-w-2xl h-[80vh] max-h-[600px] bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark shadow-xl flex flex-col overflow-hidden">
+  <div class="relative w-full max-w-2xl h-[80vh] max-h-[600px] bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark shadow-xl flex flex-col overflow-hidden anim-pop">
     <!-- Header -->
     <div class="flex items-center justify-between px-5 py-3.5 border-b border-border dark:border-border-dark shrink-0">
       <h2 class="text-base font-semibold text-text dark:text-text-dark">{t('cardSize.title')}</h2>
@@ -318,7 +318,7 @@
       </nav>
 
       <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-5 min-h-0">
+      <div class="flex-1 overflow-y-auto p-5 min-h-0 thin-scroll">
         {#if activeGroup === 'cards'}
           <!-- ── Card size ─────────────────────────────────────── -->
           <section class="mb-6">
@@ -587,9 +587,9 @@
        Replaces the old chain of native confirm() dialogs. Shows the exact
        count of bookmarks/categories to import, then offers replace (two-click
        armed confirm) or merge (one-click). -->
-  <div class="fixed inset-0 z-[70] flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick={cancelHtmlImport} onkeydown={() => {}} role="button" tabindex="-1"></div>
-    <div class="relative w-full max-w-md bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark p-6 shadow-xl">
+  <div class="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm anim-fade" onclick={cancelHtmlImport} onkeydown={() => {}} role="button" tabindex="-1"></div>
+    <div class="relative w-full max-w-md bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark p-6 shadow-xl anim-pop">
       <h2 class="text-lg font-semibold mb-1 text-text dark:text-text-dark">{t('data.importHtmlTitle')}</h2>
       <p class="text-sm text-text-secondary dark:text-text-secondary-dark mb-5">
         {t('data.importHtmlCount', { bm: String(htmlPreview.bm), cat: String(htmlPreview.cat) })}

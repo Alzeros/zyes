@@ -49,7 +49,15 @@
   }
 </script>
 
-<div class="min-h-screen flex items-center justify-center bg-bg dark:bg-bg-dark p-4 relative">
+<div class="min-h-screen flex items-center justify-center bg-bg dark:bg-bg-dark p-4 relative overflow-hidden">
+  <!-- Ambient brand glow: two soft radial blooms (top-left primary, bottom-right
+       slate) that give the otherwise flat login page some depth. pointer-events
+       off; opacity is deliberately faint so it reads as light, not shapes. -->
+  <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+    <div class="absolute -top-32 -left-32 w-[480px] h-[480px] rounded-full bg-primary/10 dark:bg-primary/20 blur-3xl"></div>
+    <div class="absolute -bottom-40 -right-32 w-[520px] h-[520px] rounded-full bg-slate-400/10 dark:bg-slate-500/10 blur-3xl"></div>
+  </div>
+
   <!-- Language toggle -->
   <button
     onclick={switchLang}
@@ -87,7 +95,7 @@
       <p class="text-text-secondary dark:text-text-secondary-dark text-sm">{t('login.subtitle')}</p>
     </div>
 
-    <form onsubmit={handleSubmit} class="bg-surface dark:bg-surface-dark rounded-2xl p-6 border border-border dark:border-border-dark">
+    <form onsubmit={handleSubmit} class="bg-surface dark:bg-surface-dark rounded-2xl p-6 border border-border dark:border-border-dark shadow-xl shadow-black/5 dark:shadow-black/30">
       <label for="password" class="block text-sm font-medium mb-2 text-text dark:text-text-dark">{t('login.password')}</label>
       <input
         id="password"

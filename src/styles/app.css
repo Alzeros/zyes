@@ -31,6 +31,16 @@
   /* ─── Functional ─── */
   --color-danger:  #dc2626;
   --color-success: #16a34a;
+
+  /* ─── Motion: shared modal/menu choreography ───
+     Two easings, two durations — every overlay in the app uses this pair so
+     dialogs, dropdowns and context menus feel like one system:
+       * backdrop fades linearly (opacity-only, cheap),
+       * panel rises + scales with an overshoot-less spring-out ease.
+     Components consume these via the utility classes below. */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-pop: 260ms;
+  --dur-fade: 180ms;
 }
 
 body {
@@ -39,6 +49,23 @@ body {
   color: var(--color-text);
   margin: 0;
   min-height: 100vh;
+}
+
+/* Barely-there page texture: a soft primary glow behind the top of the page
+   (echoes the header accent) fading into the flat bg. Fixed so it doesn't
+   scroll with content; at 3-5% opacity it reads as "light", not as a shape. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -8%, rgba(30, 58, 95, 0.05), transparent 70%);
+}
+:where(.dark) body::before {
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -8%, rgba(120, 160, 220, 0.07), transparent 70%);
 }
 
 :root.dark body {
@@ -70,6 +97,145 @@ body {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ─── Thin scrollbars for the sidebar / modal content areas ───
+   The default overlay scrollbar is a chunky gray block that visually shouts
+   against the otherwise flat UI. A 10px hit-area with a 4px pill thumb keeps
+   it findable but quiet; hidden until hovered. Firefox gets scrollbar-width +
+   color via the second block. */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.thin-scroll:hover {
+  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  transition: background-color 0.2s;
+}
+.thin-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.35);
+}
+:where(.dark) .thin-scroll:hover {
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+:where(.dark) .thin-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.3);
+}
+
+/* ─── Keyboard focus ring ───
+   Buttons/menus in this app use bg-color hover states only, so keyboard users
+   previously had NO visible focus indicator at all (Tailwind's preflight
+   leaves a faint default outline that several components override away).
+   A 2px primary ring + 2px offset, dark-mode brightened, applied globally to
+   :focus-visible so pointer clicks never show it. */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+:where(.dark) :focus-visible {
+  outline-color: #7ea6d8; /* primary is near-black on dark bg; brighten the ring */
+}
+
+/* ─── Overlay choreography ───
+   Backdrop: pure opacity fade. Panel: rise 8px + scale from 96.5% with the
+   shared spring ease. Both are transform/opacity-only so they composite cheaply.
+   `prefers-reduced-motion` collapses every animation to a 1ms no-op. */
+@keyframes zyes-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes zyes-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.965); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* Dropdown / context-menu variant: pops from its anchor corner instead of
+   rising from below, which reads as "attached to the button". */
+@keyframes zyes-pop-anchor {
+  from { opacity: 0; transform: scale(0.96) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.anim-fade { animation: zyes-fade-in var(--dur-fade) ease-out both; }
+.anim-pop  { animation: zyes-pop-in var(--dur-pop) var(--ease-spring) both; }
+.anim-pop-anchor {
+  animation: zyes-pop-anchor 160ms var(--ease-spring) both;
+  transform-origin: top right; /* menus hang below-right of their trigger */
+}
+/* Left-anchored variant for the engine switcher (hangs below-LEFT). */
+.anim-pop-anchor-l {
+  animation: zyes-pop-anchor 160ms var(--ease-spring) both;
+  transform-origin: top left;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade,
+  .anim-pop,
+  .anim-pop-anchor,
+  .anim-pop-anchor-l {
+    animation-duration: 1ms;
+  }
+}
+
+/* ─── Active category indicator bar ───
+   The desktop sidebar's active row (`.cat-row.cat-on`) gets a 3px primary
+   bar on its leading edge via an inset box-shadow. Inset shadow keeps the
+   indicator INSIDE the rounded row — an absolutely-positioned ::before bar
+   would stick out past the rounded-xl corner. Dark mode brightens it. */
+.cat-row.cat-on {
+  box-shadow: inset 3px 0 0 0 var(--color-primary);
+}
+:where(.dark) .cat-row.cat-on {
+  box-shadow: inset 3px 0 0 0 #8fb4e0;
+}
+
+/* ─── Card entrance stagger ───
+   Bookmark cards fade/rise in with a per-card delay driven by the inline
+   `--i` custom property (its grid index), capped by clamp() so page 500 of
+   a huge import doesn't take seconds to settle. Only runs on first mount /
+   group switch, not on hover or reflow. */
+@keyframes zyes-card-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.card-enter {
+  animation: zyes-card-in 300ms var(--ease-spring) both;
+  animation-delay: clamp(0ms, var(--i, 0) * 14ms, 260ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-enter { animation-duration: 1ms; animation-delay: 0ms; }
+}
+
+/* ─── Card interaction polish ───
+   The favicon pops slightly (scale 1.08) when its card is hovered — a small
+   bit of life that makes the grid feel tactile. Kept off the card transform
+   itself (the card already lifts -2px) so the two motions don't compound. */
+.card-icon-zoom {
+  transition: transform 220ms var(--ease-spring);
+}
+.group:hover .card-icon-zoom,
+.group:focus-visible .card-icon-zoom {
+  transform: scale(1.08);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-icon-zoom,
+  .group:hover .card-icon-zoom,
+  .group:focus-visible .card-icon-zoom {
+    transform: none;
+  }
 }
 
 /* === svelte-dnd-action: tidy drag visuals for category lists === */

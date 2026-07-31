@@ -11,6 +11,8 @@
     lang,
     cardSize = 'md',
     interactive = true,
+    enterAnim = true,
+    index = 0,
     onedit,
     ondelete,
     oncontext,
@@ -19,6 +21,8 @@
     lang: string;
     cardSize?: CardSize;
     interactive?: boolean;   // false for non-interactive previews (no nav, no ctx menu)
+    enterAnim?: boolean;     // mount fade/rise stagger; off for previews + while dragging
+    index?: number;          // grid position → stagger delay (see .card-enter in app.css)
     onedit: () => void;
     ondelete: () => void;
     oncontext: (e: MouseEvent) => void;
@@ -72,7 +76,8 @@
     role={interactive ? 'button' : undefined}
     tabindex={interactive ? 0 : undefined}
     title={bookmark.url}
-    class="group relative {colSpan} flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-center select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
+    style="--i:{index}"
+    class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-center select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
   >
     <!-- Icon area. The card is square but the title bar takes vertical space,
          so this area is a wide rectangle. Favicons are square; with object-contain
@@ -81,7 +86,7 @@
          IconView to a SQUARE box (h-full + aspect-square) sized to the area's
          height, centred — the favicon fills the square and the radius clips it. -->
     <div class="flex-1 flex items-center justify-center min-h-0 p-1">
-      <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill class="h-full aspect-square" />
+      <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill class="h-full aspect-square card-icon-zoom" />
     </div>
     <!-- Title pinned to the bottom. min-h guarantees room for two clamped lines
          so tall titles aren't clipped by the card's overflow-hidden when the
@@ -102,7 +107,8 @@
     oncontextmenu={interactive ? handleContext : undefined}
     role={interactive ? 'button' : undefined}
     tabindex={interactive ? 0 : undefined}
-    class="group relative {colSpan} {spec.detailPad} aspect-[2/1] bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-left select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
+    style="--i:{index}"
+    class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} {spec.detailPad} aspect-[2/1] bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-left select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
   >
     <div class="flex items-start gap-3 mb-1">
       <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} size="sm" bg />

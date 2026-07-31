@@ -147,11 +147,13 @@
         onfinalize={handleDndFinalize}
         class="cat-dnd-host {gridClass}"
       >
-        {#each items as bookmark (bookmark.id)}
+        {#each items as bookmark, i (bookmark.id)}
           <BookmarkCard
             {bookmark}
             {lang}
             {cardSize}
+            index={i}
+            enterAnim={!canDrag}
             onedit={() => (editingBookmark = bookmark)}
             ondelete={() => (deletingBookmark = bookmark)}
             oncontext={(e) => handleContextMenu(e, bookmark)}

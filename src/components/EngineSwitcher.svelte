@@ -35,7 +35,7 @@
   });
 </script>
 
-<div class="engine-switcher absolute top-full left-0 mt-2 w-56 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-2 z-50 shadow-lg">
+<div class="engine-switcher absolute top-full left-0 mt-2 w-56 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-2 z-50 shadow-lg anim-pop-anchor-l">
   {#each engines as engine}
     <button
       onclick={() => onselect(engine)}

@@ -82,11 +82,16 @@
          use all the available space above the title bar; object-contain keeps
          the source's aspect ratio. The outer rounded-lg + overflow-hidden clips
          the image to the card's corner radius. -->
-    <img src={source.url} alt="" class="object-contain w-full h-full" style={fill ? '' : 'padding: 2%'} />
+    <img src={source.url} alt="" decoding="async" class="object-contain w-full h-full" style={fill ? '' : 'padding: 2%'} />
   {:else if !allFailed && tryList[sourceIdx]}
+    <!-- No loading="lazy": tryList[0] is usually a blob: URL from the local
+         icon cache (instant, and some browsers defer-load blob: images
+         unpredictably), and card icons sit in a small above-the-fold grid
+         where lazy loading would just flash empty tiles. -->
     <img
       src={tryList[sourceIdx]}
       alt=""
+      decoding="async"
       class="object-contain"
       style={fill ? 'width:100%;height:100%' : `width:${faviconFwd}px;height:${faviconFwd}px`}
       onerror={() => {

@@ -3,8 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- theme-color drives the mobile browser chrome (status bar / PWA title
+         bar) so it matches the page surface instead of defaulting to white. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f6f8" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1117" />
     <title>zyes</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>Z</text></svg>" />
+    <!-- Favicon matches the in-app Z wordmark (sharp miter Z) instead of a
+         serif text-glyph "Z". -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='6 5 17 22'%3E%3Cpath d='M 9 8 H 22 L 10 24 H 23' stroke='%231e293b' stroke-width='3' stroke-linejoin='miter' stroke-linecap='square' fill='none'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
