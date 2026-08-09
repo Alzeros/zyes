@@ -1,4 +1,4 @@
-﻿import { getToken, removeToken, maybeRefresh, refreshToken } from './auth';
+﻿import { getToken, maybeRefresh, refreshToken, forceLogout } from './auth';
 import type { ApiResponse, ApiError } from './types';
 // API base: same-origin by default (Node backend proxied at /api, or Worker
 // serving both SPA + /api under one domain). Set VITE_API_BASE to point the
@@ -41,8 +41,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     // request with the new token. This covers the narrow race where the token
     // expired between the maybeRefresh() check above and this request. If
     // refresh also fails (token truly dead, e.g. JWT_SECRET rotated), fall
-    // through to clearing the token and reloading to the login screen — same
-    // UX as before, so no behavior regression.
+    // through to an in-place logout (see auth.ts forceLogout) instead of a
+    // jarring full-page reload.
     const newToken = await refreshToken();
     if (newToken) {
       res = await doFetch(newToken);
@@ -52,8 +52,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
         return (retryJson as ApiResponse<T>).data;
       }
     }
-    removeToken();
-    window.location.reload();
+    forceLogout();
     throw new Error('Unauthorized');
   }
 

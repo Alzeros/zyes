@@ -16,4 +16,4 @@ export interface Env {
   ASSETS: Fetcher;
 }
 
-export const JWT_EXPIRY = '24h';
+export const JWT_EXPIRY = '30d';

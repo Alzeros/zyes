@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { isAuthenticated, getToken, setToken, removeToken, maybeRefresh } from './lib/auth';
+  import { isAuthenticated, getToken, setToken, removeToken, maybeRefresh, setForceLogoutHandler } from './lib/auth';
   import { revokeAll } from './lib/iconCache.svelte';
   import { api } from './lib/api';
   import { getLang, toggleLang } from './lib/i18n';
@@ -188,6 +188,10 @@
     didInitialFetch = false;
   }
 
+  // Let api.ts drop us back to the login screen in place (no hard reload) when
+  // a request 401s and refresh can't save it — see auth.ts forceLogout().
+  setForceLogoutHandler(handleLogout);
+
   async function handleBookmarkAdd(bookmark: Omit<Bookmark, 'id' | 'createdAt' | 'updatedAt'>) {
     const newBm = await api.post<Bookmark>('/api/bookmarks', bookmark);
     bookmarks = [...bookmarks, newBm];
@@ -319,17 +323,23 @@
 
   // Proactive token renewal on tab re-focus: when the user switches away and
   // comes back (e.g. after lunch), check whether the token is nearing expiry
-  // and renew it silently. Combined with the per-request check in api.ts, this
-  // means a session never dies while the tab is still around — only a tab left
-  // closed for the full 24h expiry needs a fresh login. maybeRefresh is a no-op
-  // when there is no token or the token is still healthy, so this is safe to
-  // fire on every visibility change.
+  // and renew it silently. maybeRefresh is a no-op when there is no token or
+  // the token is still healthy, so this is safe to fire on every visibility
+  // change.
   $effect(() => {
     function onVisible() {
       if (document.visibilityState === 'visible') void maybeRefresh();
     }
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
+  });
+  // Belt-and-suspenders for a tab that just sits open in the foreground for
+  // days without ever triggering a request or a visibility change (e.g. this
+  // nav page left open on a second monitor): poll periodically so the token
+  // still gets renewed well before it expires, even with zero user activity.
+  $effect(() => {
+    const id = window.setInterval(() => void maybeRefresh(), 15 * 60 * 1000);
+    return () => window.clearInterval(id);
   });
   // Auto-fetch when becoming authenticated (runs once per login session)
   $effect(() => {

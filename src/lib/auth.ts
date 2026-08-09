@@ -16,22 +16,39 @@ export function isAuthenticated(): boolean {
   return !!getToken();
 }
 
+// Called by api.ts when a 401 survives a refresh attempt (token truly dead).
+// App.svelte registers its in-place logout (clears state, shows LoginScreen)
+// here so a session death doesn't force a jarring full-page reload. Falls back
+// to a reload if nothing registered it yet (e.g. a 401 during initial boot).
+let forceLogoutHandler: (() => void) | null = null;
+export function setForceLogoutHandler(fn: (() => void) | null): void {
+  forceLogoutHandler = fn;
+}
+export function forceLogout(): void {
+  removeToken();
+  if (forceLogoutHandler) forceLogoutHandler();
+  else window.location.reload();
+}
+
 // ---------------------------------------------------------------------------
 // Proactive JWT refresh
 //
-// The backend issues a 24h JWT (JWT_EXPIRY = '24h'). Without renewal the token
-// hard-expires, and the next edit/save returns 401 -> the user is kicked to the
-// login screen mid-edit. The /api/auth/refresh endpoint (worker/src/routes/auth.ts)
-// issues a fresh 24h token, BUT it requires a still-valid token to call — an
-// expired token cannot be renewed, only re-login. So we MUST renew *before*
-// expiry, not after. The logic below does exactly that.
+// The backend issues a long-lived JWT (JWT_EXPIRY = '30d', see server/config.ts
+// and worker/src/types.ts). Without renewal the token hard-expires, and the
+// next edit/save returns 401 -> the user is kicked to the login screen
+// mid-edit. The /api/auth/refresh endpoint issues a fresh token, BUT it
+// requires a still-valid token to call — an expired token cannot be renewed,
+// only re-login. So we MUST renew *before* expiry, not after. The logic below
+// does exactly that, backed by three triggers: every API request
+// (maybeRefresh() in api.ts), on tab re-focus, and on a periodic timer — both
+// in App.svelte — so a tab left open and idle (no requests, never hidden)
+// still renews in time.
 // ---------------------------------------------------------------------------
 
-// Renew when the token has less than this long left. 1h is a comfortable
-// window: even if the tab sits idle, the next request or visibility check
-// (App.svelte) renews in time. Tuned for a 24h token — bump REFRESH_THRESHOLD_MS
-// here if you lower JWT_EXPIRY on the server.
-const REFRESH_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
+// Renew when the token has less than this long left. Generous on purpose:
+// even a tab that sits open and completely idle for weeks gets picked up by
+// the periodic timer well before expiry.
+const REFRESH_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Decode the `exp` claim (seconds since epoch) from a JWT. Signature
 // verification happens server-side; here we only read expiry to decide when to
