@@ -1,4 +1,6 @@
-﻿const TOKEN_KEY = 'zyes_token';
+﻿import { API_BASE } from './base';
+
+const TOKEN_KEY = 'zyes_token';
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -103,7 +105,7 @@ export async function refreshToken(): Promise<string | null> {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
     try {
-      const res = await fetch('/api/auth/refresh', {
+      const res = await fetch(`${API_BASE}/api/auth/refresh`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });

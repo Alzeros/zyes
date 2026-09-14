@@ -2,6 +2,7 @@
   import { isAuthenticated, getToken, setToken, removeToken, maybeRefresh, setForceLogoutHandler } from './lib/auth';
   import { revokeAll } from './lib/iconCache.svelte';
   import { api } from './lib/api';
+  import { API_BASE } from './lib/base';
   import { getLang, toggleLang } from './lib/i18n';
   import type { Bookmark, Category, SearchEngine, ViewSettings } from './lib/types';
   import LoginScreen from './components/LoginScreen.svelte';
@@ -250,7 +251,7 @@
   // Content-Disposition filename). Build an object URL + synthetic <a> click.
   async function handleExport(): Promise<void> {
     const token = getToken();
-    const res = await fetch('/api/data/export', {
+    const res = await fetch(`${API_BASE}/api/data/export`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error(`Export failed: ${res.status}`);
@@ -293,7 +294,7 @@
   // just a different endpoint + content type.
   async function handleExportHtml(): Promise<void> {
     const token = getToken();
-    const res = await fetch('/api/data/export-html', {
+    const res = await fetch(`${API_BASE}/api/data/export-html`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!res.ok) throw new Error(`Export HTML failed: ${res.status}`);

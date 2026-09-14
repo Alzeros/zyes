@@ -13,6 +13,7 @@
 // first are fast local hits. Blob URLs are revoked on logout (revokeAll).
 
 import { getToken } from './auth';
+import { API_BASE } from './base';
 
 // Reactive map: hostname → blob URL. Components read via getIconBlobUrl() inside
 // $derived, so they re-render automatically when a fetch resolves and the entry
@@ -45,7 +46,7 @@ export function ensureIcon(url: string): void {
   inflight.add(host);
 
   const q = new URLSearchParams({ url });
-  fetch(`/api/icon?${q}`, { headers: { Authorization: `Bearer ${token}` } })
+  fetch(`${API_BASE}/api/icon?${q}`, { headers: { Authorization: `Bearer ${token}` } })
     .then((res) => (res.ok ? res.blob() : null))
     .then((blob) => {
       if (blob && blob.size > 0) {
