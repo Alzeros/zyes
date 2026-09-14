@@ -139,15 +139,24 @@ body::before {
    Buttons/menus in this app use bg-color hover states only, so keyboard users
    previously had NO visible focus indicator at all (Tailwind's preflight
    leaves a faint default outline that several components override away).
-   A 2px primary ring + 2px offset, dark-mode brightened, applied globally to
-   :focus-visible so pointer clicks never show it. */
-:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-:where(.dark) :focus-visible {
-  outline-color: #7ea6d8; /* primary is near-black on dark bg; brighten the ring */
+   A 2px primary ring + 2px offset, dark-mode brightened.
+
+   Lives in @layer base so the `outline-none` / `focus:outline-none` utilities
+   (which sit in the later utilities layer) can override it. This matters for
+   text inputs: browsers match :focus-visible on them even for POINTER clicks
+   (the user is about to type), so an unlayered rule here would beat their
+   `outline-none` and stack a dark rectangle on top of each input's own focus
+   styling (ring/border — the SearchBar "inner dark box" bug). Elements without
+   outline-none (buttons, links) keep the ring for keyboard users. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  :where(.dark) :focus-visible {
+    outline-color: #7ea6d8; /* primary is near-black on dark bg; brighten the ring */
+  }
 }
 
 /* ─── Overlay choreography ───
