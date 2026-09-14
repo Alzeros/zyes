@@ -12,7 +12,12 @@
   let query = $state('');
   let showSwitcher = $state(false);
   let inputEl: HTMLInputElement;
-  let activeEngineId = $state(localStorage.getItem(ENGINE_KEY) || defaultEngine || 'google');
+  // The user's explicit engine choice (persisted locally) wins; otherwise
+  // follow the server-side default. Derived (not one-shot $state) because the
+  // defaultEngine prop arrives AFTER mount — the bar renders before fetchData
+  // resolves, and a $state initializer would freeze the pre-fetch fallback.
+  let userChoice = $state(localStorage.getItem(ENGINE_KEY) || '');
+  let activeEngineId = $derived(userChoice || defaultEngine || 'google');
 
   let activeEngine = $derived(
     searchEngines.find((e) => e.id === activeEngineId && e.isActive) ||
@@ -33,7 +38,7 @@
 
   function setEngine(engine: SearchEngine) {
     localStorage.setItem(ENGINE_KEY, engine.id);
-    activeEngineId = engine.id;
+    userChoice = engine.id;
     showSwitcher = false;
   }
 
