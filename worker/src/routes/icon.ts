@@ -8,9 +8,10 @@ import { tokenFromRequest, verifyQueryToken } from '../auth';
 //
 // Cache strategy: Workers Cache API (caches.default). Keyed by target hostname.
 // On miss we fetch the favicon sources in order (icon.horse → Google →
-// DuckDuckGo), store the first 200 body in the edge cache for `CACHE_TTL`, and
-// return the bytes. Cache hits return the stored Response directly — no upstream
-// fetch. Long-tail eviction is fine: favicons are regenerable.
+// DuckDuckGo → the site's own /favicon.ico as a last resort), store the first
+// 200 image body in the edge cache for `CACHE_TTL`, and return the bytes.
+// Cache hits return the stored Response directly — no upstream fetch.
+// Long-tail eviction is fine: favicons are regenerable.
 //
 // Privacy win: the upstream favicon providers see Cloudflare's edge IP, never
 // the user's browser IP.
@@ -19,10 +20,14 @@ import { tokenFromRequest, verifyQueryToken } from '../auth';
 const CACHE_HOST = 'https://zyes.internal/icon';
 const CACHE_TTL = 30 * 24 * 60 * 60; // 30 days, in seconds (max-age header)
 
+// The site's own /favicon.ico is the last resort: no third-party dependency
+// (some services throttle datacenter IPs), but often low-res, so the
+// higher-quality services go first.
 const FAVICON_SOURCES = (host: string): string[] => [
   `https://icon.horse/icon/${host}`,
   `https://www.google.com/s2/favicons?domain=${host}&sz=64`,
   `https://icons.duckduckgo.com/ip3/${host}.ico`,
+  `https://${host}/favicon.ico`,
 ];
 
 export function iconRoutes(): Hono<{ Bindings: Env }> {
@@ -64,10 +69,13 @@ export function iconRoutes(): Hono<{ Bindings: Env }> {
           cf: { cacheTtl: CACHE_TTL, cacheEverything: true },
         });
         if (!up.ok || up.status !== 200) continue;
+        const contentType = up.headers.get('Content-Type') || 'image/x-icon';
+        // A site's own /favicon.ico may 200 with an HTML body (SPA catch-all
+        // routes). Only accept image-ish payloads so a page never gets cached
+        // as an icon for 30 days.
+        if (!/^image\/|^application\/octet-stream/i.test(contentType)) continue;
         const body = await up.arrayBuffer();
         if (body.byteLength === 0) continue;
-
-        const contentType = up.headers.get('Content-Type') || 'image/x-icon';
         const res = new Response(body, {
           status: 200,
           headers: {

@@ -1,8 +1,8 @@
 // Favicon auto-fetch is routed through the backend icon proxy at
 //   GET /api/icon?url=<bookmark url>
-// The backend fetches the favicon sources (icon.horse → Google → DuckDuckGo)
-// server-side, caches the bytes (Workers: Cache API / 30d; Node: in-memory Map),
-// and streams them back. Moving fetch off the client has two wins: the favicon
+// The backend fetches the favicon sources (icon.horse → Google → DuckDuckGo →
+// the site's own /favicon.ico) server-side, caches the bytes (Workers: Cache
+// API / 30d; Node: in-memory Map), and streams them back. Moving fetch off the client has two wins: the favicon
 // is fetched once per edge node instead of per-device-per-pageload, and the
 // user's IP is no longer exposed to the favicon providers.
 //

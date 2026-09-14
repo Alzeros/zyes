@@ -15,10 +15,13 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+// The site's own /favicon.ico is the last resort: no third-party dependency,
+// but often low-res, so the higher-quality services go first.
 const FAVICON_SOURCES = (host: string): string[] => [
   `https://icon.horse/icon/${host}`,
   `https://www.google.com/s2/favicons?domain=${host}&sz=64`,
   `https://icons.duckduckgo.com/ip3/${host}.ico`,
+  `https://${host}/favicon.ico`,
 ];
 
 interface CacheEntry {
@@ -33,9 +36,13 @@ async function fetchIcon(host: string): Promise<{ buf: Buffer; contentType: stri
     try {
       const up = await fetch(src);
       if (!up.ok || up.status !== 200) continue;
+      const contentType = up.headers.get('content-type') || 'image/x-icon';
+      // A site's own /favicon.ico may 200 with an HTML body (SPA catch-all
+      // routes). Only accept image-ish payloads so a page never gets cached
+      // as an icon.
+      if (!/^image\/|^application\/octet-stream/i.test(contentType)) continue;
       const ab = await up.arrayBuffer();
       if (ab.byteLength === 0) continue;
-      const contentType = up.headers.get('content-type') || 'image/x-icon';
       return { buf: Buffer.from(ab), contentType };
     } catch {
       // network error on this source — try the next
