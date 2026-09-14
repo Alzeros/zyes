@@ -12,13 +12,15 @@
 // (Node in-memory Map / Workers Cache API) still works, so fetches after the
 // first are fast local hits. Blob URLs are revoked on logout (revokeAll).
 
+import { SvelteMap } from 'svelte/reactivity';
 import { getToken } from './auth';
 import { API_BASE } from './base';
 
 // Reactive map: hostname → blob URL. Components read via getIconBlobUrl() inside
 // $derived, so they re-render automatically when a fetch resolves and the entry
-// is populated.
-const cache = $state<Map<string, string>>(new Map());
+// is populated. Must be a SvelteMap — $state does not proxy Map instances, so a
+// plain Map's .set() would never invalidate the deriveds reading it.
+const cache = new SvelteMap<string, string>();
 // Hosts with a fetch in progress (prevents duplicate requests).
 const inflight = new Set<string>();
 // Hosts where the fetch returned non-200 / empty body (prevents retry loops).
