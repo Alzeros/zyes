@@ -1,0 +1,10 @@
+<!-- PWA icon source (purpose "maskable"): same mark scaled down so it fits the
+     maskable safe zone (a centered circle of 80% of the tile — launchers crop
+     the tile into circles/squircles). Rasterize with (npx sharp-cli):
+       sharp -i scripts/icons/icon-maskable.svg -o src/public/icons/icon-maskable-512.png resize 512 512 -->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1e3a5f"/>
+  <g transform="translate(256 256) scale(13) translate(-16 -16)">
+    <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" fill="none"/>
+  </g>
+</svg>

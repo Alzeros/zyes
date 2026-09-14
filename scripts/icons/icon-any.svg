@@ -1,0 +1,11 @@
+<!-- PWA icon source (purpose "any"): the brand Z on the primary navy, filling
+     ~55% of the tile. Rasterize with (npx sharp-cli):
+       sharp -i scripts/icons/icon-any.svg -o src/public/icons/icon-512.png resize 512 512
+       sharp -i scripts/icons/icon-any.svg -o src/public/icons/icon-192.png resize 192 192
+       sharp -i scripts/icons/icon-any.svg -o src/public/apple-touch-icon.png resize 180 180 -->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#1e3a5f"/>
+  <g transform="translate(256 256) scale(16) translate(-16 -16)">
+    <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" fill="none"/>
+  </g>
+</svg>

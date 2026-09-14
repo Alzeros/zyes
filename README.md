@@ -94,6 +94,16 @@ npm run cf-typecheck           # 仅类型检查 worker/
 
 ---
 
+## PWA(移动端安装)
+
+前端自带 Web App Manifest + Service Worker,两套后端形态都生效:手机浏览器打开站点 → 菜单里选「添加到主屏幕 / 安装应用」,即可像原生 App 一样全屏使用。
+
+- Service Worker 只缓存应用外壳:HTML 导航走 network-first(发版后下次打开即最新),构建产物 hash 文件走 cache-first。
+- `/api` 请求永不经过 SW 缓存;离线时界面能打开,书签数据加载仍需网络。
+- 图标源在 `scripts/icons/*.svg`,改动后按文件内注释用 sharp-cli 重新生成 `src/public/` 下的 PNG。
+
+---
+
 ## 数据导入 / 导出
 
 设置面板（齿轮 → 数据）支持三种数据操作，**两套后端行为一致**：
