@@ -14,12 +14,23 @@
 
 // Legacy multi-source favicon list, still used as a final client-side fallback
 // if the proxy itself errors (e.g. token expired / network blip). Kept so the
-// <img onerror> chain has somewhere to fall through to.
+// <img onerror> chain has somewhere to fall through to. The site's own
+// /favicon.ico goes FIRST: when the proxy has already failed, the third-party
+// services are often unreachable too (blocked networks), but the bookmarked
+// site itself is usually reachable — you bookmarked it to visit it.
 const FAVICON_SOURCES = [
+  (d: string) => `https://${d}/favicon.ico`,
   (d: string) => `https://icon.horse/icon/${d}`,
   (d: string) => `https://www.google.com/s2/favicons?domain=${d}&sz=64`,
   (d: string) => `https://icons.duckduckgo.com/ip3/${d}.ico`,
 ];
+
+// Direct URLs of the third-party favicon services above. Old data may carry
+// one of these in bookmark.icon (the icon picker used to store the picked
+// candidate's direct URL): treat those as "auto favicon" (kind:'none') so they
+// load through the authed icon proxy — cached server-side and reachable
+// regardless of whether the browser can reach the third party itself.
+const FAVICON_SERVICE_RE = /^https?:\/\/(?:icon\.horse\/icon\/|www\.google\.com\/s2\/favicons(?:\?|$)|icons\.duckduckgo\.com\/ip3\/)/i;
 
 export function getFaviconUrls(url: string): string[] {
   try {
@@ -97,6 +108,10 @@ export function parseIcon(icon: string | null | undefined): IconSource {
     return name ? { kind: 'iconify', name } : { kind: 'none' };
   }
   if (/^https?:\/\//i.test(v)) {
+    // Stored favicon-service URL → normalize to auto (proxy). No data
+    // migration needed: the URL was generated from the bookmark's own host,
+    // so the proxy fetches the same icon.
+    if (FAVICON_SERVICE_RE.test(v)) return { kind: 'none' };
     return { kind: 'image', url: v };
   }
   // Bare iconify name like "mdi:github" (contains a colon) — treat as iconify.

@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { isValidUrl, getFaviconUrls, parseIcon } from '../lib/utils';
+  import { isValidUrl, parseIcon } from '../lib/utils';
+  import { ensureIcon, getIconBlobUrl } from '../lib/iconCache.svelte';
   import Icon from '@iconify/svelte';
   import { t } from '../lib/i18n';
 
@@ -24,31 +25,17 @@
 
   // Parsed view-model for the live big preview.
   let previewSource = $derived(parseIcon(icon.trim()) ?? { kind: 'none' as const });
-  // Favicon candidates produced by the "fetch" action. Each entry tracks load
-  // status so we can show a placeholder while it loads and hide broken ones.
-  type Candidate = { url: string; label: string; loaded: boolean; failed: boolean };
-  let candidates = $state<Candidate[]>([]);
 
-  const FAVICON_SOURCE_LABELS = ['icon.horse', 'Google', 'DuckDuckGo'];
+  // Auto-fetched favicon preview, loaded through the authed icon proxy (blob
+  // URL — the exact pipeline the card itself uses). Replaces the old three
+  // direct third-party candidates: picking one stored its direct URL in the
+  // bookmark, which broke on networks that can't reach that third party and
+  // bypassed the proxy cache entirely.
+  let autoBlob = $derived(url && isValidUrl(url) ? getIconBlobUrl(url) : '');
+  $effect(() => {
+    if (url && isValidUrl(url)) ensureIcon(url);
+  });
 
-  function fetchCandidates() {
-    const u = url.trim();
-    if (!u || !isValidUrl(u)) {
-      candidates = [];
-      return;
-    }
-    const urls = getFaviconUrls(u);
-    candidates = urls.map((url, i) => ({
-      url,
-      label: FAVICON_SOURCE_LABELS[i] ?? `源 ${i + 1}`,
-      loaded: false,
-      failed: false,
-    }));
-  }
-
-  function chooseImage(url: string) {
-    icon = url;
-  }
   function clearIcon() {
     icon = '';
   }
@@ -76,6 +63,9 @@
           <img src={previewSource.url} alt="" class="object-contain w-full h-full" style="padding:6%" />
         {:else if previewSource.kind === 'emoji'}
           <span class="text-2xl font-bold text-primary">{previewSource.char}</span>
+        {:else if autoBlob}
+          <!-- Auto mode: show the proxied favicon the card will actually render. -->
+          <img src={autoBlob} alt="" class="object-contain w-full h-full" style="padding:6%" />
         {:else}
           <span class="text-2xl font-bold text-primary">{(title || 'N').charAt(0).toUpperCase()}</span>
         {/if}
@@ -101,45 +91,24 @@
       </div>
     </div>
 
-    <!-- Fetch favicons from the target URL -->
+    <!-- Auto favicon (via the icon proxy). Clicking it clears the custom icon,
+         i.e. "use the auto-fetched site icon". Selected state = no custom icon. -->
     {#if url && isValidUrl(url)}
       <div class="mb-5">
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-medium text-text-secondary dark:text-text-secondary-dark">{t('modal.autoFetchFromUrl')}</span>
-          <button
-            type="button"
-            onclick={fetchCandidates}
-            class="px-2 py-1 rounded-lg text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary transition-colors cursor-pointer"
-          >
-            {t('modal.fetch')}
-          </button>
-        </div>
-        {#if candidates.length > 0}
-          <div class="flex flex-wrap gap-3">
-            {#each candidates as c}
-              <button
-                type="button"
-                onclick={() => chooseImage(c.url)}
-                title={c.label}
-                class="w-16 h-16 rounded-lg flex items-center justify-center bg-bg dark:bg-bg-dark border transition-all cursor-pointer {icon === c.url ? 'ring-2 ring-primary border-primary' : 'border-border dark:border-border-dark hover:border-primary/40'}"
-              >
-                {#if c.failed}
-                  <span class="text-[11px] text-text-secondary dark:text-text-secondary-dark">{c.label.slice(0, 3)}</span>
-                {:else}
-                  <img
-                    src={c.url}
-                    alt={c.label}
-                    class="w-10 h-10 object-contain p-1"
-                    onload={() => (c.loaded = true)}
-                    onerror={() => (c.failed = true)}
-                  />
-                {/if}
-              </button>
-            {/each}
-          </div>
-        {:else}
-          <p class="text-xs text-text-secondary dark:text-text-secondary-dark">{t('modal.autoFetchHint')}</p>
-        {/if}
+        <span class="block text-xs font-medium text-text-secondary dark:text-text-secondary-dark mb-2">{t('modal.autoFetchFromUrl')}</span>
+        <button
+          type="button"
+          onclick={clearIcon}
+          title={t('modal.autoFetchFromUrl')}
+          class="w-16 h-16 rounded-lg flex items-center justify-center bg-bg dark:bg-bg-dark border transition-all cursor-pointer {!icon.trim() ? 'ring-2 ring-primary border-primary' : 'border-border dark:border-border-dark hover:border-primary/40'}"
+        >
+          {#if autoBlob}
+            <img src={autoBlob} alt="" class="w-10 h-10 object-contain p-1" />
+          {:else}
+            <span class="text-lg font-bold text-primary">{(title || 'N').charAt(0).toUpperCase()}</span>
+          {/if}
+        </button>
+        <p class="mt-2 text-xs text-text-secondary dark:text-text-secondary-dark">{t('modal.autoFetchHint')}</p>
       </div>
     {/if}
 
