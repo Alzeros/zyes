@@ -70,8 +70,12 @@ function migrateData(data: AppData): AppData {
       b.displayMode = 'compact';
     }
   }
-  if (data.settings?.allViewMode !== 'compact' && data.settings?.allViewMode !== 'detail') {
+  if (!data.settings) {
     data.settings = { allViewMode: 'detail' };
+  } else if (data.settings.allViewMode !== 'compact' && data.settings.allViewMode !== 'detail') {
+    // Fix the one bad field in place — replacing the whole object would wipe
+    // cardSize/siteName/siteLogo/defaultEngine.
+    data.settings.allViewMode = 'detail';
   }
   // Prune to the whitelisted engines and ensure all defaults are present,
   // preserving any per-engine isActive toggles the user already set.
