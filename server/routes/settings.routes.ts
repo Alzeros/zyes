@@ -8,7 +8,7 @@ export async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
     return { ok: true, data: settings };
   });
 
-  // PUT /api/settings/view — update any subset of { allViewMode, cardSize, siteName, siteLogo }.
+  // PUT /api/settings/view — update any subset of { allViewMode, cardSize, siteName, siteLogo, defaultEngine }.
   // Each field is validated; an invalid value rejects the whole request.
   fastify.put('/view', async (request, reply) => {
     const body = request.body as {
@@ -16,6 +16,7 @@ export async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
       cardSize?: string;
       siteName?: unknown;
       siteLogo?: unknown;
+      defaultEngine?: unknown;
     };
 
     if (body.allViewMode !== undefined && body.allViewMode !== 'compact' && body.allViewMode !== 'detail') {
@@ -38,12 +39,20 @@ export async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
       }
       siteLogo = body.siteLogo;
     }
+    let defaultEngine: string | undefined;
+    if (body.defaultEngine !== undefined) {
+      if (typeof body.defaultEngine !== 'string') {
+        return reply.status(400).send({ ok: false, error: 'Invalid defaultEngine', code: 'INVALID_MODE' });
+      }
+      defaultEngine = body.defaultEngine;
+    }
 
     const settings = store.updateSettings({
       allViewMode: body.allViewMode as 'compact' | 'detail' | undefined,
       cardSize: body.cardSize as 'xs' | 'sm' | 'md' | 'lg' | undefined,
       siteName,
       siteLogo,
+      defaultEngine,
     });
     return { ok: true, data: settings };
   });

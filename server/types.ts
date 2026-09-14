@@ -41,6 +41,9 @@ export interface ViewSettings {
   // Mirror of the Worker's siteLogo; persisted to data.settings so local Node
   // dev preview survives restarts (same pattern as cardSize/siteName above).
   siteLogo?: string;
+  // Default search engine id. Mirror of the Worker's default_engine settings
+  // key; persisted to data.settings (same pattern as the fields above).
+  defaultEngine?: string;
 }
 
 export interface AppData {
