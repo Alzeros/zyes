@@ -47,7 +47,7 @@ async function main() {
   const config = {
     passwordHash,
     jwtSecret,
-    jwtExpiry: '24h',
+    jwtExpiry: '30d',
     port: 3847,
     host: '0.0.0.0',
   };

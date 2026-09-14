@@ -32,7 +32,7 @@ async function autoInit() {
   const passwordHash = await hashPassword(password);
   const jwtSecret = randomBytes(64).toString('hex');
   writeFileSync(configPath, JSON.stringify({
-    passwordHash, jwtSecret, jwtExpiry: '24h', port, host: '0.0.0.0',
+    passwordHash, jwtSecret, jwtExpiry: '30d', port, host: '0.0.0.0',
   }, null, 2), 'utf-8');
 
   console.log('\n  ============================================');
