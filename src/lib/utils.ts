@@ -25,12 +25,29 @@ const FAVICON_SOURCES = [
   (d: string) => `https://icons.duckduckgo.com/ip3/${d}.ico`,
 ];
 
-// Direct URLs of the third-party favicon services above. Old data may carry
-// one of these in bookmark.icon (the icon picker used to store the picked
-// candidate's direct URL): treat those as "auto favicon" (kind:'none') so they
-// load through the authed icon proxy — cached server-side and reachable
-// regardless of whether the browser can reach the third party itself.
-const FAVICON_SERVICE_RE = /^https?:\/\/(?:icon\.horse\/icon\/|www\.google\.com\/s2\/favicons(?:\?|$)|icons\.duckduckgo\.com\/ip3\/)/i;
+// Favicon proxy sources the user can PIN via the icon picker, stored in
+// bookmark.icon as "favicon:<id>". Pinning exists because the auto chain takes
+// the FIRST 200 — and e.g. icon.horse answers 200 with a generated letter
+// placeholder for sites it doesn't know, shadowing a real icon Google has.
+// The proxy accepts the id as ?s=<id> and fetches only that source.
+export const FAVICON_SOURCES_UI = [
+  { id: 'iconhorse', label: 'icon.horse' },
+  { id: 'google', label: 'Google' },
+  { id: 'ddg', label: 'DuckDuckGo' },
+  { id: 'site', label: 'favicon.ico' },
+] as const;
+
+// Direct URLs of the third-party favicon services. Old data may carry one of
+// these in bookmark.icon (the icon picker used to store the picked candidate's
+// direct URL): map them onto the SAME pinned-source behaviour — the URL was
+// generated from the bookmark's own host, so proxying that source fetches the
+// same icon, cached server-side and reachable regardless of whether the
+// browser can reach the third party itself.
+const LEGACY_SERVICE_URLS: { id: string; re: RegExp }[] = [
+  { id: 'iconhorse', re: /^https?:\/\/icon\.horse\/icon\//i },
+  { id: 'google', re: /^https?:\/\/www\.google\.com\/s2\/favicons(?:\?|$)/i },
+  { id: 'ddg', re: /^https?:\/\/icons\.duckduckgo\.com\/ip3\//i },
+];
 
 export function getFaviconUrls(url: string): string[] {
   try {
@@ -93,11 +110,13 @@ export function getInitialColor(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-// A custom bookmark icon source: iconify (prefix "iconify:") or a remote image URL.
+// A custom bookmark icon source: iconify (prefix "iconify:"), a remote image
+// URL, an auto favicon pinned to one proxy source (prefix "favicon:"), or none.
 export type IconSource =
-  | { kind: 'iconify'; name: string }   // e.g. "mdi:github"
-  | { kind: 'image'; url: string }       // http(s) image URL
-  | { kind: 'none' };                   // fall back to auto favicon
+  | { kind: 'iconify'; name: string }     // e.g. "mdi:github"
+  | { kind: 'image'; url: string }        // http(s) image URL
+  | { kind: 'favicon'; source: string }   // auto favicon via ONE pinned proxy source
+  | { kind: 'none' };                     // auto favicon (proxy chain, first hit wins)
 
 export function parseIcon(icon: string | null | undefined): IconSource {
   if (!icon) return { kind: 'none' };
@@ -107,11 +126,18 @@ export function parseIcon(icon: string | null | undefined): IconSource {
     const name = v.slice('iconify:'.length).trim();
     return name ? { kind: 'iconify', name } : { kind: 'none' };
   }
+  // Pinned proxy source ("favicon:google" etc, written by the icon picker).
+  // Must be checked before the bare includes(':') iconify heuristic below.
+  if (v.startsWith('favicon:')) {
+    const source = v.slice('favicon:'.length).trim();
+    return source ? { kind: 'favicon', source } : { kind: 'none' };
+  }
   if (/^https?:\/\//i.test(v)) {
-    // Stored favicon-service URL → normalize to auto (proxy). No data
-    // migration needed: the URL was generated from the bookmark's own host,
-    // so the proxy fetches the same icon.
-    if (FAVICON_SERVICE_RE.test(v)) return { kind: 'none' };
+    // Legacy stored favicon-service URL → same pinned-source behaviour. No
+    // data migration needed: the URL was generated from the bookmark's own
+    // host, so proxying that source fetches the same icon.
+    const legacy = LEGACY_SERVICE_URLS.find((s) => s.re.test(v));
+    if (legacy) return { kind: 'favicon', source: legacy.id };
     return { kind: 'image', url: v };
   }
   // Bare iconify name like "mdi:github" (contains a colon) — treat as iconify.

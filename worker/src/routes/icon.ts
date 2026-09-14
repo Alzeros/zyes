@@ -20,15 +20,19 @@ import { tokenFromRequest, verifyQueryToken } from '../auth';
 const CACHE_HOST = 'https://zyes.internal/icon';
 const CACHE_TTL = 30 * 24 * 60 * 60; // 30 days, in seconds (max-age header)
 
-// The site's own /favicon.ico is the last resort: no third-party dependency
-// (some services throttle datacenter IPs), but often low-res, so the
-// higher-quality services go first.
-const FAVICON_SOURCES = (host: string): string[] => [
-  `https://icon.horse/icon/${host}`,
-  `https://www.google.com/s2/favicons?domain=${host}&sz=64`,
-  `https://icons.duckduckgo.com/ip3/${host}.ico`,
-  `https://${host}/favicon.ico`,
-];
+// Upstream sources by id. The auto chain walks them in this order (the site's
+// own /favicon.ico last: no third-party dependency, but often low-res). The
+// client may pin ONE source via ?s=<id> — the icon picker offers this because
+// the auto chain takes the FIRST 200, and e.g. icon.horse answers 200 with a
+// generated letter placeholder for sites it doesn't know, shadowing a real
+// icon another source has. Ids are shared with src/lib/utils.ts
+// FAVICON_SOURCES_UI and the Node backend.
+const SOURCES_BY_ID = (host: string): Record<string, string> => ({
+  iconhorse: `https://icon.horse/icon/${host}`,
+  google: `https://www.google.com/s2/favicons?domain=${host}&sz=64`,
+  ddg: `https://icons.duckduckgo.com/ip3/${host}.ico`,
+  site: `https://${host}/favicon.ico`,
+});
 
 export function iconRoutes(): Hono<{ Bindings: Env }> {
   const app = new Hono<{ Bindings: Env }>();
@@ -53,7 +57,17 @@ export function iconRoutes(): Hono<{ Bindings: Env }> {
     }
     if (!host) return c.json({ ok: false, error: 'Invalid url', code: 'BAD_REQUEST' }, 400);
 
-    const cacheKey = new Request(`${CACHE_HOST}/${encodeURIComponent(host)}`);
+    // Pinned source (?s=<id>): fetch ONLY that upstream; unknown/absent id
+    // walks the auto chain. Pinned lookups cache under their own key so
+    // switching sources never fights the auto entry.
+    const byId = SOURCES_BY_ID(host);
+    const sParam = c.req.query('s') || '';
+    // hasOwnProperty guard: a bare byId[sParam] would resolve inherited keys
+    // like "constructor" to a function and feed it to fetch().
+    const pinned = Object.prototype.hasOwnProperty.call(byId, sParam) ? byId[sParam] : undefined;
+    const sources = pinned ? [pinned] : Object.values(byId);
+
+    const cacheKey = new Request(`${CACHE_HOST}/${encodeURIComponent(host)}${pinned ? `--${sParam}` : ''}`);
     const cache = caches.default;
 
     // Cache hit: return as-is (already carries Content-Type + Cache-Control).
@@ -61,7 +75,7 @@ export function iconRoutes(): Hono<{ Bindings: Env }> {
     if (cached) return cached.clone();
 
     // Miss: try each source, return the first 200 with a readable body.
-    for (const src of FAVICON_SOURCES(host)) {
+    for (const src of sources) {
       try {
         const up = await fetch(src, {
           // Let Cloudflare also cache the upstream response so repeated misses

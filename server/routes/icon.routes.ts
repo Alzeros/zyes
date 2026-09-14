@@ -15,14 +15,16 @@ import type { FastifyRequest, FastifyReply } from 'fastify';
 
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-// The site's own /favicon.ico is the last resort: no third-party dependency,
-// but often low-res, so the higher-quality services go first.
-const FAVICON_SOURCES = (host: string): string[] => [
-  `https://icon.horse/icon/${host}`,
-  `https://www.google.com/s2/favicons?domain=${host}&sz=64`,
-  `https://icons.duckduckgo.com/ip3/${host}.ico`,
-  `https://${host}/favicon.ico`,
-];
+// Upstream sources by id. The auto chain walks them in this order (the site's
+// own /favicon.ico last: no third-party dependency, but often low-res). The
+// client may pin ONE source via ?s=<id> — mirrors worker/src/routes/icon.ts;
+// ids are shared with src/lib/utils.ts FAVICON_SOURCES_UI.
+const SOURCES_BY_ID = (host: string): Record<string, string> => ({
+  iconhorse: `https://icon.horse/icon/${host}`,
+  google: `https://www.google.com/s2/favicons?domain=${host}&sz=64`,
+  ddg: `https://icons.duckduckgo.com/ip3/${host}.ico`,
+  site: `https://${host}/favicon.ico`,
+});
 
 interface CacheEntry {
   buf: Buffer;
@@ -31,8 +33,8 @@ interface CacheEntry {
 }
 const cache = new Map<string, CacheEntry>();
 
-async function fetchIcon(host: string): Promise<{ buf: Buffer; contentType: string } | null> {
-  for (const src of FAVICON_SOURCES(host)) {
+async function fetchIcon(sources: string[]): Promise<{ buf: Buffer; contentType: string } | null> {
+  for (const src of sources) {
     try {
       const up = await fetch(src);
       if (!up.ok || up.status !== 200) continue;
@@ -53,7 +55,7 @@ async function fetchIcon(host: string): Promise<{ buf: Buffer; contentType: stri
 
 export async function iconRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { url } = request.query as { url?: string };
+    const { url, s } = request.query as { url?: string; s?: string };
     if (!url) return reply.status(400).send({ ok: false, error: 'Missing url', code: 'BAD_REQUEST' });
 
     let host: string;
@@ -64,20 +66,29 @@ export async function iconRoutes(fastify: FastifyInstance): Promise<void> {
     }
     if (!host) return reply.status(400).send({ ok: false, error: 'Invalid url', code: 'BAD_REQUEST' });
 
-    const cached = cache.get(host);
+    // Pinned source (?s=<id>): fetch ONLY that upstream; unknown/absent id
+    // walks the auto chain. Pinned lookups cache under their own key.
+    const byId = SOURCES_BY_ID(host);
+    // hasOwnProperty guard: a bare byId[s] would resolve inherited keys like
+    // "constructor" to a function and feed it to fetch().
+    const pinned = s && Object.prototype.hasOwnProperty.call(byId, s) ? byId[s] : undefined;
+    const sources = pinned ? [pinned] : Object.values(byId);
+    const cacheKey = pinned ? `${host}--${s}` : host;
+
+    const cached = cache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return reply
         .headers({ 'Content-Type': cached.contentType, 'Cache-Control': `public, max-age=${CACHE_TTL_MS / 1000}, immutable` })
         .send(cached.buf);
     }
 
-    const fetched = await fetchIcon(host);
+    const fetched = await fetchIcon(sources);
     if (!fetched) {
       // 404 → client <img onerror> advances to its direct multi-source fallback.
       return reply.status(404).send({ ok: false, error: 'Icon not found', code: 'NOT_FOUND' });
     }
 
-    cache.set(host, { ...fetched, expiresAt: Date.now() + CACHE_TTL_MS });
+    cache.set(cacheKey, { ...fetched, expiresAt: Date.now() + CACHE_TTL_MS });
     return reply
       .headers({ 'Content-Type': fetched.contentType, 'Cache-Control': `public, max-age=${CACHE_TTL_MS / 1000}, immutable` })
       .send(fetched.buf);

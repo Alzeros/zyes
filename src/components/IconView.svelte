@@ -34,13 +34,15 @@
     [...(fallbackUrl ? [fallbackUrl] : []), ...fallbackUrls].filter(Boolean)
   );
 
-  // Candidate URLs to try in order: when the bookmark has no custom icon
-  // (kind === 'none'), the caller passes a backend icon-proxy URL which we try
+  // Candidate URLs to try in order: when the icon is auto (kind 'none' = proxy
+  // picks the first working source; kind 'favicon' = proxy pinned to one
+  // source), the caller passes a backend icon-proxy blob URL which we try
   // FIRST — it fetches+caches server-side. If it errors (token expired, network
   // blip) the legacy direct multi-source list carries on as before. Empty proxy
   // => behaves exactly as before.
+  const isAuto = $derived(source.kind === 'none' || source.kind === 'favicon');
   const tryList = $derived(
-    [...(source.kind === 'none' && proxyUrl ? [proxyUrl] : []), ...sources]
+    [...(isAuto && proxyUrl ? [proxyUrl] : []), ...sources]
   );
 
 

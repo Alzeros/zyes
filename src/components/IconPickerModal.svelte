@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { isValidUrl, parseIcon } from '../lib/utils';
+  import { isValidUrl, parseIcon, FAVICON_SOURCES_UI } from '../lib/utils';
   import { ensureIcon, getIconBlobUrl } from '../lib/iconCache.svelte';
   import Icon from '@iconify/svelte';
   import { t } from '../lib/i18n';
@@ -26,18 +26,35 @@
   // Parsed view-model for the live big preview.
   let previewSource = $derived(parseIcon(icon.trim()) ?? { kind: 'none' as const });
 
-  // Auto-fetched favicon preview, loaded through the authed icon proxy (blob
-  // URL — the exact pipeline the card itself uses). Replaces the old three
-  // direct third-party candidates: picking one stored its direct URL in the
-  // bookmark, which broke on networks that can't reach that third party and
-  // bypassed the proxy cache entirely.
-  let autoBlob = $derived(url && isValidUrl(url) ? getIconBlobUrl(url) : '');
+  // ── Favicon source candidates ────────────────────────────────────────────
+  // Every candidate is loaded through the authed icon proxy (blob URL — the
+  // exact pipeline a card uses), NOT by pointing <img> at the third party:
+  // picking one used to store its direct URL in the bookmark, which broke on
+  // networks that can't reach that provider and bypassed the proxy cache.
+  // Picking a candidate stores "favicon:<id>", which pins the proxy to that
+  // one source (?s=<id>) — needed because the auto chain takes the first 200,
+  // and some providers answer 200 with a generated letter placeholder.
+  let urlOk = $derived(!!url && isValidUrl(url));
+  let autoBlob = $derived(urlOk ? getIconBlobUrl(url) : '');
+  let sourceBlobs = $derived(
+    Object.fromEntries(FAVICON_SOURCES_UI.map((s) => [s.id, urlOk ? getIconBlobUrl(url, s.id) : '']))
+  );
   $effect(() => {
-    if (url && isValidUrl(url)) ensureIcon(url);
+    if (!urlOk) return;
+    ensureIcon(url);
+    for (const s of FAVICON_SOURCES_UI) ensureIcon(url, s.id);
   });
+
+  // Which candidate is currently selected (derived from the parsed value so a
+  // legacy direct-URL icon highlights its matching source too).
+  let autoSelected = $derived(!icon.trim());
+  let pinnedSelected = $derived(previewSource.kind === 'favicon' ? previewSource.source : '');
 
   function clearIcon() {
     icon = '';
+  }
+  function pinSource(id: string) {
+    icon = `favicon:${id}`;
   }
 
   $effect(() => {
@@ -91,24 +108,51 @@
       </div>
     </div>
 
-    <!-- Auto favicon (via the icon proxy). Clicking it clears the custom icon,
-         i.e. "use the auto-fetched site icon". Selected state = no custom icon. -->
-    {#if url && isValidUrl(url)}
+    <!-- Favicon source picker. "Auto" (clears the icon) lets the proxy walk its
+         source chain; the others pin one provider via "favicon:<id>". All tiles
+         render the PROXIED image, so what you see is what the card will show —
+         and a provider the browser can't reach directly still previews fine. -->
+    {#if urlOk}
       <div class="mb-5">
-        <span class="block text-xs font-medium text-text-secondary dark:text-text-secondary-dark mb-2">{t('modal.autoFetchFromUrl')}</span>
-        <button
-          type="button"
-          onclick={clearIcon}
-          title={t('modal.autoFetchFromUrl')}
-          class="w-16 h-16 rounded-lg flex items-center justify-center bg-bg dark:bg-bg-dark border transition-all cursor-pointer {!icon.trim() ? 'ring-2 ring-primary border-primary' : 'border-border dark:border-border-dark hover:border-primary/40'}"
-        >
-          {#if autoBlob}
-            <img src={autoBlob} alt="" class="w-10 h-10 object-contain p-1" />
-          {:else}
-            <span class="text-lg font-bold text-primary">{(title || 'N').charAt(0).toUpperCase()}</span>
-          {/if}
-        </button>
-        <p class="mt-2 text-xs text-text-secondary dark:text-text-secondary-dark">{t('modal.autoFetchHint')}</p>
+        <span class="block text-xs font-medium text-text-secondary dark:text-text-secondary-dark mb-2">{t('modal.iconSourceTitle')}</span>
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onclick={clearIcon}
+            title={t('modal.iconSourceAuto')}
+            class="w-[72px] rounded-lg flex flex-col items-center gap-1 p-1.5 bg-bg dark:bg-bg-dark border transition-all cursor-pointer {autoSelected ? 'ring-2 ring-primary border-primary' : 'border-border dark:border-border-dark hover:border-primary/40'}"
+          >
+            <span class="w-9 h-9 flex items-center justify-center">
+              {#if autoBlob}
+                <img src={autoBlob} alt="" class="w-full h-full object-contain" />
+              {:else}
+                <span class="text-base font-bold text-primary">{(title || 'N').charAt(0).toUpperCase()}</span>
+              {/if}
+            </span>
+            <span class="text-[10px] leading-tight text-text-secondary dark:text-text-secondary-dark truncate w-full text-center">{t('modal.iconSourceAuto')}</span>
+          </button>
+
+          {#each FAVICON_SOURCES_UI as s (s.id)}
+            <button
+              type="button"
+              onclick={() => pinSource(s.id)}
+              title={s.label}
+              class="w-[72px] rounded-lg flex flex-col items-center gap-1 p-1.5 bg-bg dark:bg-bg-dark border transition-all cursor-pointer {pinnedSelected === s.id ? 'ring-2 ring-primary border-primary' : 'border-border dark:border-border-dark hover:border-primary/40'}"
+            >
+              <span class="w-9 h-9 flex items-center justify-center">
+                {#if sourceBlobs[s.id]}
+                  <img src={sourceBlobs[s.id]} alt={s.label} class="w-full h-full object-contain" />
+                {:else}
+                  <!-- No image: that source returned nothing for this site (or
+                       is still loading). Kept visible + selectable anyway. -->
+                  <span class="text-[10px] text-text-secondary/60 dark:text-text-secondary-dark/60">—</span>
+                {/if}
+              </span>
+              <span class="text-[10px] leading-tight text-text-secondary dark:text-text-secondary-dark truncate w-full text-center">{s.label}</span>
+            </button>
+          {/each}
+        </div>
+        <p class="mt-2 text-xs text-text-secondary dark:text-text-secondary-dark leading-relaxed">{t('modal.iconSourceHint')}</p>
       </div>
     {/if}
 

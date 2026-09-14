@@ -42,8 +42,12 @@
 
   const isEdit = !!bookmark;
 
-  // Live preview of the chosen icon, falling back to the auto favicon from the URL field.
+  // Live preview of the chosen icon, falling back to the auto favicon from the
+  // URL field. A "favicon:<id>" value pins the proxy to one source, so the
+  // preview must request that same source or it would show a different icon
+  // than the card.
   let previewSource = $derived(parseIcon(icon.trim()));
+  let previewPinned = $derived(previewSource.kind === 'favicon' ? previewSource.source : '');
   let previewTitle = $derived(title.trim() || url.trim() || 'zyes');
 
   async function handleSubmit(e: SubmitEvent) {
@@ -80,7 +84,7 @@
   // instead of exposing the JWT in a query parameter.
   $effect(() => {
     const u = url.trim();
-    if (u && isValidUrl(u)) ensureIcon(u);
+    if (u && isValidUrl(u)) ensureIcon(u, previewPinned);
   });
 
 
@@ -141,7 +145,7 @@
           class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-left transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed hover:border-primary/40 cursor-pointer"
         >
           <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shrink-0 overflow-hidden">
-            <IconView source={previewSource} proxyUrl={url.trim() && isValidUrl(url.trim()) ? getIconBlobUrl(url.trim()) : ''} fallbackUrls={[]} fallbackUrl="" title={previewTitle} size="md" fill />
+            <IconView source={previewSource} proxyUrl={url.trim() && isValidUrl(url.trim()) ? getIconBlobUrl(url.trim(), previewPinned) : ''} fallbackUrls={[]} fallbackUrl="" title={previewTitle} size="md" fill />
           </div>
           <span class="flex-1 min-w-0 text-sm text-text-secondary dark:text-text-secondary-dark truncate">
             {#if icon.trim()}

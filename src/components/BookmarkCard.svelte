@@ -35,15 +35,20 @@
 
   let spec = $derived(sizeSpec(cardSize));
   let iconSource = $derived(parseIcon(bookmark.icon));
-  // When the bookmark has no custom icon, route favicon load through the
-  // backend icon proxy (server-side fetch + cache). The blob URL is populated
-  // asynchronously by ensureIcon() and reactively updates this derived.
-  let proxyUrl = $derived(iconSource.kind === 'none' ? getIconBlobUrl(bookmark.url) : '');
-  // Trigger the authed fetch (Bearer header, no token in URL) when the bookmark
-  // has no custom icon. getIconBlobUrl returns '' until the blob is ready; the
-  // reactive cache update re-evaluates proxyUrl and the <img> re-renders.
+  // Auto favicon = no custom icon ('none', proxy walks its source chain) or a
+  // pinned proxy source ('favicon', e.g. "favicon:google" — the user picked a
+  // specific provider because the auto chain returned a wrong/placeholder icon).
+  let isAutoIcon = $derived(iconSource.kind === 'none' || iconSource.kind === 'favicon');
+  let pinnedSource = $derived(iconSource.kind === 'favicon' ? iconSource.source : '');
+  // Route the favicon load through the backend icon proxy (server-side fetch +
+  // cache). The blob URL is populated asynchronously by ensureIcon() and
+  // reactively updates this derived.
+  let proxyUrl = $derived(isAutoIcon ? getIconBlobUrl(bookmark.url, pinnedSource) : '');
+  // Trigger the authed fetch (Bearer header, no token in URL). getIconBlobUrl
+  // returns '' until the blob is ready; the reactive cache update re-evaluates
+  // proxyUrl and the <img> re-renders.
   $effect(() => {
-    if (iconSource.kind === 'none') ensureIcon(bookmark.url);
+    if (isAutoIcon) ensureIcon(bookmark.url, pinnedSource);
   });
 
   // Col-span drives the grid layout: compact = 1 cell (square), detail = 2
