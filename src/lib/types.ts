@@ -44,6 +44,10 @@ export interface ViewSettings {
   // syncs across devices. SearchBar uses this as the initial engine when no
   // local preference has been set.
   defaultEngine: string;
+  // Whether cards clicked today show the click-count badge. Optional on the
+  // wire: backends older than this field omit it, and the client treats
+  // undefined as true (badges were unconditional before the toggle existed).
+  clickBadge?: boolean;
 }
 
 export interface AppData {

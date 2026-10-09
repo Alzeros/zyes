@@ -75,6 +75,7 @@ export const mapSettings = (rows: SettingsRow[]): ViewSettings => {
   const site = rows.find((r) => r.key === 'site_name')?.value;
   const logo = rows.find((r) => r.key === 'site_logo')?.value;
   const defEngine = rows.find((r) => r.key === 'default_engine')?.value;
+  const badge = rows.find((r) => r.key === 'click_badge')?.value;
   return {
     allViewMode: all === 'compact' || all === 'detail' ? all : 'detail',
     cardSize: card === 'xs' || card === 'sm' || card === 'lg' ? (card as ViewSettings['cardSize']) : 'md',
@@ -83,6 +84,9 @@ export const mapSettings = (rows: SettingsRow[]): ViewSettings => {
     // (unlike siteName which defaults to 'zyes'): empty IS the "use default" signal.
     siteLogo: (logo ?? '').trim(),
     defaultEngine: (defEngine ?? '').trim() || 'google',
+    // Stored as '1'/'0'; missing key (older databases) = on, since badges were
+    // unconditional before the toggle existed.
+    clickBadge: badge !== '0',
   };
 };
 
@@ -142,6 +146,7 @@ function parseImportPayload(
     siteName: typeof sIn.siteName === 'string' ? sIn.siteName : 'zyes',
     siteLogo: typeof sIn.siteLogo === 'string' ? sIn.siteLogo : '',
     defaultEngine: typeof sIn.defaultEngine === 'string' ? sIn.defaultEngine : 'google',
+    clickBadge: typeof sIn.clickBadge === 'boolean' ? sIn.clickBadge : true,
   };
 
   return { categories, bookmarks: validBookmarks, settings };
@@ -349,6 +354,10 @@ export class Db {
     await this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind('site_logo', logo).run();
   }
 
+  async setClickBadge(on: boolean): Promise<void> {
+    await this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind('click_badge', on ? '1' : '0').run();
+  }
+
   // Next sort index for a new item appended to a group.
   async nextSortOrder(categoryId: string): Promise<number> {
     const row = await this.db
@@ -446,7 +455,7 @@ export class Db {
     }
     await this.db.batch(stmts);
 
-    // Settings: upsert the 4 keys (idempotent, replaces existing).
+    // Settings: upsert the 5 keys (idempotent, replaces existing).
     const sBatch: D1PreparedStatement[] = [
       this.db
         .prepare(`INSERT INTO settings (key, value) VALUES ('all_view_mode', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
@@ -460,6 +469,9 @@ export class Db {
       this.db
         .prepare(`INSERT INTO settings (key, value) VALUES ('site_logo', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
         .bind(parsed.settings.siteLogo),
+      this.db
+        .prepare(`INSERT INTO settings (key, value) VALUES ('click_badge', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
+        .bind(parsed.settings.clickBadge === false ? '0' : '1'),
     ];
     await this.db.batch(sBatch);
 

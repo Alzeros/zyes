@@ -12,7 +12,7 @@ export function settingsRoutes(): Hono<{ Bindings: Env }> {
   });
 
   app.put('/view', async (c) => {
-    const body = await c.req.json<{ allViewMode?: string; cardSize?: string; siteName?: unknown; siteLogo?: unknown; defaultEngine?: unknown }>();
+    const body = await c.req.json<{ allViewMode?: string; cardSize?: string; siteName?: unknown; siteLogo?: unknown; defaultEngine?: unknown; clickBadge?: unknown }>();
 
     // Validate the optional fields. Any subset may be sent; a field that fails
     // validation rejects the whole request.
@@ -54,6 +54,14 @@ export function settingsRoutes(): Hono<{ Bindings: Env }> {
       }
       defaultEngine = body.defaultEngine.slice(0, 64).trim();
     }
+    // clickBadge: strict boolean. Controls the on-card today-click badge.
+    let clickBadge: boolean | undefined;
+    if (body?.clickBadge !== undefined) {
+      if (typeof body.clickBadge !== 'boolean') {
+        return c.json({ ok: false, error: 'Invalid clickBadge', code: 'BAD_REQUEST' }, 400);
+      }
+      clickBadge = body.clickBadge;
+    }
 
     const db = dbOf(c.env);
     if (body.allViewMode !== undefined) await db.setAllViewMode(body.allViewMode as 'compact' | 'detail');
@@ -61,6 +69,7 @@ export function settingsRoutes(): Hono<{ Bindings: Env }> {
     if (siteName !== undefined) await db.setSiteName(siteName);
     if (siteLogo !== undefined) await db.setSiteLogo(siteLogo);
     if (defaultEngine !== undefined) await db.setDefaultEngine(defaultEngine);
+    if (clickBadge !== undefined) await db.setClickBadge(clickBadge);
 
     // Return the full merged settings so the client can update local state from one source.
     const settings = await db.getSettingsData();

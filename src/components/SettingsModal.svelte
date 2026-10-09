@@ -11,6 +11,7 @@
     cardSize,
     siteName,
     siteLogo,
+    clickBadge,
     searchEngines,
     defaultEngine,
     onsave,
@@ -25,9 +26,10 @@
     cardSize: CardSize;
     siteName: string;
     siteLogo: string;
+    clickBadge: boolean;
     searchEngines: SearchEngine[];
     defaultEngine: string;
-    onsave: (patch: { cardSize?: CardSize; siteName?: string; siteLogo?: string }) => Promise<boolean>;
+    onsave: (patch: { cardSize?: CardSize; siteName?: string; siteLogo?: string; clickBadge?: boolean }) => Promise<boolean>;
     onexport: () => Promise<void>;
     onimport: (file: File) => Promise<void>;
     onexportHtml: () => Promise<void>;
@@ -47,6 +49,7 @@
   let draftCardSize = $state<CardSize>(cardSize);
   let draftSiteName = $state<string>(siteName);
   let draftSiteLogo = $state<string>(siteLogo);
+  let draftClickBadge = $state<boolean>(clickBadge);
   // Search engine drafts: a map of engine id -> isActive, plus the default
   // engine id. Both are committed together via onsaveEngines on Apply.
   let draftEngines = $state<Map<string, boolean>>(new Map());
@@ -75,6 +78,7 @@
     draftCardSize = cardSize;
     draftSiteName = siteName;
     draftSiteLogo = siteLogo;
+    draftClickBadge = clickBadge;
     // Seed engine drafts from the current persisted engine list.
     draftEngines = new Map(searchEngines.map((e) => [e.id, e.isActive]));
     // Seed default engine from the persisted prop.
@@ -91,6 +95,7 @@
     draftCardSize !== cardSize ||
     draftSiteName !== siteName ||
     draftSiteLogo !== siteLogo ||
+    draftClickBadge !== clickBadge ||
     engineDirty ||
     defaultEngineDirty
   );
@@ -114,6 +119,7 @@
       cardSize: draftCardSize,
       siteName: draftSiteName,
       siteLogo: draftSiteLogo,
+      clickBadge: draftClickBadge,
     });
     if (!ok) {
       saving = false;
@@ -140,6 +146,7 @@
     draftCardSize = cardSize;
     draftSiteName = siteName;
     draftSiteLogo = siteLogo;
+    draftClickBadge = clickBadge;
     draftEngines = new Map(searchEngines.map((e) => [e.id, e.isActive]));
     engineError = '';
     onclose();
@@ -337,6 +344,27 @@
               {/each}
             </div>
             <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-3 leading-relaxed">{t('cardSize.dragMovedHint')}</p>
+          </section>
+
+          <!-- ── Click stats: on-card badge toggle ──────────────── -->
+          <!-- Display-only switch: click reporting to the stats page is NOT
+               affected — it only hides the corner badge on cards. -->
+          <section>
+            <h3 class="text-sm font-semibold text-text dark:text-text-dark mb-1">{t('stats.section')}</h3>
+            <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-3">{t('stats.badgeHint')}</p>
+
+            <div class="flex items-center gap-3 p-3 rounded-xl border border-border dark:border-border-dark">
+              <span class="flex-1 text-sm font-medium text-text dark:text-text-dark">{t('stats.badgeLabel')}</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={draftClickBadge}
+                onclick={() => (draftClickBadge = !draftClickBadge)}
+                class="relative w-10 h-6 rounded-full transition-colors shrink-0 cursor-pointer {draftClickBadge ? 'bg-primary' : 'bg-border dark:bg-border-dark'}"
+              >
+                <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform {draftClickBadge ? 'translate-x-4' : ''}"></span>
+              </button>
+            </div>
           </section>
         {:else if activeGroup === 'site'}
           <!-- ── Site title + logo ─────────────────────────────── -->

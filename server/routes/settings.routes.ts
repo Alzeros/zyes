@@ -8,7 +8,7 @@ export async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
     return { ok: true, data: settings };
   });
 
-  // PUT /api/settings/view — update any subset of { allViewMode, cardSize, siteName, siteLogo, defaultEngine }.
+  // PUT /api/settings/view — update any subset of { allViewMode, cardSize, siteName, siteLogo, defaultEngine, clickBadge }.
   // Each field is validated; an invalid value rejects the whole request.
   fastify.put('/view', async (request, reply) => {
     const body = request.body as {
@@ -17,6 +17,7 @@ export async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
       siteName?: unknown;
       siteLogo?: unknown;
       defaultEngine?: unknown;
+      clickBadge?: unknown;
     };
 
     if (body.allViewMode !== undefined && body.allViewMode !== 'compact' && body.allViewMode !== 'detail') {
@@ -46,6 +47,13 @@ export async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
       }
       defaultEngine = body.defaultEngine;
     }
+    let clickBadge: boolean | undefined;
+    if (body.clickBadge !== undefined) {
+      if (typeof body.clickBadge !== 'boolean') {
+        return reply.status(400).send({ ok: false, error: 'Invalid clickBadge', code: 'INVALID_MODE' });
+      }
+      clickBadge = body.clickBadge;
+    }
 
     const settings = store.updateSettings({
       allViewMode: body.allViewMode as 'compact' | 'detail' | undefined,
@@ -53,6 +61,7 @@ export async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
       siteName,
       siteLogo,
       defaultEngine,
+      clickBadge,
     });
     return { ok: true, data: settings };
   });

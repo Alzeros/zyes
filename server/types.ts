@@ -44,6 +44,9 @@ export interface ViewSettings {
   // Default search engine id. Mirror of the Worker's default_engine settings
   // key; persisted to data.settings (same pattern as the fields above).
   defaultEngine?: string;
+  // Whether cards clicked today show the click-count badge (mirror of the
+  // Worker's click_badge settings key; defaults to true when unset).
+  clickBadge?: boolean;
 }
 
 export interface AppData {

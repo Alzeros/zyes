@@ -17,7 +17,7 @@
   let bookmarks = $state<Bookmark[]>([]);
   let searchEngines = $state<SearchEngine[]>([]);
   let activeCategoryId = $state<string>('all');
-  let viewSettings = $state<ViewSettings>({ allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '', defaultEngine: 'google' });
+  let viewSettings = $state<ViewSettings>({ allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '', defaultEngine: 'google', clickBadge: true });
   let didInitialFetch = $state(false);
 
   // ── Click statistics ──────────────────────────────────────────────────────
@@ -41,6 +41,15 @@
     for (const r of clickRows) if (r.day === todayKey) m.set(r.cardId, (m.get(r.cardId) ?? 0) + r.count);
     return m;
   });
+
+  // Badge toggle (Settings → 卡片 → 点击统计). Off = cards receive empty
+  // maps, so no badge renders anywhere — while click REPORTING continues
+  // untouched, so the stats page keeps counting. `!== false` treats the field
+  // as on when an older backend omits it.
+  const NO_CLICKS = new Map<string, number>();
+  let showClickBadge = $derived(viewSettings.clickBadge !== false);
+  let badgeToday = $derived(showClickBadge ? clickToday : NO_CLICKS);
+  let badgeTotal = $derived(showClickBadge ? clickTotal : NO_CLICKS);
 
   // Optimistic local bump fired by every card-open path (card click + context
   // menu "open"). The server report itself is fire-and-forget inside the card
@@ -158,13 +167,15 @@
     cardSize?: ViewSettings['cardSize'];
     siteName?: string;
     siteLogo?: string;
+    clickBadge?: boolean;
   }
   async function handleSaveSettings(patch: SettingsPatch): Promise<boolean> {
     try {
-      const apiBody: Record<string, string> = {};
+      const apiBody: Record<string, string | boolean> = {};
       if (patch.cardSize !== undefined && patch.cardSize !== viewSettings.cardSize) apiBody.cardSize = patch.cardSize;
       if (patch.siteName !== undefined && patch.siteName !== viewSettings.siteName) apiBody.siteName = patch.siteName.slice(0, 64).trim();
       if (patch.siteLogo !== undefined && patch.siteLogo !== viewSettings.siteLogo) apiBody.siteLogo = patch.siteLogo.slice(0, 256).trim();
+      if (patch.clickBadge !== undefined && patch.clickBadge !== showClickBadge) apiBody.clickBadge = patch.clickBadge;
       if (Object.keys(apiBody).length > 0) {
         const updated = await api.put<ViewSettings>("/api/settings/view", apiBody);
         viewSettings = { ...viewSettings, ...updated };
@@ -232,7 +243,7 @@
     bookmarks = [];
     searchEngines = [];
     activeCategoryId = 'all';
-    viewSettings = { allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '', defaultEngine: 'google' };
+    viewSettings = { allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '', defaultEngine: 'google', clickBadge: true };
     clickRows = [];
     didInitialFetch = false;
   }
@@ -409,6 +420,7 @@
       {cardSize}
       {siteName}
       {siteLogo}
+      clickBadge={showClickBadge}
       defaultEngine={viewSettings.defaultEngine}
       statsRows={clickRows}
       {bookmarks}
@@ -449,8 +461,8 @@
             {cardSize}
             editMode={cardEditMode}
             hasPendingChanges
-            {clickToday}
-            {clickTotal}
+            clickToday={badgeToday}
+            clickTotal={badgeTotal}
             onenterEdit={enterCardEdit}
             onexitEdit={exitCardEdit}
             onapplyEdits={applyCardEdits}

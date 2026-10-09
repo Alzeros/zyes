@@ -1,4 +1,4 @@
-﻿import { readFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { getDataDir } from '../config.js';
 import writeFileAtomic from 'write-file-atomic';
@@ -270,10 +270,11 @@ export function getSettings(): ViewSettings {
   if (typeof s.siteName !== 'string') s.siteName = 'zyes';
   if (typeof s.siteLogo !== 'string') s.siteLogo = '';
   if (typeof s.defaultEngine !== 'string' || !s.defaultEngine.trim()) s.defaultEngine = 'google';
-  return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName, siteLogo: s.siteLogo, defaultEngine: s.defaultEngine };
+  if (typeof s.clickBadge !== 'boolean') s.clickBadge = true;
+  return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName, siteLogo: s.siteLogo, defaultEngine: s.defaultEngine, clickBadge: s.clickBadge };
 }
 
-export function updateSettings(patch: { allViewMode?: 'compact' | 'detail'; cardSize?: 'xs' | 'sm' | 'md' | 'lg'; siteName?: string; siteLogo?: string; defaultEngine?: string }): ViewSettings {
+export function updateSettings(patch: { allViewMode?: 'compact' | 'detail'; cardSize?: 'xs' | 'sm' | 'md' | 'lg'; siteName?: string; siteLogo?: string; defaultEngine?: string; clickBadge?: boolean }): ViewSettings {
   const data = getData();
   const s = data.settings ?? (data.settings = { allViewMode: 'detail' } as any);
   if (s.allViewMode !== 'compact' && s.allViewMode !== 'detail') s.allViewMode = 'detail';
@@ -281,13 +282,15 @@ export function updateSettings(patch: { allViewMode?: 'compact' | 'detail'; card
   if (typeof s.siteName !== 'string') s.siteName = 'zyes';
   if (typeof s.siteLogo !== 'string') s.siteLogo = '';
   if (typeof s.defaultEngine !== 'string' || !s.defaultEngine.trim()) s.defaultEngine = 'google';
+  if (typeof s.clickBadge !== 'boolean') s.clickBadge = true;
   if (patch.allViewMode === 'compact' || patch.allViewMode === 'detail') s.allViewMode = patch.allViewMode;
   if (patch.cardSize === 'xs' || patch.cardSize === 'sm' || patch.cardSize === 'md' || patch.cardSize === 'lg') s.cardSize = patch.cardSize;
   if (typeof patch.siteName === 'string') s.siteName = patch.siteName.slice(0, 64).trim() || 'zyes';
   if (typeof patch.siteLogo === 'string') s.siteLogo = patch.siteLogo.slice(0, 256).trim();
   if (typeof patch.defaultEngine === 'string') s.defaultEngine = patch.defaultEngine.slice(0, 64).trim() || 'google';
+  if (typeof patch.clickBadge === 'boolean') s.clickBadge = patch.clickBadge;
   saveData(data);
-  return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName, siteLogo: s.siteLogo, defaultEngine: s.defaultEngine };
+  return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName, siteLogo: s.siteLogo, defaultEngine: s.defaultEngine, clickBadge: s.clickBadge };
 }
 
 // ── Click statistics (per-card per-day counters) ───────────────────────────
@@ -428,6 +431,7 @@ function parseImport(raw: unknown): { categories: Category[]; bookmarks: Bookmar
     cardSize: sIn.cardSize === 'xs' || sIn.cardSize === 'sm' || sIn.cardSize === 'md' || sIn.cardSize === 'lg' ? sIn.cardSize : 'md',
     siteName: typeof sIn.siteName === 'string' ? sIn.siteName : 'zyes',
     siteLogo: typeof sIn.siteLogo === 'string' ? sIn.siteLogo : '',
+    clickBadge: typeof sIn.clickBadge === 'boolean' ? sIn.clickBadge : true,
   };
 
   return { categories, bookmarks: validBookmarks, settings };

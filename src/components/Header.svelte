@@ -15,6 +15,7 @@
     cardSize,
     siteName,
     siteLogo,
+    clickBadge,
     defaultEngine,
     statsRows,
     bookmarks,
@@ -34,6 +35,7 @@
     cardSize: CardSize;
     siteName: string;
     siteLogo: string;
+    clickBadge: boolean;
     defaultEngine: string;
     statsRows: ClickStatRow[];
     bookmarks: Bookmark[];
@@ -41,7 +43,7 @@
     onrefreshStats: () => Promise<void>;
     onlogout: () => void;
     ontoggleLang: () => void;
-    onsave: (patch: { cardSize?: CardSize; siteName?: string; siteLogo?: string }) => Promise<boolean>;
+    onsave: (patch: { cardSize?: CardSize; siteName?: string; siteLogo?: string; clickBadge?: boolean }) => Promise<boolean>;
     onexport: () => Promise<void>;
     onimport: (file: File) => Promise<void>;
     onexportHtml: () => Promise<void>;
@@ -234,6 +236,7 @@
     {cardSize}
     {siteName}
     {siteLogo}
+    {clickBadge}
     {onsave}
     {onexport}
     {onimport}
