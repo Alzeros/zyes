@@ -3,6 +3,7 @@
   import { getFaviconUrls, truncateUrl, parseIcon } from '../lib/utils';
   import { ensureIcon, getIconBlobUrl } from '../lib/iconCache.svelte';
   import { t } from '../lib/i18n';
+  import { reportClick } from '../lib/api';
   import IconView from './IconView.svelte';
   import { sizeSpec } from '../lib/cardSize';
 
@@ -13,9 +14,12 @@
     interactive = true,
     enterAnim = true,
     index = 0,
+    clickToday = 0,
+    clickTotal = 0,
     onedit,
     ondelete,
     oncontext,
+    onclicked,
   }: {
     bookmark: Bookmark;
     lang: string;
@@ -23,9 +27,12 @@
     interactive?: boolean;   // false for non-interactive previews (no nav, no ctx menu)
     enterAnim?: boolean;     // mount fade/rise stagger; off for previews + while dragging
     index?: number;          // grid position → stagger delay (see .card-enter in app.css)
+    clickToday?: number;     // clicks recorded today (badge; hidden when 0)
+    clickTotal?: number;     // all-time clicks (badge tooltip)
     onedit: () => void;
     ondelete: () => void;
     oncontext: (e: MouseEvent) => void;
+    onclicked?: (id: string) => void;  // notify App for the optimistic badge bump
   } = $props();
 
   // displayMode is now a per-bookmark attribute, not a group/global setting.
@@ -57,6 +64,13 @@
   let colSpan = $derived(displayMode === 'detail' ? 'col-span-2' : 'col-span-1');
 
   function openBookmark() {
+    // Stats first: the report is fire-and-forget (keepalive survives the
+    // _self unload below) and the badge bump is pure local state, so neither
+    // can delay or break the navigation itself.
+    if (interactive) {
+      reportClick(bookmark.id);
+      onclicked?.(bookmark.id);
+    }
     window.open(bookmark.url, bookmark.openTarget === 'self' ? '_self' : '_blank');
   }
 
@@ -84,6 +98,17 @@
     style="--i:{index}"
     class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-center select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
   >
+    <!-- Today-clicks badge: appears only on cards clicked today. The full
+         today/total breakdown rides on the title tooltip. pointer-events-none
+         so it never steals the card's own click. -->
+    {#if interactive && clickToday > 0}
+      <span
+        class="absolute top-1 right-1 z-10 min-w-4 h-4 px-1 rounded-full bg-primary text-white text-[10px] font-semibold leading-4 text-center pointer-events-none shadow-sm"
+        title={t('stats.badge', { today: String(clickToday), total: String(clickTotal) })}
+      >
+        {clickToday > 99 ? '99+' : clickToday}
+      </span>
+    {/if}
     <!-- Icon area. The card is square but the title bar takes vertical space,
          so this area is a wide rectangle. Favicons are square; with object-contain
          on a wide box they'd centre and leave gaps, and the rounded clip would
@@ -115,6 +140,14 @@
     style="--i:{index}"
     class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} {spec.detailPad} aspect-[2/1] bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-left select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
   >
+    {#if interactive && clickToday > 0}
+      <span
+        class="absolute top-1.5 right-1.5 z-10 min-w-4 h-4 px-1 rounded-full bg-primary text-white text-[10px] font-semibold leading-4 text-center pointer-events-none shadow-sm"
+        title={t('stats.badge', { today: String(clickToday), total: String(clickTotal) })}
+      >
+        {clickToday > 99 ? '99+' : clickToday}
+      </span>
+    {/if}
     <div class="flex items-start gap-3 mb-1">
       <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} size="sm" bg />
       <div class="flex-1 min-w-0">

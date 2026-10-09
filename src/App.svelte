@@ -1,10 +1,10 @@
 <script lang="ts">
   import { isAuthenticated, getToken, setToken, removeToken, maybeRefresh, setForceLogoutHandler } from './lib/auth';
   import { revokeAll } from './lib/iconCache.svelte';
-  import { api } from './lib/api';
+  import { api, dayKey } from './lib/api';
   import { API_BASE } from './lib/base';
   import { getLang, toggleLang } from './lib/i18n';
-  import type { Bookmark, Category, SearchEngine, ViewSettings } from './lib/types';
+  import type { Bookmark, Category, ClickStatRow, SearchEngine, ViewSettings } from './lib/types';
   import LoginScreen from './components/LoginScreen.svelte';
   import Header from './components/Header.svelte';
   import CategorySidebar from './components/CategorySidebar.svelte';
@@ -19,6 +19,50 @@
   let activeCategoryId = $state<string>('all');
   let viewSettings = $state<ViewSettings>({ allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '', defaultEngine: 'google' });
   let didInitialFetch = $state(false);
+
+  // ── Click statistics ──────────────────────────────────────────────────────
+  // Raw per-(card, day) rows from GET /api/stats/clicks. Kept as rows (not
+  // pre-aggregated maps) so the settings panel's heatmap/top-list can slice
+  // the same state without a second fetch. `todayKey` is snapshotted at load:
+  // a page left open across midnight shows stale "today" badges until the
+  // next fetch — acceptable for a nav portal, and refresh fixes it.
+  let clickRows = $state<ClickStatRow[]>([]);
+  let todayKey = $state(dayKey());
+
+  // cardId → total clicks (all days) and cardId → clicks today. Both derived
+  // so they update reactively when handleCardClick bumps clickRows optimistically.
+  let clickTotal = $derived.by(() => {
+    const m = new Map<string, number>();
+    for (const r of clickRows) m.set(r.cardId, (m.get(r.cardId) ?? 0) + r.count);
+    return m;
+  });
+  let clickToday = $derived.by(() => {
+    const m = new Map<string, number>();
+    for (const r of clickRows) if (r.day === todayKey) m.set(r.cardId, (m.get(r.cardId) ?? 0) + r.count);
+    return m;
+  });
+
+  // Optimistic local bump fired by every card-open path (card click + context
+  // menu "open"). The server report itself is fire-and-forget inside the card
+  // (reportClick); this only advances the badge instantly so the UI feels live.
+  function handleCardClick(cardId: string) {
+    const i = clickRows.findIndex((r) => r.cardId === cardId && r.day === todayKey);
+    if (i >= 0) clickRows[i] = { ...clickRows[i], count: clickRows[i].count + 1 };
+    else clickRows = [...clickRows, { cardId, day: todayKey, count: 1 }];
+  }
+
+  // Refresh the stats feed (used on load and when the settings panel's stats
+  // tab opens). Non-fatal by design: a backend without the stats routes (older
+  // deploy) just leaves the counters empty instead of failing the load.
+  async function refreshClickStats(): Promise<void> {
+    try {
+      const { rows } = await api.get<{ rows: ClickStatRow[] }>('/api/stats/clicks');
+      clickRows = rows;
+      todayKey = dayKey();
+    } catch (err) {
+      console.error('Failed to fetch click stats:', err);
+    }
+  }
 
   // Keep the browser tab title in sync with the persisted site name. Falls back
   // to 'zyes' whenever the settings value is blank. (The Node backend doesn't
@@ -164,6 +208,9 @@
       bookmarks = bms;
       searchEngines = engines;
       viewSettings = settings;
+      // Stats load independently of the core data — an older backend without
+      // the routes (or a transient failure) must never block the page.
+      void refreshClickStats();
     } catch (err) {
       console.error('Failed to fetch data:', err);
     } finally {
@@ -186,6 +233,7 @@
     searchEngines = [];
     activeCategoryId = 'all';
     viewSettings = { allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '', defaultEngine: 'google' };
+    clickRows = [];
     didInitialFetch = false;
   }
 
@@ -362,6 +410,10 @@
       {siteName}
       {siteLogo}
       defaultEngine={viewSettings.defaultEngine}
+      statsRows={clickRows}
+      {bookmarks}
+      {categories}
+      onrefreshStats={refreshClickStats}
       onlogout={handleLogout}
       ontoggleLang={handleSwitchLang}
       onsave={handleSaveSettings}
@@ -397,6 +449,8 @@
             {cardSize}
             editMode={cardEditMode}
             hasPendingChanges
+            {clickToday}
+            {clickTotal}
             onenterEdit={enterCardEdit}
             onexitEdit={exitCardEdit}
             onapplyEdits={applyCardEdits}
@@ -404,6 +458,7 @@
             onupdate={handleBookmarkUpdate}
             ondelete={handleBookmarkDelete}
             onreconcile={stageReorder}
+            onclicked={handleCardClick}
           />
         {/if}
       </main>

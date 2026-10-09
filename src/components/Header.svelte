@@ -1,8 +1,9 @@
 <script lang="ts">
-  import type { SearchEngine } from '../lib/types';
+  import type { Bookmark, Category, ClickStatRow, SearchEngine } from '../lib/types';
   import SearchBar from './SearchBar.svelte';
   import AboutModal from './AboutModal.svelte';
   import SettingsModal from './SettingsModal.svelte';
+  import StatsModal from './StatsModal.svelte';
   import { t } from '../lib/i18n';
   import type { CardSize } from '../lib/types';
   import Icon from '@iconify/svelte';
@@ -15,6 +16,10 @@
     siteName,
     siteLogo,
     defaultEngine,
+    statsRows,
+    bookmarks,
+    categories,
+    onrefreshStats,
     onlogout,
     ontoggleLang,
     onsave,
@@ -30,6 +35,10 @@
     siteName: string;
     siteLogo: string;
     defaultEngine: string;
+    statsRows: ClickStatRow[];
+    bookmarks: Bookmark[];
+    categories: Category[];
+    onrefreshStats: () => Promise<void>;
     onlogout: () => void;
     ontoggleLang: () => void;
     onsave: (patch: { cardSize?: CardSize; siteName?: string; siteLogo?: string }) => Promise<boolean>;
@@ -49,6 +58,7 @@
   let menuOpen = $state(false);
   let aboutOpen = $state(false);
   let settingsOpen = $state(false);
+  let statsOpen = $state(false);
 
   function toggleDark() {
     darkMode = !darkMode;
@@ -144,6 +154,19 @@
         {/if}
       </button>
 
+      <!-- Click stats: standalone entry (kept out of the settings form on
+           purpose — read-only, opened often). Refreshes its feed on open. -->
+      <button
+        onclick={() => (statsOpen = true)}
+        class="p-2 rounded-lg hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
+        aria-label={t('stats.nav')}
+        title={t('stats.nav')}
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      </button>
+
       <div class="relative" id="zyes-settings-menu">
         <button
           onclick={() => (menuOpen = !menuOpen)}
@@ -220,5 +243,16 @@
     {defaultEngine}
     {onsaveEngines}
     onclose={() => (settingsOpen = false)}
+  />
+{/if}
+
+{#if statsOpen}
+  <StatsModal
+    {lang}
+    {statsRows}
+    {bookmarks}
+    {categories}
+    {onrefreshStats}
+    onclose={() => (statsOpen = false)}
   />
 {/if}

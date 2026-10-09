@@ -27,18 +27,18 @@
     siteLogo: string;
     searchEngines: SearchEngine[];
     defaultEngine: string;
-    onsaveEngines: (engines: { id: string; isActive: boolean }[], defaultEngine: string) => Promise<boolean>;
     onsave: (patch: { cardSize?: CardSize; siteName?: string; siteLogo?: string }) => Promise<boolean>;
     onexport: () => Promise<void>;
     onimport: (file: File) => Promise<void>;
     onexportHtml: () => Promise<void>;
     onimportHtml: (file: File, mode: 'replace' | 'merge') => Promise<void>;
+    onsaveEngines: (engines: { id: string; isActive: boolean }[], defaultEngine: string) => Promise<boolean>;
     onclose: () => void;
   } = $props();
 
   const SIZES: CardSize[] = ['xs', 'sm', 'md', 'lg'];
 
-  // Active settings group: 'cards' | 'site' | 'data'
+  // Active settings group: 'cards' | 'site' | 'search' | 'data'
   let activeGroup = $state<'cards' | 'site' | 'search' | 'data'>('cards');
 
   // ── Drafts: the panel edits local copies and only commits on "Apply". Until

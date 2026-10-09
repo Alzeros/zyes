@@ -68,3 +68,32 @@ export const api = {
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
   delete: <T>(path: string) => request<T>('DELETE', path),
 };
+
+// ── Click statistics ────────────────────────────────────────────────────────
+// Local calendar day as 'YYYY-MM-DD'. Used both when REPORTING a click (the
+// server stores the client's day verbatim, so "today" matches the user's
+// clock without server-side timezone math) and when aggregating stats in the
+// settings panel. Exported so StatsPanel and App share one definition.
+export function dayKey(d: Date = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Fire-and-forget click report. Deliberately NOT routed through api.request():
+// this call must never block the navigation it accompanies, never throw into
+// the caller, and survives the page unloading on openTarget='self' jumps
+// (keepalive:true lets the request outlive the document). A dropped report
+// only loses one count — stats are best-effort by design.
+export function reportClick(cardId: string): void {
+  const token = getToken();
+  if (!token) return;
+  try {
+    void fetch(`${BASE}/api/stats/click`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ cardId, day: dayKey() }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // Stats are best-effort; never let reporting break a click.
+  }
+}

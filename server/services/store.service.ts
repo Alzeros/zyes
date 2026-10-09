@@ -290,6 +290,72 @@ export function updateSettings(patch: { allViewMode?: 'compact' | 'detail'; card
   return { allViewMode: s.allViewMode, cardSize: s.cardSize, siteName: s.siteName, siteLogo: s.siteLogo, defaultEngine: s.defaultEngine };
 }
 
+// ── Click statistics (per-card per-day counters) ───────────────────────────
+// Mirrors the Worker's click_stats D1 table, but stored in its OWN file
+// (click-stats.json) instead of data.json — stats are high-frequency,
+// low-stakes writes, and keeping them out of the bookmark store means a
+// corrupted stat file can never take bookmarks down with it. Shape mirrors
+// the D1 schema: { [cardId]: { [day: string]: count } }. Totals are derived
+// by summing days at read time (never stored redundantly). Rows for deleted
+// bookmarks are left in place — harmless orphans the frontend filters out.
+
+type ClickStore = { [cardId: string]: { [day: string]: number } };
+
+let clickCache: ClickStore | null = null;
+
+function getClickStorePath(): string {
+  return resolve(getDataDir(), 'click-stats.json');
+}
+
+export function loadClickStats(): ClickStore {
+  if (clickCache) return clickCache;
+  ensureDataDir();
+  const path = getClickStorePath();
+  if (!existsSync(path)) {
+    clickCache = {};
+    return clickCache;
+  }
+  try {
+    const raw = JSON.parse(readFileSync(path, 'utf-8')) as ClickStore;
+    clickCache = raw && typeof raw === 'object' ? raw : {};
+  } catch {
+    clickCache = {};
+  }
+  return clickCache;
+}
+
+function saveClickStats(store: ClickStore): void {
+  ensureDataDir();
+  clickCache = store;
+  writeFileAtomic.sync(getClickStorePath(), JSON.stringify(store), 'utf-8');
+}
+
+// Record one click on (cardId, day) and return the card's fresh today/total
+// so the client can reconcile its optimistic badge bump.
+export function recordClick(cardId: string, day: string): { today: number; total: number } {
+  const store = loadClickStats();
+  const days = store[cardId] ?? (store[cardId] = {});
+  days[day] = (days[day] ?? 0) + 1;
+  let total = 0;
+  for (const n of Object.values(days)) total += n;
+  saveClickStats(store);
+  return { today: days[day], total };
+}
+
+// Flatten the store into the same row shape the Worker's GET /api/stats/clicks
+// returns ({ cardId, day, count }), newest day first.
+export function getClickRows(): { cardId: string; day: string; count: number }[] {
+  const store = loadClickStats();
+  const rows: { cardId: string; day: string; count: number }[] = [];
+  for (const [cardId, days] of Object.entries(store)) {
+    for (const [day, count] of Object.entries(days)) {
+      rows.push({ cardId, day, count });
+    }
+  }
+  rows.sort((a, b) => b.day.localeCompare(a.day));
+  return rows;
+}
+
 // ── Export / import (portable JSON snapshot) ──────────────────────────────
 
 // Build the portable snapshot. Strips nothing from bookmarks/categories — the

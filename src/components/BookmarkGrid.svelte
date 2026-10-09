@@ -11,6 +11,8 @@
     cardSize,
     editMode = false,
     hasPendingChanges = false,
+    clickToday,
+    clickTotal,
     onenterEdit,
     onexitEdit,
     onapplyEdits,
@@ -18,6 +20,7 @@
     onupdate,
     ondelete,
     onreconcile,
+    onclicked,
   }: {
     lang: string;
     bookmarks: Bookmark[];
@@ -26,6 +29,8 @@
     cardSize: CardSize;
     editMode?: boolean;
     hasPendingChanges?: boolean;
+    clickToday?: Map<string, number>;
+    clickTotal?: Map<string, number>;
     onenterEdit: () => void;
     onexitEdit: () => void;
     onapplyEdits: () => Promise<void> | void;
@@ -33,6 +38,7 @@
     onupdate: (id: string, patch: Partial<Bookmark>) => Promise<void>;
     ondelete: (id: string) => Promise<void>;
     onreconcile: (groupId: string, ids: string[]) => Promise<void>;
+    onclicked?: (id: string) => void;
   } = $props();
 
   // The "All" view renders a group per category plus a trailing "Uncategorized" group.
@@ -167,10 +173,13 @@
       icon={g.icon}
       addCategoryId={g.categoryId}
       collapsible={g.collapsible}
+      {clickToday}
+      {clickTotal}
       {onadd}
       {onupdate}
       {ondelete}
       {onreconcile}
+      {onclicked}
     />
   {/each}
 {/if}

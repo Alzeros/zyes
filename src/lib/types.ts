@@ -53,6 +53,23 @@ export interface AppData {
   settings?: ViewSettings;
 }
 
+// ── Click statistics ────────────────────────────────────────────────────────
+// One aggregated counter row per (card, local day). The server stores `day`
+// exactly as the client reported it (browser-local YYYY-MM-DD), so "today"
+// always means the viewer's own calendar day with no timezone conversion.
+export interface ClickStatRow {
+  cardId: string;
+  day: string;   // 'YYYY-MM-DD', client-local
+  count: number;
+}
+
+// POST /api/stats/click response: the clicked card's fresh counters, so the
+// client badge can reconcile its optimistic local bump with the server.
+export interface ClickReportResult {
+  today: number;
+  total: number;
+}
+
 export interface LoginRequest {
   password: string;
 }

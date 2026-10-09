@@ -12,3 +12,6 @@ src/logo-preview.html
 .wrangler/
 sql/
 worker-configuration.d.ts
+
+.claude
+.workbuddy

@@ -17,6 +17,7 @@ import { searchRoutes } from './routes/search.routes.js';
 import { settingsRoutes } from './routes/settings.routes.js';
 import { iconRoutes } from './routes/icon.routes.js';
 import { dataRoutes } from './routes/data.routes.js';
+import { statsRoutes } from './routes/stats.routes.js';
 
 // Auto-initialize if config doesn't exist
 async function autoInit() {
@@ -122,6 +123,7 @@ async function start() {
   await fastify.register(settingsRoutes, { prefix: '/api/settings' });
   await fastify.register(iconRoutes, { prefix: '/api/icon' });
   await fastify.register(dataRoutes, { prefix: '/api/data' });
+  await fastify.register(statsRoutes, { prefix: '/api/stats' });
 
   // Static file serving (production)
   await fastify.register(staticPlugin);

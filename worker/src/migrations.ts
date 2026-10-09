@@ -35,7 +35,7 @@ export interface Migration {
 
 // The schema version the CURRENT code expects. Bump this when appending a
 // migration. Stored in meta.schema_version after a successful run.
-export const TARGET_SCHEMA_VERSION = 5;
+export const TARGET_SCHEMA_VERSION = 6;
 
 // D1 EXEC gotcha: `db.exec(sql)` only accepts statements delimited by newlines
 // and chokes on multi-line single statements (it splits on \n and tries each
@@ -229,6 +229,34 @@ export const MIGRATIONS: Migration[] = [
       // ON CONFLICT DO NOTHING preserves any existing value.
       results.push(
         await safeExec(db, `INSERT INTO settings (key, value) VALUES ('default_engine', 'google') ON CONFLICT(key) DO NOTHING`)
+      );
+      const failed = results.filter((r) => !r.ok);
+      return {
+        ok: failed.length === 0,
+        error: failed.length ? failed.map((r) => r.error).join('; ') : undefined,
+      };
+    },
+  },
+  {
+    v: 6,
+    desc: 'click_stats table (per-card per-day click counters for usage stats)',
+    run: async (db) => {
+      const results: { ok: boolean; error?: string }[] = [];
+      // (card_id, day) PK: one row per card per local day, upserted with
+      // count+1 at click time. day is the client's local YYYY-MM-DD.
+      results.push(
+        await safeExec(
+          db,
+          `CREATE TABLE IF NOT EXISTS click_stats (
+            card_id TEXT NOT NULL,
+            day     TEXT NOT NULL,
+            count   INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (card_id, day)
+          )`
+        )
+      );
+      results.push(
+        await safeExec(db, `CREATE INDEX IF NOT EXISTS idx_click_stats_day ON click_stats(day)`)
       );
       const failed = results.filter((r) => !r.ok);
       return {

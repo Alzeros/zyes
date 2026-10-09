@@ -6,6 +6,7 @@
   import ContextMenu, { type ContextMenuItem } from './ContextMenu.svelte';
   import CategoryIcon from './CategoryIcon.svelte';
   import { t } from '../lib/i18n';
+  import { reportClick } from '../lib/api';
   import { dndzone } from 'svelte-dnd-action';
   import { sizeSpec } from '../lib/cardSize';
   import type { CardSize } from '../lib/types';
@@ -21,10 +22,13 @@
     icon,
     addCategoryId,        // categoryId to default the add-modal to ('' for uncategorized)
     collapsible = false,  // "Uncategorized" group is hidden entirely when empty
+    clickToday,           // cardId → clicks today (badge source)
+    clickTotal,           // cardId → all-time clicks (badge tooltip)
     onadd,
     onupdate,
     ondelete,
     onreconcile,
+    onclicked,
   }: {
     lang: string;
     bookmarks: Bookmark[];
@@ -40,6 +44,8 @@
     icon?: string;                // raw category icon (emoji / iconify / image URL)
     addCategoryId: string;        // '' for uncategorized
     collapsible?: boolean;
+    clickToday?: Map<string, number>;
+    clickTotal?: Map<string, number>;
     onadd: (bookmark: Omit<Bookmark, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
     onupdate: (id: string, patch: Partial<Bookmark>) => Promise<void>;
     ondelete: (id: string) => Promise<void>;
@@ -47,6 +53,7 @@
     // reconciles categoryId and sortOrder — including cards dragged in from /
     // out to other groups (all groups share a dnd type so events fire on both).
     onreconcile: (groupId: string, ids: string[]) => Promise<void>;
+    onclicked?: (id: string) => void;
   } = $props();
 
   let showAddModal = $state(false);
@@ -114,7 +121,12 @@
     const target = contextMenu?.bookmark;
     contextMenu = null;
     if (!target) return;
-    if (key === 'open') window.open(target.url, target.openTarget === 'self' ? '_self' : '_blank');
+    if (key === 'open') {
+      // Same stats path as the card's own click handler (see BookmarkCard).
+      reportClick(target.id);
+      onclicked?.(target.id);
+      window.open(target.url, target.openTarget === 'self' ? '_self' : '_blank');
+    }
     else if (key === 'edit') editingBookmark = target;
     else if (key === 'delete') deletingBookmark = target;
   }
@@ -160,9 +172,12 @@
             {cardSize}
             index={i}
             enterAnim={enterAnim && !canDrag}
+            clickToday={clickToday?.get(bookmark.id) ?? 0}
+            clickTotal={clickTotal?.get(bookmark.id) ?? 0}
             onedit={() => (editingBookmark = bookmark)}
             ondelete={() => (deletingBookmark = bookmark)}
             oncontext={(e) => handleContextMenu(e, bookmark)}
+            {onclicked}
           />
         {/each}
 

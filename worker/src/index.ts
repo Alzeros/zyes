@@ -11,6 +11,7 @@ import { settingsRoutes } from './routes/settings';
 import { initRoutes } from './routes/init';
 import { iconRoutes } from './routes/icon';
 import { dataRoutes } from './routes/data';
+import { statsRoutes } from './routes/stats';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -71,6 +72,7 @@ app.route('/api/settings', settingsRoutes());
 app.route('/api/init', initRoutes());
 app.route('/api/icon', iconRoutes());
 app.route('/api/data', dataRoutes());
+app.route('/api/stats', statsRoutes());
 
 // SPA fallback: any non-/api path serves the built client via the assets binding.
 app.get('*', (c) => c.env.ASSETS.fetch(c.req.raw));
