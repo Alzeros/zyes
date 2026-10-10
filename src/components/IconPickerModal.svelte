@@ -67,24 +67,36 @@
 </script>
 
 <div class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm anim-fade" onclick={onclose} onkeydown={() => {}} role="button" tabindex="-1"></div>
-  <div class="relative w-full max-w-md bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark p-6 shadow-xl anim-pop max-h-[90vh] overflow-y-auto thin-scroll">
-    <h2 class="text-lg font-semibold mb-4 text-text dark:text-text-dark">{t('modal.icon')}</h2>
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-md anim-fade" onclick={onclose} onkeydown={() => {}} role="button" tabindex="-1"></div>
+  <div class="relative w-full max-w-[560px] bg-surface/95 dark:bg-surface-dark/95 backdrop-blur-2xl rounded-3xl border border-border/80 dark:border-border-dark/80 p-6 sm:p-7 shadow-2xl shadow-black/10 dark:shadow-black/40 anim-pop max-h-[90vh] overflow-y-auto thin-scroll">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-lg font-bold tracking-tight text-text dark:text-text-dark">{t('modal.icon')}</h2>
+      <button
+        type="button"
+        onclick={onclose}
+        class="p-1.5 rounded-xl hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer text-text-secondary dark:text-text-secondary-dark"
+        aria-label="close"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
 
     <!-- Big live preview -->
-    <div class="flex items-center gap-3 mb-5">
-      <div class="flex items-center justify-center rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark w-16 h-16 shrink-0 overflow-hidden">
+    <div class="flex items-center gap-3.5 mb-6 p-3.5 bg-bg/50 dark:bg-bg-dark/50 rounded-2xl border border-border/60 dark:border-border-dark/60">
+      <div class="flex items-center justify-center rounded-2xl bg-surface dark:bg-surface-dark border border-border/80 dark:border-border-dark/80 w-16 h-16 shrink-0 overflow-hidden shadow-2xs">
         {#if previewSource.kind === 'iconify'}
           <Icon icon={previewSource.name} width={32} height={32} />
         {:else if previewSource.kind === 'image'}
           <img src={previewSource.url} alt="" class="object-contain w-full h-full" style="padding:6%" />
         {:else if previewSource.kind === 'emoji'}
-          <span class="text-2xl font-bold text-primary">{previewSource.char}</span>
+          <span class="text-2xl font-bold text-text dark:text-text-dark">{previewSource.char}</span>
         {:else if autoBlob}
           <!-- Auto mode: show the proxied favicon the card will actually render. -->
           <img src={autoBlob} alt="" class="object-contain w-full h-full" style="padding:6%" />
         {:else}
-          <span class="text-2xl font-bold text-primary">{(title || 'N').charAt(0).toUpperCase()}</span>
+          <span class="text-2xl font-bold text-text dark:text-text-dark">{(title || 'N').charAt(0).toUpperCase()}</span>
         {/if}
       </div>
       <div class="flex-1 min-w-0">
@@ -92,15 +104,15 @@
           type="text"
           bind:value={icon}
           placeholder={t('modal.iconPlaceholder')}
-          class="w-full px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark placeholder-text-secondary dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-surface dark:bg-surface-dark border border-border/80 dark:border-border-dark/80 text-text dark:text-text-dark placeholder-text-secondary/60 dark:placeholder-text-secondary-dark/60 focus:outline-none focus:ring-2 focus:ring-text/10 focus:border-text/40 dark:focus:border-text-dark/40 transition-all text-sm"
         />
-        <p class="mt-1 text-xs text-text-secondary dark:text-text-secondary-dark">
+        <p class="mt-1.5 text-xs text-text-secondary dark:text-text-secondary-dark leading-relaxed">
           {t('modal.iconHintPrefix')}
           <a
             href="https://icon-sets.iconify.design/"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-primary hover:underline"
+            class="text-text dark:text-text-dark underline font-medium"
             onclick={(e) => e.stopPropagation()}
           >icon-sets.iconify.design</a>
           {t('modal.iconHintSuffix')}
@@ -108,28 +120,25 @@
       </div>
     </div>
 
-    <!-- Favicon source picker. "Auto" (clears the icon) lets the proxy walk its
-         source chain; the others pin one provider via "favicon:<id>". All tiles
-         render the PROXIED image, so what you see is what the card will show —
-         and a provider the browser can't reach directly still previews fine. -->
+    <!-- Favicon source picker: 5 items arranged neatly in 1 single row -->
     {#if urlOk}
-      <div class="mb-5">
-        <span class="block text-xs font-medium text-text-secondary dark:text-text-secondary-dark mb-2">{t('modal.iconSourceTitle')}</span>
-        <div class="flex flex-wrap gap-2">
+      <div class="mb-6">
+        <span class="block text-xs font-semibold uppercase tracking-wider text-text-secondary dark:text-text-secondary-dark mb-2.5">{t('modal.iconSourceTitle')}</span>
+        <div class="grid grid-cols-5 gap-2 w-full">
           <button
             type="button"
             onclick={clearIcon}
             title={t('modal.iconSourceAuto')}
-            class="w-[72px] rounded-lg flex flex-col items-center gap-1 p-1.5 bg-bg dark:bg-bg-dark border transition-all cursor-pointer {autoSelected ? 'ring-2 ring-primary border-primary' : 'border-border dark:border-border-dark hover:border-primary/40'}"
+            class="rounded-2xl flex flex-col items-center gap-1.5 py-2 sm:py-2.5 px-1 sm:px-2 transition-all cursor-pointer {autoSelected ? 'bg-surface dark:bg-surface-dark ring-2 ring-text dark:ring-text-dark shadow-xs' : 'bg-bg/70 dark:bg-bg-dark/70 border border-border/80 dark:border-border-dark/80 hover:bg-surface dark:hover:bg-surface-dark hover:border-text/30'}"
           >
-            <span class="w-9 h-9 flex items-center justify-center">
+            <span class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0">
               {#if autoBlob}
                 <img src={autoBlob} alt="" class="w-full h-full object-contain" />
               {:else}
-                <span class="text-base font-bold text-primary">{(title || 'N').charAt(0).toUpperCase()}</span>
+                <span class="text-sm sm:text-base font-bold text-text dark:text-text-dark">{(title || 'N').charAt(0).toUpperCase()}</span>
               {/if}
             </span>
-            <span class="text-[10px] leading-tight text-text-secondary dark:text-text-secondary-dark truncate w-full text-center">{t('modal.iconSourceAuto')}</span>
+            <span class="text-[10px] sm:text-[11px] font-semibold leading-tight text-text-secondary dark:text-text-secondary-dark truncate w-full text-center tracking-tight">{t('modal.iconSourceAuto')}</span>
           </button>
 
           {#each FAVICON_SOURCES_UI as s (s.id)}
@@ -137,49 +146,42 @@
               type="button"
               onclick={() => pinSource(s.id)}
               title={s.label}
-              class="w-[72px] rounded-lg flex flex-col items-center gap-1 p-1.5 bg-bg dark:bg-bg-dark border transition-all cursor-pointer {pinnedSelected === s.id ? 'ring-2 ring-primary border-primary' : 'border-border dark:border-border-dark hover:border-primary/40'}"
+              class="rounded-2xl flex flex-col items-center gap-1.5 py-2 sm:py-2.5 px-1 sm:px-2 transition-all cursor-pointer {pinnedSelected === s.id ? 'bg-surface dark:bg-surface-dark ring-2 ring-text dark:ring-text-dark shadow-xs' : 'bg-bg/70 dark:bg-bg-dark/70 border border-border/80 dark:border-border-dark/80 hover:bg-surface dark:hover:bg-surface-dark hover:border-text/30'}"
             >
-              <span class="w-9 h-9 flex items-center justify-center">
+              <span class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center shrink-0">
                 {#if sourceBlobs[s.id]}
                   <img src={sourceBlobs[s.id]} alt={s.label} class="w-full h-full object-contain" />
                 {:else}
-                  <!-- No image: that source returned nothing for this site (or
-                       is still loading). Kept visible + selectable anyway. -->
-                  <span class="text-[10px] text-text-secondary/60 dark:text-text-secondary-dark/60">—</span>
+                  <span class="text-xs text-text-secondary/50 dark:text-text-secondary-dark/50">—</span>
                 {/if}
               </span>
-              <span class="text-[10px] leading-tight text-text-secondary dark:text-text-secondary-dark truncate w-full text-center">{s.label}</span>
+              <span class="text-[10px] sm:text-[11px] font-medium leading-tight text-text-secondary dark:text-text-secondary-dark truncate w-full text-center tracking-tight">{s.label}</span>
             </button>
           {/each}
         </div>
-        <p class="mt-2 text-xs text-text-secondary dark:text-text-secondary-dark leading-relaxed">{t('modal.iconSourceHint')}</p>
+        <p class="mt-2.5 text-xs text-text-secondary/80 dark:text-text-secondary-dark/80 leading-relaxed">{t('modal.iconSourceHint')}</p>
       </div>
     {/if}
 
-    <!-- Text icon removed: when no icon is set, the card already falls back to
-         the title's first character as the placeholder (IconView 'none' branch).
-         There's no separate "text icon" option anymore — just leave the icon
-         field empty (or pick an iconify name / image / fetched favicon above). -->
-
-    <div class="flex justify-end gap-2 pt-2">
+    <div class="flex justify-end gap-2.5 pt-2 border-t border-border/40 dark:border-border-dark/40">
       <button
         type="button"
         onclick={() => { clearIcon(); }}
-        class="px-4 py-2 rounded-xl text-sm font-medium text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
+        class="px-3.5 py-2.5 rounded-xl text-sm font-medium text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark active:scale-[0.98] transition-all cursor-pointer mr-auto"
       >
         {t('modal.noIcon')}
       </button>
       <button
         type="button"
         onclick={onclose}
-        class="px-4 py-2 rounded-xl text-sm font-medium text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
+        class="px-4 py-2.5 rounded-xl text-sm font-medium text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark active:scale-[0.98] transition-all cursor-pointer"
       >
         {t('modal.cancel')}
       </button>
       <button
         type="button"
         onclick={() => onsave(icon)}
-        class="px-4 py-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary-hover text-white transition-colors cursor-pointer"
+        class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-text hover:bg-text/85 text-bg dark:bg-text-dark dark:hover:bg-text-dark/85 dark:text-bg-dark shadow-sm active:scale-[0.98] transition-all cursor-pointer"
       >
         {t('modal.apply')}
       </button>

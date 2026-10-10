@@ -65,10 +65,10 @@
 </script>
 
 <div class="relative w-full max-w-xl">
-  <div class="flex items-center bg-bg dark:bg-bg-dark border border-border dark:border-border-dark rounded-full px-4 py-2 focus-within:shadow-md focus-within:shadow-primary/10 focus-within:border-primary/60 transition-all duration-200">
+  <div class="flex items-center bg-surface/90 dark:bg-surface-dark/90 backdrop-blur-md border border-border/80 dark:border-border-dark/80 rounded-full px-3.5 py-1.5 shadow-sm shadow-black/5 dark:shadow-black/20 focus-within:shadow-md focus-within:border-text/30 dark:focus-within:border-text-dark/30 transition-all duration-200">
     <button
       onclick={() => (showSwitcher = !showSwitcher)}
-      class="mr-2 p-1 rounded-lg hover:bg-border/50 dark:hover:bg-border-dark/50 transition-colors cursor-pointer shrink-0 text-primary"
+      class="mr-2 p-1.5 rounded-full hover:bg-bg dark:hover:bg-bg-dark border border-transparent hover:border-border dark:hover:border-border-dark transition-all cursor-pointer shrink-0 text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark"
       aria-label={switchLabel}
     >
       {#if activeIcon}
@@ -83,19 +83,27 @@
       bind:value={query}
       onkeydown={handleKeydown}
       type="text"
-      placeholder={placeholder}
-      class="flex-1 bg-transparent outline-none text-sm text-text dark:text-text-dark placeholder-text-secondary dark:placeholder-text-secondary-dark min-w-0"
+      placeholder={`${activeEngine?.name || 'engine'} ${t('search.placeholder')}`}
+      class="flex-1 bg-transparent outline-none text-sm text-text dark:text-text-dark placeholder-text-secondary/70 dark:placeholder-text-secondary-dark/70 min-w-0"
     />
 
-    <button
-      onclick={doSearch}
-      class="ml-2 p-1.5 rounded-full bg-primary hover:bg-primary-hover text-white transition-colors cursor-pointer shrink-0"
-      aria-label={submitLabel}
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-      </svg>
-    </button>
+    <div class="flex items-center gap-1.5 shrink-0 ml-1">
+      {#if !query}
+        <kbd class="hidden sm:inline-flex items-center justify-center text-[11px] font-mono font-medium text-text-secondary/60 dark:text-text-secondary-dark/60 bg-bg dark:bg-bg-dark border border-border/80 dark:border-border-dark/80 rounded-md px-1.5 py-0.5 shadow-2xs pointer-events-none select-none">
+          /
+        </kbd>
+      {/if}
+
+      <button
+        onclick={doSearch}
+        class="p-1.5 rounded-full bg-text hover:bg-text/85 text-bg dark:bg-text-dark dark:hover:bg-text-dark/85 dark:text-bg-dark shadow-2xs active:scale-95 transition-all cursor-pointer"
+        aria-label={submitLabel}
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </button>
+    </div>
   </div>
 
   {#if showSwitcher}

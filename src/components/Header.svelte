@@ -91,41 +91,40 @@
   });
 </script>
 
-<header class="sticky top-0 z-30 bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-md border-b border-border dark:border-border-dark">
-  <div class="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-3 lg:px-6">
-    <a href="/" class="flex items-center gap-1 shrink-0 group/logo justify-self-start">
+<header class="sticky top-0 z-30 bg-surface/75 dark:bg-surface-dark/75 backdrop-blur-xl border-b border-border/80 dark:border-border-dark/80 transition-colors">
+  <div class="grid grid-cols-[auto_1fr] md:grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-2.5 lg:px-6">
+    <a href="/" class="flex items-center gap-2.5 shrink-0 group/logo justify-self-start hover:opacity-90 transition-opacity">
       {#if logoSrc.kind === 'none'}
         <!-- Default brand: sharp miter Z + "yes" wordmark -->
-        <!-- Mark: Design #1 – sharp miter Z, tight crop -->
-        <span class="inline-grid place-items-center" style="width:22px;height:28px">
-          <!-- viewBox tightly crops just the Z: x 6..23, y 5..27 -->
-          <svg width="22" height="28" viewBox="6 5 17 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <!-- Light mode: dark slate Z -->
+        <span class="inline-grid place-items-center w-7 h-7 rounded-lg bg-text/5 dark:bg-text-dark/10 text-text dark:text-text-dark">
+          <svg width="18" height="22" viewBox="6 5 17 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <!-- Light mode -->
             <g class="zyes-light">
-              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
-              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.2" />
+              <path d="M 9 8 H 22 L 10 24 H 23" stroke="currentColor" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
             </g>
-            <!-- Dark mode: white Z -->
+            <!-- Dark mode -->
             <g class="zyes-dark">
-              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
-              <path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="1" stroke-linejoin="miter" stroke-linecap="square" transform="translate(-2.5,-2.5)" opacity="0.3" />
+              <path d="M 9 8 H 22 L 10 24 H 23" stroke="currentColor" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
             </g>
           </svg>
         </span>
-        <span class="zyes-word text-2xl font-bold tracking-tight">yes</span>
+        <span class="zyes-word text-xl font-bold tracking-tight">{siteName || 'zyes'}</span>
       {:else if logoSrc.kind === 'iconify'}
-        <!-- Custom iconify logo. Sized to match the Z's visual height (~28px). -->
-        <Icon icon={logoSrc.name} width={28} height={28} class="shrink-0" inline />
+        <!-- Custom iconify logo + site title -->
+        <span class="inline-grid place-items-center w-7 h-7 rounded-lg bg-text/5 dark:bg-text-dark/10 text-text dark:text-text-dark">
+          <Icon icon={logoSrc.name} width={18} height={18} class="shrink-0" inline />
+        </span>
+        <span class="font-bold text-lg tracking-tight text-text dark:text-text-dark">{siteName || 'zyes'}</span>
       {:else}
-        <!-- Custom image logo. object-contain keeps aspect; fixed box ~28px high. -->
-        <img src={logoSrc.url} alt="" class="shrink-0 object-contain h-7 w-auto max-w-none" style="max-height:28px" />
+        <!-- Custom image logo + site title -->
+        <img src={logoSrc.url} alt="" class="shrink-0 object-contain h-7 w-auto max-w-[120px] rounded-md" />
+        {#if siteName}
+          <span class="font-bold text-lg tracking-tight text-text dark:text-text-dark truncate max-w-[150px]">{siteName}</span>
+        {/if}
       {/if}
     </a>
 
-    <!-- Desktop search bar: centered on the page midline via CSS grid
-         (1fr | auto | 1fr). The left/right 1fr tracks are equal so the
-         auto-sized middle track sits exactly on the page center, regardless
-         of how wide the logo vs the buttons are. -->
+    <!-- Desktop search bar: centered on the page midline via CSS grid -->
     <div class="hidden md:flex justify-self-center w-full max-w-xl">
       <SearchBar {searchEngines} {lang} {defaultEngine} />
     </div>
@@ -134,7 +133,7 @@
       <!-- Language toggle -->
       <button
         onclick={ontoggleLang}
-        class="px-2 py-1.5 rounded-lg hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer text-xs font-semibold w-9 text-center"
+        class="px-2.5 py-1.5 rounded-lg hover:bg-bg dark:hover:bg-bg-dark border border-transparent hover:border-border dark:hover:border-border-dark transition-all cursor-pointer text-xs font-semibold text-text-secondary dark:text-text-secondary-dark w-9 text-center"
         aria-label="Switch language"
       >
         {lang === 'zh' ? 'EN' : '中'}
@@ -142,29 +141,28 @@
 
       <button
         onclick={toggleDark}
-        class="p-2 rounded-lg hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
+        class="p-2 rounded-lg text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark hover:bg-bg dark:hover:bg-bg-dark border border-transparent hover:border-border dark:hover:border-border-dark transition-all cursor-pointer"
         aria-label={t('header.toggleDark')}
       >
         {#if darkMode}
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
         {:else}
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
           </svg>
         {/if}
       </button>
 
-      <!-- Click stats: standalone entry (kept out of the settings form on
-           purpose — read-only, opened often). Refreshes its feed on open. -->
+      <!-- Click stats -->
       <button
         onclick={() => (statsOpen = true)}
-        class="p-2 rounded-lg hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
+        class="p-2 rounded-lg text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark hover:bg-bg dark:hover:bg-bg-dark border border-transparent hover:border-border dark:hover:border-border-dark transition-all cursor-pointer"
         aria-label={t('stats.nav')}
         title={t('stats.nav')}
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       </button>
@@ -172,24 +170,24 @@
       <div class="relative" id="zyes-settings-menu">
         <button
           onclick={() => (menuOpen = !menuOpen)}
-          class="p-2 rounded-lg hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
+          class="p-2 rounded-lg text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark hover:bg-bg dark:hover:bg-bg-dark border border-transparent hover:border-border dark:hover:border-border-dark transition-all cursor-pointer"
           aria-label={t('header.settings')}
           aria-expanded={menuOpen}
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </button>
 
         {#if menuOpen}
-          <div class="absolute right-0 mt-2 w-44 rounded-xl bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shadow-xl py-1 z-50 anim-pop-anchor">
+          <div class="absolute right-0 mt-2 w-48 rounded-2xl bg-surface/95 dark:bg-surface-dark/95 backdrop-blur-xl border border-border dark:border-border-dark shadow-2xl p-1.5 z-50 anim-pop-anchor">
             <button
               type="button"
               onclick={() => { settingsOpen = true; menuOpen = false; }}
-              class="w-full flex items-center gap-2 px-3 py-2 text-sm text-text dark:text-text-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
+              class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-text dark:text-text-dark hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 text-text-secondary dark:text-text-secondary-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2" />
               </svg>
               {t('settings.cardSize')}
@@ -197,17 +195,18 @@
             <button
               type="button"
               onclick={() => { aboutOpen = true; menuOpen = false; }}
-              class="w-full flex items-center gap-2 px-3 py-2 text-sm text-text dark:text-text-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
+              class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-text dark:text-text-dark hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 text-text-secondary dark:text-text-secondary-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {t('settings.about')}
             </button>
+            <div class="my-1 h-px bg-border/60 dark:bg-border-dark/60"></div>
             <button
               type="button"
               onclick={() => { onlogout(); menuOpen = false; }}
-              class="w-full flex items-center gap-2 px-3 py-2 text-sm text-text dark:text-text-dark hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer"
+              class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-danger hover:bg-danger/10 transition-colors cursor-pointer"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

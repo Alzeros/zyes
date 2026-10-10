@@ -105,8 +105,14 @@
       }}
     />
   {:else}
-    <span class="font-bold text-primary" style={fill ? 'font-size:min(40vw,3rem)' : `font-size:${iconFwd * 0.7}px`}>
-      {title.charAt(0).toUpperCase()}
-    </span>
+    {#if title && title.trim()}
+      <span class="font-bold text-text dark:text-text-dark flex items-center justify-center select-none {fill ? 'text-lg sm:text-xl' : 'text-sm sm:text-base'}">
+        {title.trim().charAt(0).toUpperCase()}
+      </span>
+    {:else}
+      <svg class="w-5 h-5 text-text-secondary/50 dark:text-text-secondary-dark/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+      </svg>
+    {/if}
   {/if}
 </div>

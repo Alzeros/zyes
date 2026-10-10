@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import type { Bookmark, Category } from '../lib/types';
   import { isValidUrl, parseIcon, parseCategoryIcon } from '../lib/utils';
   import { ensureIcon, getIconBlobUrl } from '../lib/iconCache.svelte';
@@ -48,7 +48,7 @@
   // than the card.
   let previewSource = $derived(parseIcon(icon.trim()));
   let previewPinned = $derived(previewSource.kind === 'favicon' ? previewSource.source : '');
-  let previewTitle = $derived(title.trim() || url.trim() || 'zyes');
+  let previewTitle = $derived(title.trim() || url.trim() || '');
 
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
@@ -98,58 +98,65 @@
 </script>
 
 <div class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm anim-fade" onclick={onclose} onkeydown={() => {}} role="button" tabindex="-1"></div>
-  <div class="relative w-full max-w-md bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark p-6 shadow-xl anim-pop max-h-[90vh] overflow-y-auto thin-scroll">
-    <h2 class="text-lg font-semibold mb-4 text-text dark:text-text-dark">
-      {isEdit ? t('modal.editBookmark') : t('modal.addBookmark')}
-    </h2>
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-md anim-fade" onclick={onclose} onkeydown={() => {}} role="button" tabindex="-1"></div>
+  <div class="relative w-full max-w-md bg-surface dark:bg-surface-dark rounded-3xl border border-border/80 dark:border-border-dark/80 p-6 shadow-2xl anim-pop max-h-[90vh] overflow-y-auto thin-scroll">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-lg font-bold text-text dark:text-text-dark">
+        {isEdit ? t('modal.editBookmark') : t('modal.addBookmark')}
+      </h2>
+      <button
+        type="button"
+        onclick={onclose}
+        class="p-1.5 rounded-xl hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer text-text-secondary dark:text-text-secondary-dark"
+        aria-label="close"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
 
     <form onsubmit={handleSubmit} class="space-y-4">
       <div>
-        <label for="bm-title" class="block text-sm font-medium mb-1 text-text dark:text-text-dark">{t('modal.title')}</label>
+        <label for="bm-title" class="block text-xs font-semibold mb-1.5 text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">{t('modal.title')}</label>
         <input
           id="bm-title"
           type="text"
           bind:value={title}
           placeholder={t('modal.titlePlaceholder')}
-          class="w-full px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark placeholder-text-secondary dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-bg/80 dark:bg-bg-dark/80 border border-border/80 dark:border-border-dark/80 text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-text/40 dark:focus:border-text-dark/40 focus:ring-2 focus:ring-text/10 dark:focus:ring-text-dark/10 transition-all text-sm"
           autofocus
         />
       </div>
 
       <div>
-        <label for="bm-url" class="block text-sm font-medium mb-1 text-text dark:text-text-dark">{t('modal.url')}</label>
+        <label for="bm-url" class="block text-xs font-semibold mb-1.5 text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">{t('modal.url')}</label>
         <input
           id="bm-url"
           type="url"
           bind:value={url}
           placeholder={t('modal.urlPlaceholder')}
-          class="w-full px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark placeholder-text-secondary dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-bg/80 dark:bg-bg-dark/80 border border-border/80 dark:border-border-dark/80 text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-text/40 dark:focus:border-text-dark/40 focus:ring-2 focus:ring-text/10 dark:focus:ring-text-dark/10 transition-all text-sm font-mono"
         />
         {#if urlError}
-          <p class="mt-1 text-xs text-danger">{urlError}</p>
-        {/if}
-        {#if url && isValidUrl(url) && previewSource.kind === 'none'}
-          <div class="flex items-center gap-2 mt-2">
-            <span class="text-xs text-text-secondary dark:text-text-secondary-dark">{t('modal.previewFavicon')}</span>
-          </div>
+          <p class="mt-1.5 text-xs text-danger font-medium">{urlError}</p>
         {/if}
       </div>
 
       <div>
-        <label for="bm-icon" class="block text-sm font-medium mb-1 text-text dark:text-text-dark">{t('modal.icon')}</label>
+        <label for="bm-icon" class="block text-xs font-semibold mb-1.5 text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">{t('modal.icon')}</label>
         <button
           type="button"
           onclick={() => (pickerOpen = true)}
           disabled={!url.trim() && !icon.trim()}
-          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-left transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed hover:border-primary/40 cursor-pointer"
+          class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-bg/80 dark:bg-bg-dark/80 border border-border/80 dark:border-border-dark/80 text-left transition-all focus:outline-none focus:ring-2 focus:ring-text/10 focus:border-text/40 disabled:opacity-50 disabled:cursor-not-allowed hover:border-text/30 cursor-pointer"
         >
-          <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-surface dark:bg-surface-dark border border-border dark:border-border-dark shrink-0 overflow-hidden">
-            <IconView source={previewSource} proxyUrl={url.trim() && isValidUrl(url.trim()) ? getIconBlobUrl(url.trim(), previewPinned) : ''} fallbackUrls={[]} fallbackUrl="" title={previewTitle} size="md" fill />
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-surface dark:bg-surface-dark border border-border/80 dark:border-border-dark/80 shrink-0 overflow-hidden shadow-2xs">
+            <IconView source={previewSource} proxyUrl={url.trim() && isValidUrl(url.trim()) ? getIconBlobUrl(url.trim(), previewPinned) : ''} fallbackUrls={[]} fallbackUrl="" title={previewTitle} size="sm" />
           </div>
           <span class="flex-1 min-w-0 text-sm text-text-secondary dark:text-text-secondary-dark truncate">
             {#if icon.trim()}
-              {icon.trim()}
+              <span class="text-text dark:text-text-dark font-medium">{icon.trim()}</span>
             {:else}
               {t('modal.iconPickerCta')}
             {/if}
@@ -161,11 +168,11 @@
       </div>
 
       <div>
-        <label for="bm-category" class="block text-sm font-medium mb-1 text-text dark:text-text-dark">{t('modal.category')}</label>
+        <label for="bm-category" class="block text-xs font-semibold mb-1.5 text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">{t('modal.category')}</label>
         <select
           id="bm-category"
           bind:value={categoryId}
-          class="w-full px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-bg/80 dark:bg-bg-dark/80 border border-border/80 dark:border-border-dark/80 text-text dark:text-text-dark focus:outline-none focus:ring-2 focus:ring-text/10 focus:border-text/40 transition-all text-sm cursor-pointer"
         >
           <option value="">{t('modal.uncategorized')}</option>
           {#each categories as cat}
@@ -174,58 +181,60 @@
         </select>
       </div>
 
-      <div>
-        <span class="block text-sm font-medium mb-1 text-text dark:text-text-dark">{t('modal.openTarget')}</span>
-        <div class="inline-flex items-center gap-1 p-1 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark">
-          <button
-            type="button"
-            onclick={() => (openTarget = 'new')}
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer {openTarget === 'new' ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
-          >
-            {t('modal.openNew')}
-          </button>
-          <button
-            type="button"
-            onclick={() => (openTarget = 'self')}
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer {openTarget === 'self' ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
-          >
-            {t('modal.openSelf')}
-          </button>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <span class="block text-xs font-semibold mb-1.5 text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">{t('modal.openTarget')}</span>
+          <div class="inline-flex items-center gap-1 p-1 rounded-xl bg-bg/80 dark:bg-bg-dark/80 border border-border/80 dark:border-border-dark/80 w-full shadow-2xs">
+            <button
+              type="button"
+              onclick={() => (openTarget = 'new')}
+              class="flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer {openTarget === 'new' ? 'bg-text text-bg dark:bg-text-dark dark:text-bg-dark shadow-xs font-semibold' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
+            >
+              {t('modal.openNew')}
+            </button>
+            <button
+              type="button"
+              onclick={() => (openTarget = 'self')}
+              class="flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer {openTarget === 'self' ? 'bg-text text-bg dark:bg-text-dark dark:text-bg-dark shadow-xs font-semibold' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
+            >
+              {t('modal.openSelf')}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <span class="block text-xs font-semibold mb-1.5 text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">{t('modal.displayMode')}</span>
+          <div class="inline-flex items-center gap-1 p-1 rounded-xl bg-bg/80 dark:bg-bg-dark/80 border border-border/80 dark:border-border-dark/80 w-full shadow-2xs">
+            <button
+              type="button"
+              onclick={() => (displayMode = 'compact')}
+              class="flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer {displayMode === 'compact' ? 'bg-text text-bg dark:bg-text-dark dark:text-bg-dark shadow-xs font-semibold' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
+            >
+              {t('grid.viewCompact')}
+            </button>
+            <button
+              type="button"
+              onclick={() => (displayMode = 'detail')}
+              class="flex-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 cursor-pointer {displayMode === 'detail' ? 'bg-text text-bg dark:bg-text-dark dark:text-bg-dark shadow-xs font-semibold' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
+            >
+              {t('grid.viewDetail')}
+            </button>
+          </div>
         </div>
       </div>
 
       <div>
-        <span class="block text-sm font-medium mb-1 text-text dark:text-text-dark">{t('modal.displayMode')}</span>
-        <div class="inline-flex items-center gap-1 p-1 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark">
-          <button
-            type="button"
-            onclick={() => (displayMode = 'compact')}
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer {displayMode === 'compact' ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
-          >
-            {t('grid.viewCompact')}
-          </button>
-          <button
-            type="button"
-            onclick={() => (displayMode = 'detail')}
-            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer {displayMode === 'detail' ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
-          >
-            {t('grid.viewDetail')}
-          </button>
-        </div>
-      </div>
-
-      <div>
-        <label for="bm-desc" class="block text-sm font-medium mb-1 text-text dark:text-text-dark">{t('modal.description')}</label>
+        <label for="bm-desc" class="block text-xs font-semibold mb-1.5 text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">{t('modal.description')}</label>
         <textarea
           id="bm-desc"
           bind:value={description}
           placeholder={t('modal.descPlaceholder')}
           rows="2"
-          class="w-full px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark placeholder-text-secondary dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm resize-none"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-bg/80 dark:bg-bg-dark/80 border border-border/80 dark:border-border-dark/80 text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:ring-2 focus:ring-text/10 focus:border-text/40 transition-all text-sm resize-none"
         ></textarea>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2">
+      <div class="flex justify-end gap-2.5 pt-3">
         <button
           type="button"
           onclick={onclose}
@@ -236,7 +245,7 @@
         <button
           type="submit"
           disabled={saving || !title.trim()}
-          class="px-4 py-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary-hover text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          class="px-5 py-2 rounded-xl text-sm font-semibold bg-text hover:bg-text/85 text-bg dark:bg-text-dark dark:hover:bg-text-dark/85 dark:text-bg-dark shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {saving ? t('modal.saving') : isEdit ? t('modal.update') : t('modal.add')}
         </button>

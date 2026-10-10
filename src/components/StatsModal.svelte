@@ -43,16 +43,16 @@
 </script>
 
 <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
-  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm anim-fade" onclick={cancel} onkeydown={() => {}} role="button" tabindex="-1"></div>
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-md anim-fade" onclick={cancel} onkeydown={() => {}} role="button" tabindex="-1"></div>
 
-  <div class="relative w-full max-w-2xl h-[80vh] max-h-[600px] bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark shadow-xl flex flex-col overflow-hidden anim-pop">
+  <div class="relative w-full max-w-2xl h-[80vh] max-h-[620px] bg-surface dark:bg-surface-dark rounded-3xl border border-border/80 dark:border-border-dark/80 shadow-2xl flex flex-col overflow-hidden anim-pop">
     <!-- Header -->
-    <div class="flex items-center justify-between px-5 py-3.5 border-b border-border dark:border-border-dark shrink-0">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-border/70 dark:border-border-dark/70 shrink-0">
       <h2 class="text-base font-semibold text-text dark:text-text-dark">{t('stats.title')}</h2>
       <button
         type="button"
         onclick={cancel}
-        class="p-1.5 rounded-lg hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer text-text-secondary dark:text-text-secondary-dark"
+        class="p-1.5 rounded-xl hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer text-text-secondary dark:text-text-secondary-dark"
         aria-label="close"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,7 +62,7 @@
     </div>
 
     <!-- Body -->
-    <div class="flex-1 overflow-y-auto p-5 min-h-0 thin-scroll">
+    <div class="flex-1 overflow-y-auto p-6 min-h-0 thin-scroll">
       <StatsPanel {statsRows} {bookmarks} {categories} />
     </div>
   </div>

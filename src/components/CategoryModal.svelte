@@ -67,41 +67,53 @@
 </script>
 
 <div class="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm anim-fade" onclick={onclose} onkeydown={() => {}} role="button" tabindex="-1"></div>
-  <div class="relative w-full max-w-sm bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark p-6 shadow-xl anim-pop max-h-[90vh] overflow-y-auto thin-scroll">
-    <h2 class="text-lg font-semibold mb-4 text-text dark:text-text-dark">
-      {isEdit ? t('modal.editCategory') : t('modal.addCategory')}
-    </h2>
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-md anim-fade" onclick={onclose} onkeydown={() => {}} role="button" tabindex="-1"></div>
+  <div class="relative w-full max-w-sm bg-surface dark:bg-surface-dark rounded-3xl border border-border/80 dark:border-border-dark/80 p-6 shadow-2xl anim-pop max-h-[90vh] overflow-y-auto thin-scroll">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-lg font-bold text-text dark:text-text-dark">
+        {isEdit ? t('modal.editCategory') : t('modal.addCategory')}
+      </h2>
+      <button
+        type="button"
+        onclick={onclose}
+        class="p-1.5 rounded-xl hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer text-text-secondary dark:text-text-secondary-dark"
+        aria-label="close"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
 
     <form onsubmit={handleSubmit} class="space-y-4">
       <div>
-        <label for="cat-name" class="block text-sm font-medium mb-1 text-text dark:text-text-dark">{t('modal.categoryName')}</label>
+        <label for="cat-name" class="block text-xs font-semibold mb-1.5 text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">{t('modal.categoryName')}</label>
         <input
           id="cat-name"
           type="text"
           bind:value={name}
           placeholder={t('modal.categoryPlaceholder')}
-          class="w-full px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark placeholder-text-secondary dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-bg/80 dark:bg-bg-dark/80 border border-border/80 dark:border-border-dark/80 text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-text/40 dark:focus:border-text-dark/40 focus:ring-2 focus:ring-text/10 dark:focus:ring-text-dark/10 transition-all text-sm"
           autofocus
         />
       </div>
 
       <div>
-        <label for="cat-icon" class="block text-sm font-medium mb-2 text-text dark:text-text-dark">{t('modal.icon')}</label>
+        <label for="cat-icon" class="block text-xs font-semibold mb-2 text-text-secondary dark:text-text-secondary-dark uppercase tracking-wider">{t('modal.icon')}</label>
         <div class="flex flex-wrap gap-1.5 mb-3">
           {#each categoryIconOptions as opt}
             <button
               type="button"
               onclick={() => (icon = opt.icon)}
               title={opt.label}
-              class="w-9 h-9 rounded-lg flex items-center justify-center transition-all cursor-pointer {icon === opt.icon ? 'bg-primary/10 ring-2 ring-primary scale-110' : 'bg-bg dark:bg-bg-dark hover:bg-border dark:hover:bg-border-dark'}"
+              class="w-8.5 h-8.5 rounded-xl flex items-center justify-center transition-all cursor-pointer {icon === opt.icon ? 'bg-surface dark:bg-surface-dark ring-2 ring-text dark:ring-text-dark scale-110 shadow-xs' : 'bg-bg dark:bg-bg-dark hover:bg-border/60 dark:hover:bg-border-dark/60'}"
             >
-              <Icon icon={opt.icon} width={18} height={18} color={opt.color} />
+              <Icon icon={opt.icon} width={16} height={16} color={opt.color} />
             </button>
           {/each}
         </div>
         <div class="flex items-stretch gap-3">
-          <div class="flex items-center justify-center rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark w-14 h-14 shrink-0 overflow-hidden text-2xl">
+          <div class="flex items-center justify-center rounded-2xl bg-bg dark:bg-bg-dark border border-border/80 dark:border-border-dark/80 w-13 h-13 shrink-0 overflow-hidden text-2xl shadow-2xs">
             {#if preview.kind === 'emoji'}
               <span>{preview.char}</span>
             {:else if preview.kind === 'iconify'}
@@ -116,15 +128,15 @@
               type="text"
               bind:value={icon}
               placeholder={t('modal.iconPlaceholder')}
-              class="w-full px-3 py-2.5 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark placeholder-text-secondary dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-bg/80 dark:bg-bg-dark/80 border border-border/80 dark:border-border-dark/80 text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-text/40 dark:focus:border-text-dark/40 focus:ring-2 focus:ring-text/10 dark:focus:ring-text-dark/10 transition-all text-sm"
             />
-            <p class="mt-1 text-xs text-text-secondary dark:text-text-secondary-dark">
+            <p class="mt-1.5 text-xs text-text-secondary dark:text-text-secondary-dark leading-relaxed">
               {t('modal.iconHintPrefix')}
               <a
                 href="https://icon-sets.iconify.design/"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-primary hover:underline"
+                class="text-text dark:text-text-dark underline font-medium"
                 onclick={(e) => e.stopPropagation()}
               >icon-sets.iconify.design</a>
               {t('modal.iconHintSuffix')}
@@ -133,7 +145,7 @@
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2">
+      <div class="flex justify-end gap-2.5 pt-3">
         <button
           type="button"
           onclick={onclose}
@@ -144,7 +156,7 @@
         <button
           type="submit"
           disabled={saving || !name.trim()}
-          class="px-4 py-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary-hover text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          class="px-5 py-2 rounded-xl text-sm font-semibold bg-text hover:bg-text/85 text-bg dark:bg-text-dark dark:hover:bg-text-dark/85 dark:text-bg-dark shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           {saving ? t('modal.saving') : isEdit ? t('modal.update') : t('modal.add')}
         </button>

@@ -289,16 +289,16 @@
 </script>
 
 <div class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true">
-  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm anim-fade" onclick={cancel} onkeydown={() => {}} role="button" tabindex="-1"></div>
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-md anim-fade" onclick={cancel} onkeydown={() => {}} role="button" tabindex="-1"></div>
 
-  <div class="relative w-full max-w-2xl h-[80vh] max-h-[600px] bg-surface dark:bg-surface-dark rounded-2xl border border-border dark:border-border-dark shadow-xl flex flex-col overflow-hidden anim-pop">
+  <div class="relative w-full max-w-2xl h-[80vh] max-h-[600px] bg-surface dark:bg-surface-dark rounded-3xl border border-border/80 dark:border-border-dark/80 shadow-2xl flex flex-col overflow-hidden anim-pop">
     <!-- Header -->
-    <div class="flex items-center justify-between px-5 py-3.5 border-b border-border dark:border-border-dark shrink-0">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-border/70 dark:border-border-dark/70 shrink-0">
       <h2 class="text-base font-semibold text-text dark:text-text-dark">{t('cardSize.title')}</h2>
       <button
         type="button"
         onclick={cancel}
-        class="p-1.5 rounded-lg hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer text-text-secondary dark:text-text-secondary-dark"
+        class="p-1.5 rounded-xl hover:bg-bg dark:hover:bg-bg-dark transition-colors cursor-pointer text-text-secondary dark:text-text-secondary-dark"
         aria-label="close"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -309,12 +309,12 @@
 
     <div class="flex flex-1 min-h-0 flex-col sm:flex-row">
       <!-- Group nav -->
-      <nav class="flex sm:flex-col gap-1 p-3 sm:w-44 sm:shrink-0 border-b sm:border-b-0 sm:border-r border-border dark:border-border-dark">
+      <nav class="flex sm:flex-col gap-1 p-3 sm:w-44 sm:shrink-0 border-b sm:border-b-0 sm:border-r border-border/70 dark:border-border-dark/70 bg-bg/40 dark:bg-bg-dark/40">
         {#each groups as g}
           <button
             type="button"
             onclick={() => (activeGroup = g.id)}
-            class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer {activeGroup === g.id ? 'bg-primary/10 text-primary' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'}"
+            class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer {activeGroup === g.id ? 'bg-surface dark:bg-surface-dark text-text dark:text-text-dark font-semibold shadow-xs border border-border/80 dark:border-border-dark/80' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-surface/60 dark:hover:bg-surface-dark/60 hover:text-text dark:hover:text-text-dark'}"
           >
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={g.icon} />
@@ -325,19 +325,19 @@
       </nav>
 
       <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-5 min-h-0 thin-scroll">
+      <div class="flex-1 overflow-y-auto p-6 min-h-0 thin-scroll">
         {#if activeGroup === 'cards'}
           <!-- ── Card size ─────────────────────────────────────── -->
           <section class="mb-6">
             <h3 class="text-sm font-semibold text-text dark:text-text-dark mb-1">{t('cardSize.sizeSection')}</h3>
             <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-3">{t('cardSize.hint')}</p>
 
-            <div class="inline-flex items-center gap-1 p-1 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark w-full">
+            <div class="inline-flex items-center gap-1 p-1 rounded-2xl bg-bg dark:bg-bg-dark border border-border/80 dark:border-border-dark/80 w-full shadow-2xs">
               {#each SIZES as s}
                 <button
                   type="button"
                   onclick={() => (draftCardSize = s)}
-                  class="flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer {draftCardSize === s ? 'bg-primary text-white' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
+                  class="flex-1 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer {draftCardSize === s ? 'bg-text text-bg dark:bg-text-dark dark:text-bg-dark shadow-xs font-semibold' : 'text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark'}"
                 >
                   {label(s)}
                 </button>
@@ -347,22 +347,20 @@
           </section>
 
           <!-- ── Click stats: on-card badge toggle ──────────────── -->
-          <!-- Display-only switch: click reporting to the stats page is NOT
-               affected — it only hides the corner badge on cards. -->
           <section>
             <h3 class="text-sm font-semibold text-text dark:text-text-dark mb-1">{t('stats.section')}</h3>
             <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-3">{t('stats.badgeHint')}</p>
 
-            <div class="flex items-center gap-3 p-3 rounded-xl border border-border dark:border-border-dark">
+            <div class="flex items-center gap-3 p-4 rounded-2xl border border-border/80 dark:border-border-dark/80 bg-surface/50 dark:bg-surface-dark/50">
               <span class="flex-1 text-sm font-medium text-text dark:text-text-dark">{t('stats.badgeLabel')}</span>
               <button
                 type="button"
                 role="switch"
                 aria-checked={draftClickBadge}
                 onclick={() => (draftClickBadge = !draftClickBadge)}
-                class="relative w-10 h-6 rounded-full transition-colors shrink-0 cursor-pointer {draftClickBadge ? 'bg-primary' : 'bg-border dark:bg-border-dark'}"
+                class="relative w-11 h-6 rounded-full transition-colors shrink-0 cursor-pointer {draftClickBadge ? 'bg-text dark:bg-text-dark shadow-xs' : 'bg-border dark:bg-border-dark'}"
               >
-                <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform {draftClickBadge ? 'translate-x-4' : ''}"></span>
+                <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-bg dark:bg-bg-dark shadow-md transition-transform {draftClickBadge ? 'translate-x-5' : ''}"></span>
               </button>
             </div>
           </section>
@@ -372,22 +370,19 @@
             <h3 class="text-sm font-semibold text-text dark:text-text-dark mb-1">{t('cardSize.siteSection')}</h3>
             <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-4">{t('cardSize.siteHint')}</p>
 
-            <!-- Logo input + live preview. Empty = built-in Z wordmark; an
-                 iconify name (e.g. "mdi:github") or an image URL replaces the
-                 whole brand mark on Header / LoginScreen / About. -->
+            <!-- Logo input + live preview -->
             <label class="block mb-4">
               <span class="block text-xs font-medium mb-1.5 text-text-secondary dark:text-text-secondary-dark">{t('cardSize.siteLogoLabel')}</span>
               <div class="flex items-center gap-3">
-                <div class="shrink-0 w-10 h-10 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark flex items-center justify-center overflow-hidden">
+                <div class="shrink-0 w-11 h-11 rounded-2xl bg-bg dark:bg-bg-dark border border-border/80 dark:border-border-dark/80 flex items-center justify-center overflow-hidden shadow-2xs">
                   {#if logoPreview.kind === 'iconify'}
-                    <Icon icon={logoPreview.name} width={26} height={26} class="shrink-0" inline />
+                    <Icon icon={logoPreview.name} width={26} height={26} class="shrink-0 text-text dark:text-text-dark" inline />
                   {:else if logoPreview.kind === 'image'}
-                    <img src={logoPreview.url} alt="" class="shrink-0 object-contain w-full h-full" style="padding:6%" />
+                    <img src={logoPreview.url} alt="" class="shrink-0 object-contain w-full h-full p-1" />
                   {:else}
                     <!-- Default Z mark mini-preview -->
                     <svg width="18" height="23" viewBox="6 5 17 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <g class="zyes-light"><path d="M 9 8 H 22 L 10 24 H 23" stroke="#1e293b" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" /></g>
-                      <g class="zyes-dark"><path d="M 9 8 H 22 L 10 24 H 23" stroke="#ffffff" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" /></g>
+                      <path d="M 9 8 H 22 L 10 24 H 23" stroke="currentColor" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" class="text-text dark:text-text-dark" />
                     </svg>
                   {/if}
                 </div>
@@ -397,7 +392,7 @@
                   maxlength="256"
                   placeholder={t('cardSize.siteLogoPlaceholder')}
                   oninput={(e) => (draftSiteLogo = e.currentTarget.value)}
-                  class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-sm text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                  class="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl bg-bg/80 dark:bg-bg-dark/80 border border-border/80 dark:border-border-dark/80 text-sm text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-text/40 dark:focus:border-text-dark/40 focus:ring-2 focus:ring-text/10 dark:focus:ring-text-dark/10 transition-all"
                 />
               </div>
               <p class="mt-1.5 text-xs text-text-secondary dark:text-text-secondary-dark leading-relaxed">
@@ -406,7 +401,7 @@
                   href="https://icon-sets.iconify.design/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="text-primary hover:underline"
+                  class="text-text dark:text-text-dark underline font-medium"
                   onclick={(e) => e.stopPropagation()}
                 >icon-sets.iconify.design</a>
               </p>
@@ -420,7 +415,7 @@
                 maxlength="64"
                 placeholder={t('cardSize.siteNamePlaceholder')}
                 oninput={(e) => (draftSiteName = e.currentTarget.value)}
-                class="w-full px-3 py-2 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-sm text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-bg/80 dark:bg-bg-dark/80 border border-border/80 dark:border-border-dark/80 text-sm text-text dark:text-text-dark placeholder:text-text-secondary/50 focus:outline-none focus:border-text/40 dark:focus:border-text-dark/40 focus:ring-2 focus:ring-text/10 dark:focus:ring-text-dark/10 transition-all"
               />
             </label>
           </section>
@@ -431,19 +426,19 @@
             <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-4">{t('search.hint')}</p>
 
             <!-- Engine list with toggle switches -->
-            <div class="space-y-2 mb-6">
+            <div class="space-y-2.5 mb-6">
               {#each searchEngines as engine (engine.id)}
                 {@const isActive = draftEngines.get(engine.id) ?? false}
                 {@const brand = getSearchEngineIcon(engine.id)}
                 {@const isDefault = draftDefaultEngine === engine.id}
-                <div class="flex items-center gap-3 p-3 rounded-xl border transition-colors {isDefault ? 'border-primary/40 bg-primary/5' : 'border-border dark:border-border-dark'}">
+                <div class="flex items-center gap-3 p-3.5 rounded-2xl border transition-all {isDefault ? 'border-text/30 dark:border-text-dark/30 bg-surface dark:bg-surface-dark shadow-xs' : 'border-border/80 dark:border-border-dark/80 bg-surface/40 dark:bg-surface-dark/40'}">
                   <!-- Brand icon -->
                   <span
-                    class="w-7 h-7 rounded-full flex items-center justify-center text-white shrink-0"
+                    class="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
                     style="background-color: {brand?.color ?? '#6366f1'}"
                   >
                     {#if brand}
-                      <Icon icon={brand.icon} width="14" height="14" color="white" />
+                      <Icon icon={brand.icon} width={16} height={16} color="white" />
                     {:else}
                       <span class="text-xs font-bold">{engine.name.charAt(0)}</span>
                     {/if}
@@ -457,8 +452,8 @@
                     type="button"
                     onclick={() => { if (isActive) draftDefaultEngine = engine.id; }}
                     disabled={!isActive}
-                    class="text-xs font-medium px-2 py-1 rounded-lg transition-all cursor-pointer {isDefault
-                      ? 'bg-primary text-white'
+                    class="text-xs font-medium px-2.5 py-1 rounded-lg transition-all cursor-pointer {isDefault
+                      ? 'bg-text text-bg dark:bg-text-dark dark:text-bg-dark shadow-xs font-semibold'
                       : isActive
                         ? 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'
                         : 'text-text-secondary/30 dark:text-text-secondary-dark/30 cursor-not-allowed'}"
@@ -476,24 +471,22 @@
                       const next = new Map(draftEngines);
                       next.set(engine.id, !isActive);
                       draftEngines = next;
-                      // If disabling the current default, move default to the
-                      // first still-active engine.
                       if (isActive && draftDefaultEngine === engine.id) {
                         const fallback = searchEngines.find((e) => e.id !== engine.id && next.get(e.id))?.id ?? 'google';
                         draftDefaultEngine = fallback;
                       }
                       engineError = '';
                     }}
-                    class="relative w-10 h-6 rounded-full transition-colors shrink-0 {isActive ? 'bg-primary' : 'bg-border dark:bg-border-dark'}"
+                    class="relative w-11 h-6 rounded-full transition-colors shrink-0 {isActive ? 'bg-text dark:bg-text-dark shadow-xs' : 'bg-border dark:bg-border-dark'}"
                   >
-                    <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform {isActive ? 'translate-x-4' : ''}"></span>
+                    <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-bg dark:bg-bg-dark shadow-md transition-transform {isActive ? 'translate-x-5' : ''}"></span>
                   </button>
                 </div>
               {/each}
             </div>
 
             {#if engineError}
-              <p class="text-sm text-danger mb-2">{engineError}</p>
+              <p class="text-sm text-danger mb-2 font-medium">{engineError}</p>
             {/if}
           </section>
         {:else}
@@ -503,17 +496,17 @@
             <p class="text-xs text-text-secondary dark:text-text-secondary-dark mb-4">{t('data.exportHint')}</p>
 
             <!-- Export -->
-            <div class="rounded-xl border border-border dark:border-border-dark p-4 mb-3">
+            <div class="rounded-2xl border border-border/80 dark:border-border-dark/80 p-4 mb-3 bg-surface/50 dark:bg-surface-dark/50">
               <div class="flex items-center justify-between gap-3 mb-3">
                 <div class="min-w-0">
-                  <p class="text-sm font-medium text-text dark:text-text-dark">{t('data.export')}</p>
+                  <p class="text-sm font-semibold text-text dark:text-text-dark">{t('data.export')}</p>
                   <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-0.5 leading-relaxed">{t('data.exportHint')}</p>
                 </div>
                 <button
                   type="button"
                   onclick={() => handleExport('json')}
                   disabled={exporting}
-                  class="shrink-0 px-3 py-2 rounded-xl text-xs font-medium bg-primary hover:bg-primary-hover text-white transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold bg-text hover:bg-text/85 text-bg dark:bg-text-dark dark:hover:bg-text-dark/85 dark:text-bg-dark transition-all cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {#if exporting}<span class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>{/if}
                   {t('data.export')}
@@ -521,14 +514,14 @@
               </div>
               <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
-                  <p class="text-sm font-medium text-text dark:text-text-dark">{t('data.exportHtml')}</p>
+                  <p class="text-sm font-semibold text-text dark:text-text-dark">{t('data.exportHtml')}</p>
                   <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-0.5 leading-relaxed">{t('data.exportHtmlHint')}</p>
                 </div>
                 <button
                   type="button"
                   onclick={() => handleExport('html')}
                   disabled={exporting}
-                  class="shrink-0 px-3 py-2 rounded-xl text-xs font-medium bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark hover:border-primary/40 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark hover:border-text/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {t('data.exportHtml')}
                 </button>
@@ -536,49 +529,49 @@
             </div>
 
             <!-- Import -->
-            <div class="rounded-xl border border-border dark:border-border-dark p-4">
-              <p class="text-sm font-medium text-text dark:text-text-dark mb-3">{t('data.import')}</p>
+            <div class="rounded-2xl border border-border/80 dark:border-border-dark/80 p-4 bg-surface/50 dark:bg-surface-dark/50">
+              <p class="text-sm font-semibold text-text dark:text-text-dark mb-3">{t('data.import')}</p>
 
-              <!-- JSON backup import (replace only) -->
-              <div class="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-border dark:border-border-dark">
+              <!-- JSON backup import -->
+              <div class="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-border/60 dark:border-border-dark/60">
                 <div class="min-w-0">
-                  <p class="text-sm text-text dark:text-text-dark">{t('data.importJson')}</p>
+                  <p class="text-sm font-medium text-text dark:text-text-dark">{t('data.importJson')}</p>
                   <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-0.5 leading-relaxed">{t('data.importHint')}</p>
                 </div>
                 <button
                   type="button"
                   onclick={pickJsonImport}
                   disabled={importing}
-                  class="shrink-0 px-3 py-2 rounded-xl text-xs font-medium bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark hover:border-primary/40 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark hover:border-text/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {#if importing}<span class="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>{/if}
+                  {#if importing}<span class="w-3 h-3 border-2 border-text border-t-transparent rounded-full animate-spin"></span>{/if}
                   {importing ? t('data.importing') : t('data.importPick')}
                 </button>
               </div>
 
-              <!-- Browser bookmarks (HTML) import — replace or merge -->
+              <!-- Browser bookmarks (HTML) import -->
               <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
-                  <p class="text-sm text-text dark:text-text-dark">{t('data.importHtml')}</p>
+                  <p class="text-sm font-medium text-text dark:text-text-dark">{t('data.importHtml')}</p>
                   <p class="text-xs text-text-secondary dark:text-text-secondary-dark mt-0.5 leading-relaxed">{t('data.importHtmlHint')}</p>
                 </div>
                 <button
                   type="button"
                   onclick={pickHtmlImport}
                   disabled={importing}
-                  class="shrink-0 px-3 py-2 rounded-xl text-xs font-medium bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark hover:border-primary/40 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  class="shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark hover:border-text/40 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {#if importing}<span class="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>{/if}
+                  {#if importing}<span class="w-3 h-3 border-2 border-text border-t-transparent rounded-full animate-spin"></span>{/if}
                   {importing ? t('data.importing') : t('data.importHtmlPick')}
                 </button>
               </div>
 
               {#if dataMsg}
-                <p class="mt-3 text-xs {dataMsg.kind === 'ok' ? 'text-primary' : 'text-danger'}">{dataMsg.text}</p>
+                <p class="mt-3 text-xs font-medium {dataMsg.kind === 'ok' ? 'text-success' : 'text-danger'}">{dataMsg.text}</p>
               {/if}
             </div>
 
-            <!-- Hidden file inputs: one for JSON, one for HTML. Accept filters differ. -->
+            <!-- Hidden file inputs -->
             <input bind:this={jsonFileInput} type="file" accept="application/json,.json" class="hidden" onchange={onJsonChosen} />
             <input bind:this={htmlFileInput} type="file" accept="text/html,.html,.htm" class="hidden" onchange={onHtmlChosen} />
           </section>
@@ -587,7 +580,7 @@
     </div>
 
     <!-- Footer: Apply / Cancel -->
-    <div class="flex items-center justify-end gap-2 px-5 py-3 border-t border-border dark:border-border-dark shrink-0">
+    <div class="flex items-center justify-end gap-2.5 px-6 py-3.5 border-t border-border/70 dark:border-border-dark/70 shrink-0 bg-bg/30 dark:bg-bg-dark/30">
       <button
         type="button"
         onclick={cancel}
@@ -599,10 +592,10 @@
         type="button"
         onclick={apply}
         disabled={!dirty || saving}
-        class="px-4 py-2 rounded-xl text-sm font-medium bg-primary hover:bg-primary-hover text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+        class="px-5 py-2 rounded-xl text-sm font-semibold bg-text hover:bg-text/85 text-bg dark:bg-text-dark dark:hover:bg-text-dark/85 dark:text-bg-dark shadow-sm transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
       >
         {#if saving}
-          <span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          <span class="w-3.5 h-3.5 border-2 border-bg dark:border-bg-dark border-t-transparent rounded-full animate-spin"></span>
         {/if}
         {t('cardSize.apply')}
       </button>

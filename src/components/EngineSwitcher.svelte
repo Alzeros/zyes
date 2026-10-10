@@ -35,25 +35,28 @@
   });
 </script>
 
-<div class="engine-switcher absolute top-full left-0 mt-2 w-56 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-2 z-50 shadow-lg anim-pop-anchor-l">
+<div class="engine-switcher absolute top-full left-0 mt-2 w-60 bg-surface/95 dark:bg-surface-dark/95 backdrop-blur-xl border border-border dark:border-border-dark rounded-2xl p-1.5 z-50 shadow-2xl anim-pop-anchor-l">
+  <div class="px-2 py-1 mb-1 text-[11px] font-semibold text-text-secondary/70 dark:text-text-secondary-dark/70 tracking-wider uppercase">
+    {t('search.switchEngine')}
+  </div>
   {#each engines as engine}
     <button
       onclick={() => onselect(engine)}
-      class="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer {engine.id === currentId ? 'bg-primary/10 text-primary' : 'hover:bg-bg dark:hover:bg-bg-dark text-text dark:text-text-dark'}"
+      class="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl transition-all cursor-pointer {engine.id === currentId ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-bg dark:hover:bg-bg-dark text-text dark:text-text-dark'}"
     >
       <span
-        class="w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0"
+        class="w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 shadow-xs"
         style="background-color: {brandColor(engine)}"
       >
         {#if brandIcon(engine)}
-          <Icon icon={brandIcon(engine)!} width="14" height="14" color="white" />
+          <Icon icon={brandIcon(engine)!} width="16" height="16" color="white" />
         {:else}
           <span class="text-xs font-bold">{engine.name.charAt(0)}</span>
         {/if}
       </span>
-      <span class="text-sm font-medium">{engine.name}</span>
+      <span class="text-sm flex-1 text-left">{engine.name}</span>
       {#if engine.id === currentId}
-        <svg class="w-4 h-4 ml-auto text-primary" fill="currentColor" viewBox="0 0 20 20">
+        <svg class="w-4 h-4 text-primary shrink-0" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
         </svg>
       {/if}

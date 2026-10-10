@@ -151,12 +151,15 @@
 
 {#if visible}
   <div class="mb-8 last:mb-0">
-    <h2 class="flex items-center gap-1.5 text-sm font-semibold text-text-secondary dark:text-text-secondary-dark uppercase tracking-wide mb-3">
-      <span class="inline-flex items-center text-base leading-none">
-        <CategoryIcon icon={icon} />
-      </span>
-      {title}
-    </h2>
+    <div class="flex items-center justify-between mb-3.5">
+      <h2 class="flex items-center gap-2 text-sm font-semibold text-text dark:text-text-dark tracking-wide">
+        <span class="w-6 h-6 rounded-lg bg-surface dark:bg-surface-dark border border-border/60 dark:border-border-dark/60 flex items-center justify-center text-sm shadow-2xs">
+          <CategoryIcon icon={icon} />
+        </span>
+        <span>{title}</span>
+        <span class="text-xs font-normal text-text-secondary/70 dark:text-text-secondary-dark/70 font-mono">({items.length})</span>
+      </h2>
+    </div>
 
     {#key cardSize}
       <div
@@ -183,15 +186,17 @@
 
         <button
           onclick={() => (showAddModal = true)}
-          class="col-span-1 flex flex-col aspect-square rounded-xl border-2 border-dashed border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark hover:border-primary hover:text-primary hover:bg-primary/5 transition-all duration-200 cursor-pointer"
+          class="col-span-1 flex flex-col aspect-square rounded-2xl border border-dashed border-border/80 dark:border-border-dark/80 bg-surface/30 dark:bg-surface-dark/30 text-text-secondary/60 dark:text-text-secondary-dark/60 hover:border-text/30 dark:hover:border-text-dark/30 hover:text-text dark:hover:text-text-dark hover:bg-surface dark:hover:bg-surface-dark hover:scale-[1.02] transition-all duration-200 cursor-pointer group/add"
         >
           <div class="flex-1 flex items-center justify-center min-h-0 p-1">
-            <svg class="{addIconCls}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
+            <span class="w-8 h-8 rounded-full bg-bg/80 dark:bg-bg-dark/80 flex items-center justify-center group-hover/add:bg-text group-hover/add:text-bg dark:group-hover/add:bg-text-dark dark:group-hover/add:text-bg-dark transition-all shadow-2xs">
+              <svg class="{addIconCls}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+            </span>
           </div>
-          <div class="px-1.5 pb-1.5 pt-0.5 shrink-0 overflow-hidden">
-            <span class="font-medium line-clamp-2 break-all leading-tight {spec.compactTitle}">{t('grid.addCard')}</span>
+          <div class="px-1.5 pb-2 pt-0.5 shrink-0 overflow-hidden text-center">
+            <span class="font-medium line-clamp-1 break-all leading-tight text-xs">{t('grid.addCard')}</span>
           </div>
         </button>
       </div>

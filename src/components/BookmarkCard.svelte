@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import type { Bookmark, CardSize } from '../lib/types';
   import { getFaviconUrls, truncateUrl, parseIcon } from '../lib/utils';
   import { ensureIcon, getIconBlobUrl } from '../lib/iconCache.svelte';
@@ -96,41 +96,34 @@
     tabindex={interactive ? 0 : undefined}
     title={bookmark.url}
     style="--i:{index}"
-    class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-center select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
+    class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-2xl border border-border/80 dark:border-border-dark/80 overflow-hidden transition-all duration-200 ease-out text-center select-none shadow-xs {interactive ? 'hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/50 hover:border-text/25 dark:hover:border-text-dark/25 hover:-translate-y-1 cursor-pointer' : ''}"
   >
-    <!-- Today-clicks badge: appears only on cards clicked today. The full
-         today/total breakdown rides on the title tooltip. pointer-events-none
-         so it never steals the card's own click. -->
+    <!-- Today-clicks badge -->
     {#if interactive && clickToday > 0}
       <span
-        class="absolute top-1 right-1 z-10 min-w-4 h-4 px-1 rounded-full bg-primary text-white text-[10px] font-semibold leading-4 text-center pointer-events-none shadow-sm"
+        class="absolute top-1.5 right-1.5 z-10 min-w-4.5 h-4.5 px-1.5 rounded-full bg-text text-bg dark:bg-text-dark dark:text-bg-dark text-[10px] font-bold leading-4.5 text-center pointer-events-none shadow-2xs"
         title={t('stats.badge', { today: String(clickToday), total: String(clickTotal) })}
       >
         {clickToday > 99 ? '99+' : clickToday}
       </span>
     {/if}
-    <!-- Icon area. The card is square but the title bar takes vertical space,
-         so this area is a wide rectangle. Favicons are square; with object-contain
-         on a wide box they'd centre and leave gaps, and the rounded clip would
-         fall on the gaps (square-edged image showing). So we constrain the
-         IconView to a SQUARE box (h-full + aspect-square) sized to the area's
-         height, centred — the favicon fills the square and the radius clips it. -->
-    <div class="flex-1 flex items-center justify-center min-h-0 p-1">
-      <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill class="h-full aspect-square card-icon-zoom" />
+
+    <!-- Icon area -->
+    <div class="flex-1 flex items-center justify-center min-h-0 p-1.5">
+      <div class="w-full h-full flex items-center justify-center rounded-xl bg-bg/50 dark:bg-bg-dark/50">
+        <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill class="h-3/4 aspect-square card-icon-zoom" />
+      </div>
     </div>
-    <!-- Title pinned to the bottom. min-h guarantees room for two clamped lines
-         so tall titles aren't clipped by the card's overflow-hidden when the
-         icon area is large; overflow-hidden + line-clamp-2 bounds the text. -->
-    <div class="px-1.5 pb-1.5 pt-0.5 shrink-0 overflow-hidden">
-      <h3 class="font-medium text-text dark:text-text-dark line-clamp-2 break-all leading-tight {spec.compactTitle}">
+
+    <!-- Title pinned to the bottom -->
+    <div class="px-2 pb-2 pt-0.5 shrink-0 overflow-hidden">
+      <h3 class="font-medium text-text dark:text-text-dark line-clamp-2 break-words leading-tight {spec.compactTitle}">
         {bookmark.title}
       </h3>
     </div>
   </div>
 {:else}
-  <!-- Detail card: spans 2 columns. aspect-[2/1] locks the 2:1 box so the
-       height tracks the compact cell height (≈, see cardSize.ts notes).
-       overflow-hidden + line-clamp keep content from growing the row. -->
+  <!-- Detail card: spans 2 columns -->
   <div
     onclick={interactive ? openBookmark : undefined}
     onkeydown={interactive ? handleKeydown : undefined}
@@ -138,28 +131,30 @@
     role={interactive ? 'button' : undefined}
     tabindex={interactive ? 0 : undefined}
     style="--i:{index}"
-    class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} {spec.detailPad} aspect-[2/1] bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark overflow-hidden transition-all duration-200 ease-out text-left select-none {interactive ? 'hover:shadow-lg hover:shadow-black/5 hover:border-primary/30 hover:-translate-y-0.5 cursor-pointer' : ''}"
+    class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} {spec.detailPad} aspect-[2/1] bg-surface dark:bg-surface-dark rounded-2xl border border-border/80 dark:border-border-dark/80 overflow-hidden transition-all duration-200 ease-out text-left select-none shadow-xs {interactive ? 'hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/50 hover:border-text/25 dark:hover:border-text-dark/25 hover:-translate-y-1 cursor-pointer' : ''}"
   >
     {#if interactive && clickToday > 0}
       <span
-        class="absolute top-1.5 right-1.5 z-10 min-w-4 h-4 px-1 rounded-full bg-primary text-white text-[10px] font-semibold leading-4 text-center pointer-events-none shadow-sm"
+        class="absolute top-2 right-2 z-10 min-w-4.5 h-4.5 px-1.5 rounded-full bg-text text-bg dark:bg-text-dark dark:text-bg-dark text-[10px] font-bold leading-4.5 text-center pointer-events-none shadow-2xs"
         title={t('stats.badge', { today: String(clickToday), total: String(clickTotal) })}
       >
         {clickToday > 99 ? '99+' : clickToday}
       </span>
     {/if}
-    <div class="flex items-start gap-3 mb-1">
-      <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} size="sm" bg />
+    <div class="flex items-start gap-3 mb-1.5">
+      <div class="w-10 h-10 rounded-xl bg-bg/60 dark:bg-bg-dark/60 flex items-center justify-center shrink-0 border border-border/60 dark:border-border-dark/60 overflow-hidden">
+        <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} size="sm" />
+      </div>
       <div class="flex-1 min-w-0">
         <h3 class="font-semibold text-text dark:text-text-dark truncate {spec.detailTitle}">{bookmark.title}</h3>
-        <p class="text-xs text-text-secondary dark:text-text-secondary-dark truncate mt-0.5">
+        <p class="text-xs text-text-secondary dark:text-text-secondary-dark truncate mt-0.5 font-mono opacity-80">
           {truncateUrl(bookmark.url)}
         </p>
       </div>
     </div>
 
     {#if bookmark.description}
-      <p class="text-xs text-text-secondary dark:text-text-secondary-dark line-clamp-1">
+      <p class="text-xs text-text-secondary dark:text-text-secondary-dark line-clamp-1 leading-relaxed">
         {bookmark.description}
       </p>
     {/if}

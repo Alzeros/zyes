@@ -119,30 +119,31 @@
   );
 </script>
 
-<!-- Toolbar: edit mode toggle. Per-card display mode (compact/detail) is set via
-     each card's right-click menu — there is no global switch anymore. -->
+<!-- Toolbar: edit mode toggle -->
 <div class="flex items-center justify-end mb-4 gap-2">
   {#if editMode}
-    <button
-      type="button"
-      onclick={() => onexitEdit()}
-      class="px-3 py-1.5 rounded-full text-xs font-medium border border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark transition-all duration-200 cursor-pointer"
-    >
-      {t('grid.editCancel')}
-    </button>
-    <button
-      type="button"
-      onclick={() => onapplyEdits()}
-      disabled={!hasPendingChanges}
-      class="px-3 py-1.5 rounded-full text-xs font-medium bg-primary hover:bg-primary-hover text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-    >
-      {t('grid.editApply')}
-    </button>
+    <div class="inline-flex items-center gap-1.5 p-1 rounded-full bg-surface dark:bg-surface-dark border border-border/80 dark:border-border-dark/80 shadow-xs">
+      <button
+        type="button"
+        onclick={() => onexitEdit()}
+        class="px-3 py-1 rounded-full text-xs font-medium text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark transition-all cursor-pointer"
+      >
+        {t('grid.editCancel')}
+      </button>
+      <button
+        type="button"
+        onclick={() => onapplyEdits()}
+        disabled={!hasPendingChanges}
+        class="px-3.5 py-1 rounded-full text-xs font-medium bg-primary hover:bg-primary-hover text-white shadow-xs transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        {t('grid.editApply')}
+      </button>
+    </div>
   {:else}
     <button
       type="button"
       onclick={() => onenterEdit()}
-      class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark hover:border-primary/40 hover:text-primary transition-all duration-200 cursor-pointer"
+      class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-surface dark:bg-surface-dark border border-border/80 dark:border-border-dark/80 text-text-secondary dark:text-text-secondary-dark hover:text-primary hover:border-primary/40 shadow-2xs transition-all cursor-pointer"
       title={t('grid.editEnter')}
     >
       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -154,11 +155,13 @@
 </div>
 
 {#if bookmarks.length === 0 && !isAll}
-  <div class="text-center py-16">
-    <svg class="w-16 h-16 mx-auto text-border dark:text-border-dark mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-    </svg>
-    <p class="text-text-secondary dark:text-text-secondary-dark text-sm">{t('grid.empty')}</p>
+  <div class="text-center py-20 flex flex-col items-center justify-center">
+    <div class="w-16 h-16 rounded-2xl bg-primary/5 dark:bg-primary/10 border border-primary/10 dark:border-primary/20 flex items-center justify-center text-primary mb-3">
+      <svg class="w-8 h-8 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+      </svg>
+    </div>
+    <p class="text-text-secondary dark:text-text-secondary-dark text-sm font-medium">{t('grid.empty')}</p>
   </div>
 {:else}
   {#each groups as g (g.categoryId || '__uncat__')}

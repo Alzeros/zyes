@@ -95,17 +95,19 @@
 </script>
 
 <!-- Desktop sidebar: fixed 260px column -->
-<aside class="hidden md:flex md:flex-col w-[260px] shrink-0 border-r border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-y-auto thin-scroll">
-  <nav class="cat-dnd-host flex-1 p-4 space-y-1">
+<aside class="hidden md:flex md:flex-col w-[260px] shrink-0 border-r border-border/80 dark:border-border-dark/80 bg-surface/50 dark:bg-surface-dark/50 backdrop-blur-md overflow-y-auto thin-scroll select-none">
+  <nav class="cat-dnd-host flex-1 p-3 space-y-1">
     <button
       onclick={() => selectCategory('all')}
-      class="cat-row w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer {activeCategoryId === 'all' ? 'cat-on bg-primary/10 text-primary' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'}"
+      class="cat-row w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer {activeCategoryId === 'all' ? 'cat-on' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-surface/60 dark:hover:bg-surface-dark/60 hover:text-text dark:hover:text-text-dark'}"
     >
-      <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-      </svg>
-      <span class="flex-1 text-left">{t('sidebar.all')}</span>
-      <span class="text-[11px] tabular-nums px-1.5 py-0.5 rounded-full {activeCategoryId === 'all' ? 'bg-primary/15 text-primary' : 'bg-text/5 dark:bg-text-dark/10 text-text-secondary dark:text-text-secondary-dark'}">{counts.all || 0}</span>
+      <span class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 {activeCategoryId === 'all' ? 'bg-text text-bg dark:bg-text-dark dark:text-bg-dark shadow-2xs' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+        </svg>
+      </span>
+      <span class="flex-1 text-left truncate">{t('sidebar.all')}</span>
+      <span class="text-[11px] font-semibold tabular-nums px-2 py-0.5 rounded-full {activeCategoryId === 'all' ? 'bg-bg dark:bg-bg-dark text-text dark:text-text-dark' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}">{counts.all || 0}</span>
     </button>
 
     <div
@@ -115,15 +117,15 @@
       class="space-y-1"
     >
       {#each items as cat (cat.id)}
-        <div class="flex items-center gap-1 group/cat rounded-xl {activeCategoryId === cat.id ? 'bg-primary/10' : ''}">
+        <div class="flex items-center gap-0.5 group/cat rounded-xl relative">
           <button
             type="button"
             data-dnd-handle
             onpointerdown={handleGripPointerDown}
             aria-label={t('sidebar.dragCategory')}
-            class="shrink-0 px-1 py-2.5 rounded-lg text-text-secondary/30 dark:text-text-secondary-dark/30 hover:text-text-secondary dark:hover:text-text-secondary-dark cursor-grab active:cursor-grabbing transition-colors"
+            class="shrink-0 p-1.5 rounded-lg text-text-secondary/40 dark:text-text-secondary-dark/40 hover:text-text-secondary dark:hover:text-text-secondary-dark opacity-0 group-hover/cat:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
           >
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
               <circle cx="5" cy="3" r="1.3" /><circle cx="5" cy="8" r="1.3" /><circle cx="5" cy="13" r="1.3" />
               <circle cx="11" cy="3" r="1.3" /><circle cx="11" cy="8" r="1.3" /><circle cx="11" cy="13" r="1.3" />
             </svg>
@@ -131,25 +133,25 @@
           <button
             onclick={() => selectCategory(cat.id)}
             oncontextmenu={(e) => handleContextMenu(e, cat)}
-            class="cat-row w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer {activeCategoryId === cat.id ? 'cat-on bg-primary/10 text-primary' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-bg dark:hover:bg-bg-dark'}"
+            class="cat-row w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer {activeCategoryId === cat.id ? 'cat-on' : 'text-text-secondary dark:text-text-secondary-dark hover:bg-surface/60 dark:hover:bg-surface-dark/60 hover:text-text dark:hover:text-text-dark'}"
           >
-            <span class="shrink-0 flex items-center justify-center text-base text-current">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-base {activeCategoryId === cat.id ? 'bg-bg dark:bg-bg-dark text-text dark:text-text-dark' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}">
               <CategoryIcon icon={cat.icon} />
             </span>
             <span class="flex-1 text-left truncate">{cat.name}</span>
-            <span class="text-[11px] tabular-nums px-1.5 py-0.5 rounded-full {activeCategoryId === cat.id ? 'bg-primary/15 text-primary' : 'bg-text/5 dark:bg-text-dark/10 text-text-secondary dark:text-text-secondary-dark'}">{counts[cat.id] || 0}</span>
+            <span class="text-[11px] font-semibold tabular-nums px-2 py-0.5 rounded-full {activeCategoryId === cat.id ? 'bg-bg dark:bg-bg-dark text-text dark:text-text-dark' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}">{counts[cat.id] || 0}</span>
           </button>
         </div>
       {/each}
     </div>
   </nav>
 
-  <div class="p-4 border-t border-border dark:border-border-dark">
+  <div class="p-3 border-t border-border/80 dark:border-border-dark/80">
     <button
       onclick={() => (showAddModal = true)}
-      class="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-primary hover:bg-primary/10 transition-all duration-200 cursor-pointer"
+      class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark hover:bg-surface dark:hover:bg-surface-dark border border-border dark:border-border-dark transition-all duration-150 cursor-pointer"
     >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
       </svg>
       {t('sidebar.addCategory')}
@@ -157,35 +159,32 @@
   </div>
 </aside>
 
-<!-- Mobile category bar: horizontal scrolling tabs. NO drag-to-reorder on
-     mobile — the touch drag in this horizontal strip was jittery and error-prone
-     (cards reorder on a stray swipe). Mobile users edit category order from a
-     desktop device; the bar here is tap-to-select only. -->
-<div class="md:hidden border-b border-border dark:border-border-dark bg-surface dark:bg-surface-dark">
-  <div class="flex items-center gap-1.5 px-3 py-2.5 overflow-x-auto scrollbar-hide">
+<!-- Mobile category bar: horizontal scrolling tabs -->
+<div class="md:hidden border-b border-border/80 dark:border-border-dark/80 bg-surface/80 dark:bg-surface-dark/80 backdrop-blur-md">
+  <div class="flex items-center gap-1.5 px-3 py-2 overflow-x-auto scrollbar-hide">
     <button
       onclick={() => selectCategory('all')}
-      class="shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap {activeCategoryId === 'all' ? 'bg-primary text-white' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}"
+      class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer whitespace-nowrap {activeCategoryId === 'all' ? 'bg-text text-bg dark:bg-text-dark dark:text-bg-dark shadow-xs' : 'bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark'}"
     >
       {t('sidebar.all')}
-      <span class="ml-1 opacity-70">{counts.all || 0}</span>
+      <span class="opacity-80 tabular-nums font-mono">{counts.all || 0}</span>
     </button>
     {#each items as cat (cat.id)}
       <button
         onclick={() => selectCategory(cat.id)}
-        class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 cursor-pointer whitespace-nowrap {activeCategoryId === cat.id ? 'bg-primary text-white' : 'bg-bg dark:bg-bg-dark text-text-secondary dark:text-text-secondary-dark'}"
+        class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 cursor-pointer whitespace-nowrap {activeCategoryId === cat.id ? 'bg-text text-bg dark:bg-text-dark dark:text-bg-dark shadow-xs' : 'bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-text-secondary dark:text-text-secondary-dark'}"
       >
-        <span class="inline-flex items-center text-base text-current"><CategoryIcon icon={cat.icon} /></span>
+        <span class="inline-flex items-center text-sm leading-none"><CategoryIcon icon={cat.icon} /></span>
         {cat.name}
-        <span class="ml-1 opacity-70">{counts[cat.id] || 0}</span>
+        <span class="opacity-80 tabular-nums font-mono">{counts[cat.id] || 0}</span>
       </button>
     {/each}
     <button
       onclick={() => (showAddModal = true)}
-      class="shrink-0 p-1.5 rounded-full text-primary hover:bg-primary/10 transition-all duration-200 cursor-pointer"
+      class="shrink-0 p-1.5 rounded-full text-text-secondary hover:text-text dark:text-text-secondary-dark dark:hover:text-text-dark hover:bg-surface dark:hover:bg-surface-dark border border-border dark:border-border-dark transition-all duration-150 cursor-pointer"
       aria-label={t('sidebar.addCategory')}
     >
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
       </svg>
     </button>

@@ -95,25 +95,25 @@
       <p class="text-text-secondary dark:text-text-secondary-dark text-sm">{t('login.subtitle')}</p>
     </div>
 
-    <form onsubmit={handleSubmit} class="bg-surface dark:bg-surface-dark rounded-2xl p-6 border border-border dark:border-border-dark shadow-xl shadow-black/5 dark:shadow-black/30">
-      <label for="password" class="block text-sm font-medium mb-2 text-text dark:text-text-dark">{t('login.password')}</label>
+    <form onsubmit={handleSubmit} class="bg-surface/90 dark:bg-surface-dark/90 backdrop-blur-2xl rounded-3xl p-7 border border-border/80 dark:border-border-dark/80 shadow-2xl shadow-black/10 dark:shadow-black/40">
+      <label for="password" class="block text-xs font-semibold uppercase tracking-wider mb-2 text-text-secondary dark:text-text-secondary-dark">{t('login.password')}</label>
       <input
         id="password"
         type="password"
         bind:value={password}
         placeholder={t('login.placeholder')}
-        class="w-full px-4 py-3 rounded-xl bg-bg dark:bg-bg-dark border border-border dark:border-border-dark text-text dark:text-text-dark placeholder-text-secondary dark:placeholder-text-secondary-dark focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+        class="w-full px-4 py-3 rounded-2xl bg-bg/80 dark:bg-bg-dark/80 border border-border dark:border-border-dark text-text dark:text-text-dark placeholder-text-secondary/60 dark:placeholder-text-secondary-dark/60 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
         autofocus
       />
 
       {#if error}
-        <p class="mt-3 text-sm text-danger">{error}</p>
+        <p class="mt-3 text-xs font-medium text-danger bg-danger/10 p-2.5 rounded-xl border border-danger/20">{error}</p>
       {/if}
 
       <button
         type="submit"
         disabled={submitting || !password.trim()}
-        class="w-full mt-4 py-3 px-4 rounded-xl bg-primary hover:bg-primary-hover text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        class="w-full mt-5 py-3 px-4 rounded-2xl bg-primary hover:bg-primary-hover text-white font-medium shadow-md shadow-primary/25 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
       >
         {submitting ? t('login.logging') : t('login.submit')}
       </button>
