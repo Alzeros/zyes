@@ -131,7 +131,13 @@
   const WEEKDAY_KEYS = ['stats.wd1', 'stats.wd2', 'stats.wd3', 'stats.wd4', 'stats.wd5', 'stats.wd6', 'stats.wd7'] as const;
 
   // Monotone ramp shared by the category stacked bar and its legend dots.
-  const CAT_COLORS = ['bg-primary', 'bg-primary/70', 'bg-primary/50', 'bg-primary/35', 'bg-primary/25'];
+  const CAT_COLORS = [
+    'bg-text/90 dark:bg-text-dark/90',
+    'bg-text/70 dark:bg-text-dark/70',
+    'bg-text/50 dark:bg-text-dark/50',
+    'bg-text/30 dark:bg-text-dark/30',
+    'bg-text/15 dark:bg-text-dark/15'
+  ];
 
   // ── Category breakdown (the compact card below the metric tiles) ─────────
   // Click totals grouped by owning category, rendered as ONE stacked bar +
@@ -159,15 +165,15 @@
     return rows.map((r) => ({ ...r, pct: Math.max(1, Math.round((r.n / total) * 100)) }));
   });
 
-  // 5-step colour ramp, primary-tinted so it tracks the site theme in both
+  // 5-step colour ramp, neutral-tinted so it tracks the site theme in both
   // light and dark mode. 0 = neutral track colour.
   function heatCls(count: number): string {
-    if (count <= 0) return 'bg-border/50 dark:bg-border-dark/50';
+    if (count <= 0) return 'bg-transparent border border-border/40 dark:border-border-dark/40';
     const ratio = count / heatMax;
-    if (ratio <= 0.25) return 'bg-primary/25';
-    if (ratio <= 0.5) return 'bg-primary/45';
-    if (ratio <= 0.75) return 'bg-primary/70';
-    return 'bg-primary';
+    if (ratio <= 0.25) return 'bg-text/20 dark:bg-text-dark/20 border border-transparent';
+    if (ratio <= 0.5) return 'bg-text/40 dark:bg-text-dark/40 border border-transparent';
+    if (ratio <= 0.75) return 'bg-text/60 dark:bg-text-dark/60 border border-transparent';
+    return 'bg-text/80 dark:bg-text-dark/80 border border-transparent';
   }
 
   // ── Heatmap hover tooltip ─────────────────────────────────────────────────
@@ -211,15 +217,15 @@
   <!-- ── Summary tiles ─────────────────────────────────────────────────── -->
   <div class="grid grid-cols-3 gap-3 mb-6">
     <div class="rounded-2xl border border-border/80 dark:border-border-dark/80 bg-surface/50 dark:bg-surface-dark/50 p-4 text-center shadow-2xs">
-      <p class="text-2xl font-black text-primary tracking-tight">{todayAll}</p>
+      <p class="text-2xl font-black text-text dark:text-text-dark tracking-tight">{todayAll}</p>
       <p class="text-xs font-medium text-text-secondary dark:text-text-secondary-dark mt-1">{t('stats.todayAll')}</p>
     </div>
     <div class="rounded-2xl border border-border/80 dark:border-border-dark/80 bg-surface/50 dark:bg-surface-dark/50 p-4 text-center shadow-2xs">
-      <p class="text-2xl font-black text-primary tracking-tight">{totalAll}</p>
+      <p class="text-2xl font-black text-text dark:text-text-dark tracking-tight">{totalAll}</p>
       <p class="text-xs font-medium text-text-secondary dark:text-text-secondary-dark mt-1">{t('stats.totalAll')}</p>
     </div>
     <div class="rounded-2xl border border-border/80 dark:border-border-dark/80 bg-surface/50 dark:bg-surface-dark/50 p-4 text-center shadow-2xs">
-      <p class="text-2xl font-black text-primary tracking-tight">{activeCards}</p>
+      <p class="text-2xl font-black text-text dark:text-text-dark tracking-tight">{activeCards}</p>
       <p class="text-xs font-medium text-text-secondary dark:text-text-secondary-dark mt-1">{t('stats.activeCards')}</p>
     </div>
   </div>
@@ -264,11 +270,11 @@
         </div>
         <div class="flex items-center justify-center gap-1.5 mt-3 text-[10px] text-text-secondary dark:text-text-secondary-dark font-medium">
           <span>{t('stats.less')}</span>
-          <span class="w-3 h-3 rounded-md bg-border/50 dark:bg-border-dark/50"></span>
-          <span class="w-3 h-3 rounded-md bg-primary/25"></span>
-          <span class="w-3 h-3 rounded-md bg-primary/45"></span>
-          <span class="w-3 h-3 rounded-md bg-primary/70"></span>
-          <span class="w-3 h-3 rounded-md bg-primary"></span>
+          <span class="w-3 h-3 rounded-[3px] border border-border/40 dark:border-border-dark/40"></span>
+          <span class="w-3 h-3 rounded-[3px] bg-text/20 dark:bg-text-dark/20"></span>
+          <span class="w-3 h-3 rounded-[3px] bg-text/40 dark:bg-text-dark/40"></span>
+          <span class="w-3 h-3 rounded-[3px] bg-text/60 dark:bg-text-dark/60"></span>
+          <span class="w-3 h-3 rounded-[3px] bg-text/80 dark:bg-text-dark/80"></span>
           <span>{t('stats.more')}</span>
         </div>
       </div>
@@ -276,19 +282,19 @@
       <!-- Metric tiles -->
       <div class="rounded-2xl border border-border/80 dark:border-border-dark/80 bg-surface/40 dark:bg-surface-dark/40 grid grid-cols-3 divide-x divide-border/70 dark:divide-border-dark/70 shadow-2xs">
         <div class="flex flex-col items-center justify-center gap-0.5 py-3 px-2">
-          <span class="text-lg font-bold text-primary tabular-nums">
+          <span class="text-lg font-bold text-text dark:text-text-dark tabular-nums">
             {streak}<span class="ml-0.5 text-[10px] font-medium text-text-secondary dark:text-text-secondary-dark">{t('stats.daysUnit')}</span>
           </span>
           <span class="text-[10px] font-medium text-text-secondary dark:text-text-secondary-dark">{t('stats.streak')}</span>
         </div>
         <div class="flex flex-col items-center justify-center gap-0.5 py-3 px-2">
-          <span class="text-lg font-bold text-primary tabular-nums">
+          <span class="text-lg font-bold text-text dark:text-text-dark tabular-nums">
             {bestDay}<span class="ml-0.5 text-[10px] font-medium text-text-secondary dark:text-text-secondary-dark">{t('stats.clicksUnit')}</span>
           </span>
           <span class="text-[10px] font-medium text-text-secondary dark:text-text-secondary-dark">{t('stats.bestDay')}</span>
         </div>
         <div class="flex flex-col items-center justify-center gap-0.5 py-3 px-2">
-          <span class="text-lg font-bold text-primary tabular-nums">
+          <span class="text-lg font-bold text-text dark:text-text-dark tabular-nums">
             {last7}<span class="ml-0.5 text-[10px] font-medium text-text-secondary dark:text-text-secondary-dark">{t('stats.clicksUnit')}</span>
           </span>
           <span class="text-[10px] font-medium text-text-secondary dark:text-text-secondary-dark">{t('stats.last7')}</span>
@@ -310,7 +316,7 @@
               <span class="flex-1 min-w-0 truncate text-text dark:text-text-dark font-medium">{row.name}</span>
               <span class="shrink-0 tabular-nums text-text-secondary dark:text-text-secondary-dark font-mono">{row.pct}%</span>
               {#if perCat.length <= 3}
-                <span class="shrink-0 w-7 text-right tabular-nums font-bold text-primary">{row.n}</span>
+                <span class="shrink-0 w-7 text-right tabular-nums font-bold text-text dark:text-text-dark">{row.n}</span>
               {/if}
             </li>
           {/each}
@@ -344,7 +350,7 @@
             <p class="text-xs text-text-secondary dark:text-text-secondary-dark truncate">{row.category}</p>
           </div>
           <div class="text-right shrink-0 tabular-nums">
-            <span class="text-sm font-bold text-primary">{row.total}</span>
+            <span class="text-sm font-bold text-text dark:text-text-dark">{row.total}</span>
             {#if row.today > 0}
               <span class="ml-2 text-xs text-text-secondary dark:text-text-secondary-dark font-medium">
                 {t('stats.colToday')} {row.today}
