@@ -96,7 +96,7 @@
     tabindex={interactive ? 0 : undefined}
     title={bookmark.url}
     style="--i:{index}"
-    class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-2xl border border-border/80 dark:border-border-dark/80 overflow-hidden transition-all duration-200 ease-out text-center select-none shadow-xs {interactive ? 'hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/50 hover:border-text/25 dark:hover:border-text-dark/25 hover:-translate-y-1 cursor-pointer' : ''}"
+    class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-2xl border border-border/80 dark:border-border-dark/80 transition-all duration-200 ease-out text-center select-none shadow-xs {interactive ? 'hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/50 hover:border-text/25 dark:hover:border-text-dark/25 hover:-translate-y-1 cursor-pointer' : ''}"
   >
     <!-- Today-clicks badge: Frosted Glass Micro-Pill with smooth Hover Reveal -->
     {#if interactive && clickToday > 0}
@@ -108,14 +108,22 @@
       </span>
     {/if}
 
+    <!-- Full-title hover tooltip bubble -->
+    <div class="pointer-events-none absolute bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 z-30 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-150 ease-out whitespace-nowrap">
+      <div class="px-2.5 py-1 rounded-xl bg-surface/95 dark:bg-surface-dark/95 backdrop-blur-2xl border border-border/90 dark:border-border-dark/90 shadow-xl text-xs font-semibold text-text dark:text-text-dark max-w-[220px] truncate text-center">
+        {bookmark.title}
+      </div>
+      <div class="w-2 h-2 bg-surface dark:bg-surface-dark border-r border-b border-border/90 dark:border-border-dark/90 rotate-45 mx-auto -mt-1"></div>
+    </div>
+
     <!-- Icon area -->
     <div class="flex-1 flex items-center justify-center min-h-0 p-1">
       <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill class="h-full aspect-square card-icon-zoom" />
     </div>
 
-    <!-- Title pinned to the bottom -->
-    <div class="px-1.5 pb-1.5 pt-0.5 shrink-0 overflow-hidden">
-      <h3 class="font-medium text-text dark:text-text-dark line-clamp-2 break-words leading-tight {spec.compactTitle}">
+    <!-- Title pinned to the bottom: single-line truncate so every icon in the tier has identical height -->
+    <div class="px-1.5 pb-1.5 pt-0.5 shrink-0 overflow-hidden w-full">
+      <h3 class="font-medium text-text dark:text-text-dark truncate leading-tight {spec.compactTitle}">
         {bookmark.title}
       </h3>
     </div>
@@ -129,8 +137,15 @@
     role={interactive ? 'button' : undefined}
     tabindex={interactive ? 0 : undefined}
     style="--i:{index}"
-    class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} {spec.detailPad} aspect-[2/1] bg-surface dark:bg-surface-dark rounded-2xl border border-border/80 dark:border-border-dark/80 overflow-hidden transition-all duration-200 ease-out text-left select-none shadow-xs {interactive ? 'hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/50 hover:border-text/25 dark:hover:border-text-dark/25 hover:-translate-y-1 cursor-pointer' : ''}"
+    class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} {spec.detailPad} aspect-[2/1] bg-surface dark:bg-surface-dark rounded-2xl border border-border/80 dark:border-border-dark/80 transition-all duration-200 ease-out text-left select-none shadow-xs {interactive ? 'hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/50 hover:border-text/25 dark:hover:border-text-dark/25 hover:-translate-y-1 cursor-pointer' : ''}"
   >
+    <!-- Full-title hover tooltip bubble for detail card -->
+    <div class="pointer-events-none absolute bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 z-30 opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-150 ease-out whitespace-nowrap">
+      <div class="px-2.5 py-1 rounded-xl bg-surface/95 dark:bg-surface-dark/95 backdrop-blur-2xl border border-border/90 dark:border-border-dark/90 shadow-xl text-xs font-semibold text-text dark:text-text-dark max-w-[260px] truncate text-center">
+        {bookmark.title}
+      </div>
+      <div class="w-2 h-2 bg-surface dark:bg-surface-dark border-r border-b border-border/90 dark:border-border-dark/90 rotate-45 mx-auto -mt-1"></div>
+    </div>
     {#if interactive && clickToday > 0}
       <span
         class="absolute top-2 right-2 z-10 min-w-5 h-4.5 px-1.5 flex items-center justify-center rounded-full bg-surface/90 dark:bg-surface-dark/90 backdrop-blur-md border border-border/90 dark:border-border-dark/90 text-[10px] font-mono font-semibold text-text/80 dark:text-text-dark/80 pointer-events-none shadow-2xs opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-200 ease-out"
