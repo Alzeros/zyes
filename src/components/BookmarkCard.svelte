@@ -109,14 +109,12 @@
     {/if}
 
     <!-- Icon area -->
-    <div class="flex-1 flex items-center justify-center min-h-0 p-1.5">
-      <div class="w-full h-full flex items-center justify-center rounded-xl bg-bg/50 dark:bg-bg-dark/50">
-        <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill class="h-3/4 aspect-square card-icon-zoom" />
-      </div>
+    <div class="flex-1 flex items-center justify-center min-h-0 p-1">
+      <IconView source={iconSource} proxyUrl={proxyUrl} fallbackUrls={getFaviconUrls(bookmark.url)} title={bookmark.title} fill class="h-full aspect-square card-icon-zoom" />
     </div>
 
     <!-- Title pinned to the bottom -->
-    <div class="px-2 pb-2 pt-0.5 shrink-0 overflow-hidden">
+    <div class="px-1.5 pb-1.5 pt-0.5 shrink-0 overflow-hidden">
       <h3 class="font-medium text-text dark:text-text-dark line-clamp-2 break-words leading-tight {spec.compactTitle}">
         {bookmark.title}
       </h3>
