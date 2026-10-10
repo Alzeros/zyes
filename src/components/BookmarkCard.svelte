@@ -98,10 +98,10 @@
     style="--i:{index}"
     class="group relative {colSpan} {enterAnim && interactive ? 'card-enter' : ''} flex flex-col aspect-square bg-surface dark:bg-surface-dark rounded-2xl border border-border/80 dark:border-border-dark/80 overflow-hidden transition-all duration-200 ease-out text-center select-none shadow-xs {interactive ? 'hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/50 hover:border-text/25 dark:hover:border-text-dark/25 hover:-translate-y-1 cursor-pointer' : ''}"
   >
-    <!-- Today-clicks badge -->
+    <!-- Today-clicks badge: Frosted Glass Micro-Pill with smooth Hover Reveal -->
     {#if interactive && clickToday > 0}
       <span
-        class="absolute top-1.5 right-1.5 z-10 min-w-4.5 h-4.5 px-1.5 rounded-full bg-text text-bg dark:bg-text-dark dark:text-bg-dark text-[10px] font-bold leading-4.5 text-center pointer-events-none shadow-2xs"
+        class="absolute top-1.5 right-1.5 z-10 min-w-5 h-4.5 px-1.5 flex items-center justify-center rounded-full bg-surface/90 dark:bg-surface-dark/90 backdrop-blur-md border border-border/90 dark:border-border-dark/90 text-[10px] font-mono font-semibold text-text/80 dark:text-text-dark/80 pointer-events-none shadow-2xs opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-200 ease-out"
         title={t('stats.badge', { today: String(clickToday), total: String(clickTotal) })}
       >
         {clickToday > 99 ? '99+' : clickToday}
@@ -133,7 +133,7 @@
   >
     {#if interactive && clickToday > 0}
       <span
-        class="absolute top-2 right-2 z-10 min-w-4.5 h-4.5 px-1.5 rounded-full bg-text text-bg dark:bg-text-dark dark:text-bg-dark text-[10px] font-bold leading-4.5 text-center pointer-events-none shadow-2xs"
+        class="absolute top-2 right-2 z-10 min-w-5 h-4.5 px-1.5 flex items-center justify-center rounded-full bg-surface/90 dark:bg-surface-dark/90 backdrop-blur-md border border-border/90 dark:border-border-dark/90 text-[10px] font-mono font-semibold text-text/80 dark:text-text-dark/80 pointer-events-none shadow-2xs opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-200 ease-out"
         title={t('stats.badge', { today: String(clickToday), total: String(clickTotal) })}
       >
         {clickToday > 99 ? '99+' : clickToday}
