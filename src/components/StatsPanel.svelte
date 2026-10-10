@@ -6,12 +6,17 @@
   // Read-only view over the click-stats feed. All aggregation is derived:
   // the parent (App) owns the rows and refreshes them via onrefreshStats
   // whenever this panel opens, so the numbers here are always fresh-on-open.
+  // `todayKey` is owned by App (one source of truth backed by the midnight
+  // timer + visibility watcher), so this panel rolls over live even when the
+  // modal is left open across midnight.
   let {
     statsRows,
+    todayKey,
     bookmarks,
     categories,
   }: {
     statsRows: ClickStatRow[];
+    todayKey: string;
     bookmarks: Bookmark[];
     categories: Category[];
   } = $props();
@@ -20,11 +25,6 @@
   // dropped here (the store keeps them as harmless orphans).
   let cardById = $derived(new Map(bookmarks.map((b) => [b.id, b])));
   let catNameById = $derived(new Map(categories.map((c) => [c.id, c.name])));
-
-  // "Today" = the viewer's local calendar day, consistent with what reportClick
-  // stored. Snapshotted at mount; the panel remounts on each open (v-if in
-  // SettingsModal), so every open re-reads the clock.
-  let todayKey = $derived(dayKey());
 
   // cardId → { today, total }, only for cards that still exist.
   let perCard = $derived.by(() => {
@@ -76,8 +76,7 @@
   });
   const HEAT_WEEKS = 5;
   let heatRows = $derived.by(() => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = new Date(`${todayKey}T00:00:00`);
     const dow = (today.getDay() + 6) % 7; // Mon=0 … Sun=6
     const thisMonday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - dow);
 
@@ -102,11 +101,14 @@
   );
 
   // ── Efficiency metrics (fills the space beside the adaptive heatmap) ──────
+  // Anchor "today" to the todayKey prop (not `new Date()`) so these derive
+  // re-run when the prop rolls over at midnight, not only when the panel
+  // remounts. todayKey is 'YYYY-MM-DD' so `${todayKey}T00:00:00` parses in
+  // local time (per the ECMAScript spec for date-time strings without a zone).
   // streak: consecutive days with ≥1 click, ending today — or yesterday when
   // today hasn't been clicked yet (so the badge doesn't reset at midnight).
   let streak = $derived.by(() => {
-    const now = new Date();
-    const cur = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const cur = new Date(`${todayKey}T00:00:00`);
     if (!(heatByDay.get(dayKey(cur)) ?? 0)) cur.setDate(cur.getDate() - 1);
     let n = 0;
     while ((heatByDay.get(dayKey(cur)) ?? 0) > 0) {
@@ -117,8 +119,7 @@
   });
   let bestDay = $derived(heatByDay.size ? Math.max(...heatByDay.values()) : 0);
   let last7 = $derived.by(() => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = new Date(`${todayKey}T00:00:00`);
     let n = 0;
     for (let i = 0; i < 7; i++) {
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);

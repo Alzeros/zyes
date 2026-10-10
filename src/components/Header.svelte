@@ -18,6 +18,7 @@
     clickBadge,
     defaultEngine,
     statsRows,
+    todayKey,
     bookmarks,
     categories,
     onrefreshStats,
@@ -38,6 +39,7 @@
     clickBadge: boolean;
     defaultEngine: string;
     statsRows: ClickStatRow[];
+    todayKey: string;
     bookmarks: Bookmark[];
     categories: Category[];
     onrefreshStats: () => Promise<void>;
@@ -252,6 +254,7 @@
   <StatsModal
     {lang}
     {statsRows}
+    {todayKey}
     {bookmarks}
     {categories}
     {onrefreshStats}

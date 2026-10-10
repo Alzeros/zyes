@@ -23,11 +23,21 @@
   // ── Click statistics ──────────────────────────────────────────────────────
   // Raw per-(card, day) rows from GET /api/stats/clicks. Kept as rows (not
   // pre-aggregated maps) so the settings panel's heatmap/top-list can slice
-  // the same state without a second fetch. `todayKey` is snapshotted at load:
-  // a page left open across midnight shows stale "today" badges until the
-  // next fetch — acceptable for a nav portal, and refresh fixes it.
+  // the same state without a second fetch.
   let clickRows = $state<ClickStatRow[]>([]);
   let todayKey = $state(dayKey());
+
+  // Check if calendar day has rolled over across midnight; if so, update
+  // todayKey and refresh stats so "today" badges reset cleanly.
+  function checkDayRollover() {
+    const currentDay = dayKey();
+    if (currentDay !== todayKey) {
+      todayKey = currentDay;
+      if (authenticated) {
+        void refreshClickStats();
+      }
+    }
+  }
 
   // cardId → total clicks (all days) and cardId → clicks today. Both derived
   // so they update reactively when handleCardClick bumps clickRows optimistically.
@@ -54,10 +64,14 @@
   // Optimistic local bump fired by every card-open path (card click + context
   // menu "open"). The server report itself is fire-and-forget inside the card
   // (reportClick); this only advances the badge instantly so the UI feels live.
+  // Route the day check through checkDayRollover so a post-midnight first click
+  // also triggers a stats refetch (yesterday's rows flow back into clickRows).
   function handleCardClick(cardId: string) {
-    const i = clickRows.findIndex((r) => r.cardId === cardId && r.day === todayKey);
+    checkDayRollover();
+    const currentDay = todayKey;
+    const i = clickRows.findIndex((r) => r.cardId === cardId && r.day === currentDay);
     if (i >= 0) clickRows[i] = { ...clickRows[i], count: clickRows[i].count + 1 };
-    else clickRows = [...clickRows, { cardId, day: todayKey, count: 1 }];
+    else clickRows = [...clickRows, { cardId, day: currentDay, count: 1 }];
   }
 
   // Refresh the stats feed (used on load and when the settings panel's stats
@@ -383,12 +397,13 @@
 
   // Proactive token renewal on tab re-focus: when the user switches away and
   // comes back (e.g. after lunch), check whether the token is nearing expiry
-  // and renew it silently. maybeRefresh is a no-op when there is no token or
-  // the token is still healthy, so this is safe to fire on every visibility
-  // change.
+  // and renew it silently. Also check for midnight rollover across laptop sleep.
   $effect(() => {
     function onVisible() {
-      if (document.visibilityState === 'visible') void maybeRefresh();
+      if (document.visibilityState === 'visible') {
+        void maybeRefresh();
+        checkDayRollover();
+      }
     }
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
@@ -397,9 +412,38 @@
   // days without ever triggering a request or a visibility change (e.g. this
   // nav page left open on a second monitor): poll periodically so the token
   // still gets renewed well before it expires, even with zero user activity.
+  // checkDayRollover rides along as a low-frequency backstop to the midnight
+  // timer and visibility handler — all three are idempotent, so overlap is
+  // fine; each path covers a different browser life-cycle gap.
   $effect(() => {
-    const id = window.setInterval(() => void maybeRefresh(), 15 * 60 * 1000);
+    const id = window.setInterval(() => {
+      void maybeRefresh();
+      checkDayRollover();
+    }, 15 * 60 * 1000);
     return () => window.clearInterval(id);
+  });
+  // Precision midnight timer: calculates exact ms until next 00:00:01 and
+  // schedules a single zero-polling wake-up to roll over "today" badges.
+  // Each reschedule clears the previous handle, so a stray wake-up across
+  // laptop sleep (where onVisible's checkDayRollover runs first) can't stack
+  // a second timer on top of the one that eventually fires.
+  $effect(() => {
+    let timerId: number | undefined;
+    function scheduleMidnight() {
+      if (timerId !== undefined) window.clearTimeout(timerId);
+      const now = new Date();
+      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+      const delay = Math.max(1000, nextMidnight.getTime() - now.getTime());
+      timerId = window.setTimeout(() => {
+        timerId = undefined;
+        checkDayRollover();
+        scheduleMidnight();
+      }, delay);
+    }
+    scheduleMidnight();
+    return () => {
+      if (timerId !== undefined) window.clearTimeout(timerId);
+    };
   });
   // Auto-fetch when becoming authenticated (runs once per login session)
   $effect(() => {
@@ -423,6 +467,7 @@
       clickBadge={showClickBadge}
       defaultEngine={viewSettings.defaultEngine}
       statsRows={clickRows}
+      {todayKey}
       {bookmarks}
       {categories}
       onrefreshStats={refreshClickStats}

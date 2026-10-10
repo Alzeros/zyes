@@ -10,6 +10,7 @@
   let {
     lang,
     statsRows,
+    todayKey,
     bookmarks,
     categories,
     onrefreshStats,
@@ -17,6 +18,7 @@
   }: {
     lang: string;
     statsRows: ClickStatRow[];
+    todayKey: string;
     bookmarks: Bookmark[];
     categories: Category[];
     onrefreshStats: () => Promise<void>;
@@ -63,7 +65,7 @@
 
     <!-- Body -->
     <div class="flex-1 overflow-y-auto p-6 min-h-0 thin-scroll">
-      <StatsPanel {statsRows} {bookmarks} {categories} />
+      <StatsPanel {statsRows} {todayKey} {bookmarks} {categories} />
     </div>
   </div>
 </div>
