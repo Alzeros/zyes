@@ -64,11 +64,11 @@
   });
 </script>
 
-<div class="relative w-full max-w-xl">
-  <div class="flex items-center bg-surface/90 dark:bg-surface-dark/90 backdrop-blur-md border border-border/80 dark:border-border-dark/80 rounded-full px-3.5 py-1.5 shadow-sm shadow-black/5 dark:shadow-black/20 focus-within:shadow-md focus-within:border-text/30 dark:focus-within:border-text-dark/30 transition-all duration-200">
+<div class="relative w-full md:w-[440px] lg:w-[500px]">
+  <div class="flex items-center bg-surface/90 dark:bg-surface-dark/90 backdrop-blur-md border border-border/80 dark:border-border-dark/80 rounded-full px-3.5 py-1.5 shadow-sm shadow-black/5 dark:shadow-black/20 focus-within:shadow-md focus-within:border-text/30 dark:focus-within:border-text-dark/30 transition-[border-color,box-shadow,background-color] duration-200">
     <button
-      onclick={() => (showSwitcher = !showSwitcher)}
-      class="mr-2 p-1.5 rounded-full hover:bg-bg dark:hover:bg-bg-dark border border-transparent hover:border-border dark:hover:border-border-dark transition-all cursor-pointer shrink-0 text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark"
+      onclick={(e) => { e.stopPropagation(); showSwitcher = !showSwitcher; }}
+      class="engine-switcher-btn mr-2 p-1.5 rounded-full hover:bg-bg dark:hover:bg-bg-dark border border-transparent hover:border-border dark:hover:border-border-dark transition-colors cursor-pointer shrink-0 text-text-secondary dark:text-text-secondary-dark hover:text-text dark:hover:text-text-dark"
       aria-label={switchLabel}
     >
       {#if activeIcon}
