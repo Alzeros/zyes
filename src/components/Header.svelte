@@ -228,7 +228,7 @@
 </header>
 
 {#if aboutOpen}
-  <AboutModal {lang} {siteLogo} onclose={() => (aboutOpen = false)} />
+  <AboutModal {lang} {siteName} {siteLogo} onclose={() => (aboutOpen = false)} />
 {/if}
 
 {#if settingsOpen}

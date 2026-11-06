@@ -4,7 +4,19 @@
   import Icon from '@iconify/svelte';
   import { parseIcon } from '../lib/utils';
 
-  let { lang, siteLogo, onclose }: { lang: string; siteLogo: string; onclose: () => void } = $props();
+  let {
+    lang,
+    siteName = 'Zyes',
+    siteLogo,
+    onclose,
+  }: {
+    lang: string;
+    siteName?: string;
+    siteLogo: string;
+    onclose: () => void;
+  } = $props();
+
+  void lang;
 
   // Custom logo replaces the whole brand block (Z mark + "Zyes" wordmark),
   // matching Header/LoginScreen's "replace the whole group" behaviour.
@@ -23,23 +35,24 @@
   <div class="absolute inset-0 bg-black/50 backdrop-blur-md anim-fade" onclick={onclose} onkeydown={() => {}} role="button" tabindex="-1"></div>
   <div class="relative w-full max-w-sm bg-surface dark:bg-surface-dark rounded-3xl border border-border/80 dark:border-border-dark/80 p-7 shadow-2xl text-center anim-pop">
     {#if logoSrc.kind === 'none'}
-      <div class="mx-auto mb-4 w-14 h-14 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shadow-xs">
-        <svg width="28" height="34" viewBox="6 5 17 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- Default brand mark: matches Header/main brand styling (neutral tone, sharp miter Z) -->
+      <div class="mx-auto mb-4 w-14 h-14 rounded-2xl bg-text/5 dark:bg-text-dark/10 border border-border/60 dark:border-border-dark/60 flex items-center justify-center text-text dark:text-text-dark shadow-xs">
+        <svg width="26" height="34" viewBox="6 5 17 22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path d="M 9 8 H 22 L 10 24 H 23" stroke="currentColor" stroke-width="3" stroke-linejoin="miter" stroke-linecap="square" />
         </svg>
       </div>
 
-      <h2 class="text-xl font-bold mb-1 text-text dark:text-text-dark">Zyes</h2>
+      <h2 class="text-xl font-bold mb-1 text-text dark:text-text-dark tracking-tight">{siteName || 'Zyes'}</h2>
     {:else if logoSrc.kind === 'iconify'}
-      <div class="mx-auto mb-4 w-14 h-14 rounded-2xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shadow-xs">
+      <div class="mx-auto mb-4 w-14 h-14 rounded-2xl bg-text/5 dark:bg-text-dark/10 border border-border/60 dark:border-border-dark/60 flex items-center justify-center text-text dark:text-text-dark shadow-xs">
         <Icon icon={logoSrc.name} width={32} height={32} class="shrink-0" inline />
       </div>
-      <h2 class="text-xl font-bold mb-1 text-text dark:text-text-dark">Zyes</h2>
+      <h2 class="text-xl font-bold mb-1 text-text dark:text-text-dark tracking-tight">{siteName || 'Zyes'}</h2>
     {:else}
       <div class="mx-auto mb-4 flex items-center justify-center" style="height:56px">
         <img src={logoSrc.url} alt="" class="shrink-0 object-contain w-auto max-h-14 rounded-xl" />
       </div>
-      <h2 class="text-xl font-bold mb-1 text-text dark:text-text-dark">Zyes</h2>
+      <h2 class="text-xl font-bold mb-1 text-text dark:text-text-dark tracking-tight">{siteName || 'Zyes'}</h2>
     {/if}
     <p class="text-sm text-text-secondary dark:text-text-secondary-dark mb-5 leading-relaxed">
       {t('about.tagline')}
@@ -47,14 +60,14 @@
 
     <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-bg/80 dark:bg-bg-dark/80 border border-border/80 dark:border-border-dark/80 mb-6 shadow-2xs">
       <span class="text-xs text-text-secondary dark:text-text-secondary-dark font-medium">{t('about.version')}</span>
-      <span class="text-xs font-bold text-primary font-mono">v{APP_VERSION}</span>
+      <span class="text-xs font-semibold text-text/80 dark:text-text-dark/80 font-mono">v{APP_VERSION}</span>
     </div>
 
     <div class="flex justify-center">
       <button
         type="button"
         onclick={onclose}
-        class="w-full py-2.5 px-5 rounded-xl text-sm font-semibold bg-primary hover:bg-primary-hover text-white shadow-sm shadow-primary/20 transition-all cursor-pointer"
+        class="w-full py-2.5 px-5 rounded-xl text-sm font-semibold bg-text hover:bg-text/85 text-bg dark:bg-text-dark dark:hover:bg-text-dark/85 dark:text-bg-dark shadow-sm transition-all cursor-pointer active:scale-[0.98]"
       >
         {t('about.close')}
       </button>
