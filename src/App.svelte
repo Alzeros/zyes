@@ -77,14 +77,23 @@
   // Refresh the stats feed (used on load and when the settings panel's stats
   // tab opens). Non-fatal by design: a backend without the stats routes (older
   // deploy) just leaves the counters empty instead of failing the load.
+  // Deduplicates concurrent calls so multiple simultaneous wakeup events only
+  // issue a single network request.
+  let statsRefreshPromise: Promise<void> | null = null;
   async function refreshClickStats(): Promise<void> {
-    try {
-      const { rows } = await api.get<{ rows: ClickStatRow[] }>('/api/stats/clicks');
-      clickRows = rows;
-      todayKey = dayKey();
-    } catch (err) {
-      console.error('Failed to fetch click stats:', err);
-    }
+    if (statsRefreshPromise) return statsRefreshPromise;
+    statsRefreshPromise = (async () => {
+      try {
+        const { rows } = await api.get<{ rows: ClickStatRow[] }>('/api/stats/clicks');
+        clickRows = rows;
+        todayKey = dayKey();
+      } catch (err) {
+        console.error('Failed to fetch click stats:', err);
+      } finally {
+        statsRefreshPromise = null;
+      }
+    })();
+    return statsRefreshPromise;
   }
 
   // Keep the browser tab title in sync with the persisted site name. Falls back
@@ -395,54 +404,102 @@
     viewSettings = { ...viewSettings, ...result.settings };
   }
 
-  // Proactive token renewal on tab re-focus: when the user switches away and
-  // comes back (e.g. after lunch), check whether the token is nearing expiry
-  // and renew it silently. Also check for midnight rollover across laptop sleep.
+  // ── All-weather date rollover & lifecycle synchronization ──────────────────
+  // Keeps "today" badges, efficiency metrics, and auth tokens synchronized across
+  // all operating system and browser states without requiring user clicks:
+  //
+  // 1. Sleep/Wake Heartbeat: Monitors wall-clock drift. If the heartbeat detects
+  //    a gap (>2500ms between 1000ms ticks), the system was suspended (laptop lid
+  //    closed, OS sleep, thread freezing). It immediately executes checkDayRollover()
+  //    and maybeRefresh() so badges are already refreshed when the user looks at the screen.
+  // 2. High-frequency rollover check: Checks if calendar day rolled over every second,
+  //    guaranteeing near-instant zero-latency update at midnight even without sleep.
+  // 3. Precision Midnight Strike: Schedules a sub-second timer to hit 00:00:00.050 sharp.
+  // 4. Lifecycle Event Matrix: Catches window focus, tab visibilitychange, pageshow
+  //    (bfcache), network online (reconnect retry), and passive pointerdown (any interaction).
+  // 5. Idle token renewal: 15-minute background pulse to renew JWT long before expiry.
   $effect(() => {
-    function onVisible() {
+    let midnightTimerId: number | undefined;
+
+    function sync() {
+      checkDayRollover();
       if (document.visibilityState === 'visible') {
         void maybeRefresh();
-        checkDayRollover();
       }
     }
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  });
-  // Belt-and-suspenders for a tab that just sits open in the foreground for
-  // days without ever triggering a request or a visibility change (e.g. this
-  // nav page left open on a second monitor): poll periodically so the token
-  // still gets renewed well before it expires, even with zero user activity.
-  // checkDayRollover rides along as a low-frequency backstop to the midnight
-  // timer and visibility handler — all three are idempotent, so overlap is
-  // fine; each path covers a different browser life-cycle gap.
-  $effect(() => {
-    const id = window.setInterval(() => {
-      void maybeRefresh();
-      checkDayRollover();
-    }, 15 * 60 * 1000);
-    return () => window.clearInterval(id);
-  });
-  // Precision midnight timer: calculates exact ms until next 00:00:01 and
-  // schedules a single zero-polling wake-up to roll over "today" badges.
-  // Each reschedule clears the previous handle, so a stray wake-up across
-  // laptop sleep (where onVisible's checkDayRollover runs first) can't stack
-  // a second timer on top of the one that eventually fires.
-  $effect(() => {
-    let timerId: number | undefined;
-    function scheduleMidnight() {
-      if (timerId !== undefined) window.clearTimeout(timerId);
+
+    function schedulePrecisionMidnight() {
+      if (midnightTimerId !== undefined) window.clearTimeout(midnightTimerId);
       const now = new Date();
-      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
-      const delay = Math.max(1000, nextMidnight.getTime() - now.getTime());
-      timerId = window.setTimeout(() => {
-        timerId = undefined;
-        checkDayRollover();
-        scheduleMidnight();
+      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 50);
+      const delay = Math.max(50, nextMidnight.getTime() - now.getTime());
+      midnightTimerId = window.setTimeout(() => {
+        midnightTimerId = undefined;
+        sync();
+        schedulePrecisionMidnight();
       }, delay);
     }
-    scheduleMidnight();
+
+    // 1. Sleep/wake detection & per-second rollover heartbeat
+    let lastTick = Date.now();
+    const heartbeatId = window.setInterval(() => {
+      const now = Date.now();
+      const drift = now - lastTick;
+      lastTick = now;
+
+      // Clock jumped forward significantly: laptop woke from sleep or tab thawed from background freeze
+      if (drift > 2500) {
+        sync();
+        schedulePrecisionMidnight();
+      } else {
+        checkDayRollover();
+      }
+    }, 1000);
+
+    // 2. Window & tab lifecycle events
+    function onVisibility() {
+      if (document.visibilityState === 'visible') {
+        sync();
+        schedulePrecisionMidnight();
+      }
+    }
+    function onFocus() {
+      sync();
+      schedulePrecisionMidnight();
+    }
+    function onOnline() {
+      sync();
+      if (authenticated) {
+        void refreshClickStats();
+      }
+    }
+    function onPointerDown() {
+      checkDayRollover();
+    }
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('pageshow', onVisibility);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('pointerdown', onPointerDown, { passive: true, capture: true });
+
+    // 3. 15-minute proactive token renewal backstop
+    const tokenIntervalId = window.setInterval(() => {
+      void maybeRefresh();
+    }, 15 * 60 * 1000);
+
+    // Initial setup
+    schedulePrecisionMidnight();
+
     return () => {
-      if (timerId !== undefined) window.clearTimeout(timerId);
+      if (midnightTimerId !== undefined) window.clearTimeout(midnightTimerId);
+      window.clearInterval(heartbeatId);
+      window.clearInterval(tokenIntervalId);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('pageshow', onVisibility);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('pointerdown', onPointerDown, { capture: true });
     };
   });
   // Auto-fetch when becoming authenticated (runs once per login session)
