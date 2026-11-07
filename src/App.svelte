@@ -11,13 +11,34 @@
   import BookmarkGrid from './components/BookmarkGrid.svelte';
 
   let authenticated = $state(isAuthenticated());
-  let loading = $state(false);
+  let loading = $state(isAuthenticated());
   let lang = $state(getLang());
   let categories = $state<Category[]>([]);
   let bookmarks = $state<Bookmark[]>([]);
   let searchEngines = $state<SearchEngine[]>([]);
   let activeCategoryId = $state<string>('all');
-  let viewSettings = $state<ViewSettings>({ allViewMode: 'detail', cardSize: 'md', siteName: 'zyes', siteLogo: '', defaultEngine: 'google', clickBadge: true });
+  const SETTINGS_STORAGE_KEY = 'zyes_view_settings';
+  function loadStoredSettings(): ViewSettings {
+    const fallback: ViewSettings = {
+      allViewMode: 'detail',
+      cardSize: 'md',
+      siteName: 'zyes',
+      siteLogo: '',
+      defaultEngine: 'google',
+      clickBadge: true,
+    };
+    try {
+      const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (raw) return { ...fallback, ...JSON.parse(raw) };
+    } catch {}
+    return fallback;
+  }
+  function persistSettings(s: ViewSettings) {
+    try {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(s));
+    } catch {}
+  }
+  let viewSettings = $state<ViewSettings>(loadStoredSettings());
   let didInitialFetch = $state(false);
 
   // ── Click statistics ──────────────────────────────────────────────────────
@@ -202,6 +223,7 @@
       if (Object.keys(apiBody).length > 0) {
         const updated = await api.put<ViewSettings>("/api/settings/view", apiBody);
         viewSettings = { ...viewSettings, ...updated };
+        persistSettings(viewSettings);
       }
       return true;
     } catch (err) {
@@ -242,6 +264,7 @@
       bookmarks = bms;
       searchEngines = engines;
       viewSettings = settings;
+      persistSettings(settings);
       // Stats load independently of the core data — an older backend without
       // the routes (or a transient failure) must never block the page.
       void refreshClickStats();
@@ -402,6 +425,7 @@
     const result = await api.post<{ settings: ViewSettings }>('/api/data/import-html', { html, mode });
     await fetchData();
     viewSettings = { ...viewSettings, ...result.settings };
+    persistSettings(viewSettings);
   }
 
   // ── All-weather date rollover & lifecycle synchronization ──────────────────
@@ -549,7 +573,7 @@
         ondelete={handleCategoryDelete}
         onreorder={handleCategoryReorder}
       />
-      <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 thin-scroll [scrollbar-gutter:stable]">
         {#if loading}
           <div class="flex items-center justify-center h-64">
             <div class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>

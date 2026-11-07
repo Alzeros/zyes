@@ -161,7 +161,6 @@
       </h2>
     </div>
 
-    {#key cardSize}
       <div
         use:dndzone={dndConfig}
         onconsider={handleDndConsider}
@@ -200,7 +199,6 @@
           </div>
         </button>
       </div>
-    {/key}
   </div>
 {/if}
 
