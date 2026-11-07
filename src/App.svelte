@@ -573,7 +573,7 @@
         ondelete={handleCategoryDelete}
         onreorder={handleCategoryReorder}
       />
-      <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 thin-scroll [scrollbar-gutter:stable]">
+      <main class="flex-1 overflow-y-scroll p-4 md:p-6 lg:p-8 thin-scroll [scrollbar-gutter:stable]">
         {#if loading}
           <div class="flex items-center justify-center h-64">
             <div class="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
